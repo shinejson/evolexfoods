@@ -1,0 +1,24 @@
+<div class="shell">
+  <aside>
+    <div class="brand">
+      <div class="mark">EV</div>
+      <div>
+        <strong>Evolex Hub</strong>
+        <span>Digital operations</span>
+      </div>
+    </div>
+    <nav>
+      <a *ngFor="let item of nav" [routerLink]="item.path" routerLinkActive="active">{{ item.label }}</a>
+    </nav>
+  </aside>
+  <div class="main">
+    <header>
+      <div>
+        <div class="eyebrow">Management visibility layer</div>
+        <div class="who">{{ auth.user?.name }} · {{ auth.user?.role }}</div>
+      </div>
+      <button class="btn ghost" (click)="auth.logout()">Sign out</button>
+    </header>
+    <router-outlet />
+  </div>
+</div>

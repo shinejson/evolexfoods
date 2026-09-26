@@ -1,0 +1,40 @@
+<section class="page">
+  <div class="page-head">
+    <div>
+      <h1>Inventory</h1>
+      <p>Stock levels, medicines and low-stock alerts.</p>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi alert"><div class="label">Low stock</div><div class="value">{{ low.count }}</div></div>
+    <div class="kpi"><div class="label">Medicines</div><div class="value">{{ medicines.count }}</div></div>
+    <div class="kpi"><div class="label">Expiring batches</div><div class="value">{{ medicines.expiring?.length }}</div></div>
+  </div>
+  <div class="panel">
+    <h2>Low stock alerts</h2>
+    <table>
+      <thead><tr><th>Item</th><th>Category</th><th>On hand</th><th>Reorder</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let item of low.items">
+          <td>{{ item.name }}</td>
+          <td>{{ item.category }}</td>
+          <td>{{ item.quantity_on_hand }} {{ item.unit }}</td>
+          <td>{{ item.reorder_level }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>Medicines available</h2>
+    <table>
+      <thead><tr><th>Medicine</th><th>On hand</th><th>Expiry</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let item of medicines.items">
+          <td>{{ item.name }}</td>
+          <td>{{ item.quantity_on_hand }} {{ item.unit }}</td>
+          <td>{{ item.expiry_date }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

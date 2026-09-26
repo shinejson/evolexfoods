@@ -1,0 +1,57 @@
+<section class="page">
+  <div class="page-head">
+    <div>
+      <h1>Procurement</h1>
+      <p>Purchase requests, approval history, orders and goods received.</p>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="label">Requests</div><div class="value">{{ requests.count }}</div></div>
+    <div class="kpi alert"><div class="label">Pending</div><div class="value">{{ requests.pending }}</div></div>
+    <div class="kpi"><div class="label">Purchase orders</div><div class="value">{{ purchases.count }}</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Purchase requests</h2>
+      <table>
+        <thead><tr><th>Number</th><th>Item</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of requests.records">
+            <td>{{ row.request_number }}</td>
+            <td>{{ row.item_name }} <div class="muted">{{ row.quantity }} {{ row.unit }}</div></td>
+            <td><span class="badge" [class]="row.status">{{ row.status }}</span></td>
+            <td><button class="btn ghost" (click)="showApprovals(row.id)">Approvals</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>Approval history</h2>
+      <div *ngIf="!selected" class="empty">Select a request to view who approved it.</div>
+      <table *ngIf="selected">
+        <thead><tr><th>Approver</th><th>Decision</th><th>When</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of selected.approvals">
+            <td>{{ row.approver?.name }}</td>
+            <td><span class="badge" [class]="row.decision">{{ row.decision }}</span></td>
+            <td>{{ row.decided_at }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Purchases and receipts</h2>
+    <table>
+      <thead><tr><th>PO</th><th>Supplier</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let row of purchases.purchase_orders">
+          <td>{{ row.po_number }}</td>
+          <td>{{ row.supplier?.name }}</td>
+          <td>{{ row.total_amount }}</td>
+          <td><span class="badge" [class]="row.status">{{ row.status }}</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

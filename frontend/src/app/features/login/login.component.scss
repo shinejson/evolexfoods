@@ -1,0 +1,33 @@
+.login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 20% 20%, rgba(196,163,90,0.25), transparent 40%),
+    linear-gradient(160deg, #1c2e1f, #314833);
+}
+
+.card {
+  width: min(420px, 92vw);
+  background: var(--paper-2);
+  border-radius: 24px;
+  padding: 32px;
+  box-shadow: var(--shadow);
+}
+
+.mark {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--gold);
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+}
+
+h1 { margin: 16px 0 8px; }
+p { color: var(--ink-soft); }
+form { display: grid; gap: 8px; margin-top: 18px; }
+label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.hint { margin-top: 16px; font-size: 12px; }
+.err { color: var(--danger); }

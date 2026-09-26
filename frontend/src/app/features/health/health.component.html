@@ -1,0 +1,40 @@
+<section class="page">
+  <div class="page-head">
+    <div>
+      <h1>Health Dashboard</h1>
+      <p>Sick animals, open cases and active treatments.</p>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi alert"><div class="label">Sick animals</div><div class="value">{{ sick.count }}</div></div>
+    <div class="kpi"><div class="label">Under treatment</div><div class="value">{{ treatments.count }}</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Open health records</h2>
+      <table>
+        <thead><tr><th>Animal</th><th>Condition</th><th>Severity</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of sick.records">
+            <td>{{ row.animal?.animal_id }}<div class="muted">{{ row.animal?.location?.name }}</div></td>
+            <td>{{ row.condition }}</td>
+            <td><span class="badge" [class]="row.severity">{{ row.severity }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>Active treatments</h2>
+      <table>
+        <thead><tr><th>Animal</th><th>Medicine</th><th>Started</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of treatments.records">
+            <td>{{ row.animal?.animal_id }}</td>
+            <td>{{ row.medicine }} · {{ row.dosage }}</td>
+            <td>{{ row.start_date }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

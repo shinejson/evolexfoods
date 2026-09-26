@@ -1,0 +1,28 @@
+<section class="page">
+  <div class="page-head">
+    <div>
+      <h1>Feed Dashboard</h1>
+      <p>On-hand feed, daily usage and days of cover.</p>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="label">Feed on hand</div><div class="value">{{ summary.feed_on_hand }}</div></div>
+    <div class="kpi"><div class="label">Daily use</div><div class="value">{{ days.average_daily_consumption }}</div></div>
+    <div class="kpi" [class.alert]="days.alert"><div class="label">Days remaining</div><div class="value">{{ days.days_remaining }}</div></div>
+    <div class="kpi"><div class="label">Feed cost / animal</div><div class="value">{{ summary.feed_cost_per_animal }}</div></div>
+  </div>
+  <div class="panel">
+    <h2>Feed items</h2>
+    <table>
+      <thead><tr><th>Item</th><th>On hand</th><th>Daily</th><th>Reorder</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let item of summary.items">
+          <td>{{ item.inventory_item?.name }}</td>
+          <td>{{ item.inventory_item?.quantity_on_hand }} {{ item.inventory_item?.unit }}</td>
+          <td>{{ item.daily_consumption }}</td>
+          <td>{{ item.inventory_item?.reorder_level }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

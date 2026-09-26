@@ -1,0 +1,48 @@
+<section class="page" *ngIf="data">
+  <div class="page-head">
+    <div>
+      <h1>CEO Command Center</h1>
+      <p>All 30 management questions, answered from structured records. {{ data.from }} to {{ data.to }}.</p>
+    </div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi" *ngFor="let card of cards()" [class]="card.cls">
+      <div class="label">{{ card.label }}</div>
+      <div class="value">{{ card.money ? (card.value | number:'1.0-0') : card.value }}</div>
+      <div class="meta">{{ card.meta }}</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="panel">
+      <h2>Answerability contract</h2>
+      <table>
+        <thead><tr><th>#</th><th>Question</th><th>Answer</th><th>Source</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let item of answers()">
+            <td>{{ item.num }}</td>
+            <td>{{ item.question }}</td>
+            <td>{{ item.display }}</td>
+            <td class="muted">{{ item.source }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>Live alerts</h2>
+      <table>
+        <thead><tr><th>Alert</th><th>Module</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let alert of data.alerts">
+            <td>
+              <strong>{{ alert.title }}</strong>
+              <div class="muted">{{ alert.message }}</div>
+            </td>
+            <td><span class="badge" [class]="alert.severity">{{ alert.severity }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>

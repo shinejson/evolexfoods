@@ -1,0 +1,63 @@
+<section class="page">
+  <div class="page-head">
+    <div>
+      <h1>Evolex Hub</h1>
+      <p>Internal portal for farm operations, livestock, procurement, people and executive visibility.</p>
+    </div>
+  </div>
+
+  <p class="muted" *ngIf="message">{{ message }}</p>
+
+  <div class="panel" *ngIf="formType">
+    <h2>Record {{ formType }}</h2>
+    <form class="toolbar" (ngSubmit)="submit()" style="flex-direction: column; align-items: stretch;">
+      <ng-container *ngIf="formType === 'birth'">
+        <input [(ngModel)]="form.mother_animal_id" name="mother" placeholder="Mother animal ID" required />
+        <select [(ngModel)]="form.species" name="species" required>
+          <option value="goat">Goat</option>
+          <option value="sheep">Sheep</option>
+          <option value="cattle">Cattle</option>
+        </select>
+        <select [(ngModel)]="form.sex" name="sex" required>
+          <option value="female">Female</option>
+          <option value="male">Male</option>
+        </select>
+        <input [(ngModel)]="form.breed" name="breed" placeholder="Breed" />
+        <input [(ngModel)]="form.birth_weight" name="weight" placeholder="Birth weight" />
+      </ng-container>
+      <ng-container *ngIf="formType === 'death' || formType === 'sick' || formType === 'treatment'">
+        <input [(ngModel)]="form.animal_id" name="animal_id" placeholder="Animal ID e.g. EV-GT-000001" required />
+      </ng-container>
+      <input *ngIf="formType === 'death'" [(ngModel)]="form.cause" name="cause" placeholder="Cause of death" />
+      <input *ngIf="formType === 'sick'" [(ngModel)]="form.condition" name="condition" placeholder="Condition" required />
+      <input *ngIf="formType === 'treatment'" [(ngModel)]="form.treatment_type" name="treatment_type" placeholder="Treatment type" required />
+      <input *ngIf="formType === 'treatment'" [(ngModel)]="form.medicine" name="medicine" placeholder="Medicine" />
+      <input *ngIf="formType === 'treatment'" [(ngModel)]="form.dosage" name="dosage" placeholder="Dosage" />
+      <ng-container *ngIf="formType === 'purchase'">
+        <input [(ngModel)]="form.item_name" name="item_name" placeholder="Item name" required />
+        <input [(ngModel)]="form.category" name="category" placeholder="Category" />
+        <input [(ngModel)]="form.quantity" name="quantity" placeholder="Quantity" required />
+        <input [(ngModel)]="form.unit" name="unit" placeholder="Unit" />
+        <input [(ngModel)]="form.justification" name="justification" placeholder="Justification" />
+      </ng-container>
+      <div>
+        <button class="btn" type="submit">Save</button>
+        <button class="btn ghost" type="button" (click)="formType=''">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h2>Quick Actions</h2>
+    <div class="actions">
+      <button class="action" *ngFor="let action of hub.quick_actions" (click)="go(action)">{{ action.label }}</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Hub sections</h2>
+    <div class="actions">
+      <div class="action" *ngFor="let section of hub.sections">{{ section }}</div>
+    </div>
+  </div>
+</section>

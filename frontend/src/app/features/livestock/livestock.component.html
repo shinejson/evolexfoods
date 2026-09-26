@@ -1,0 +1,61 @@
+<section class="page">
+  <div class="page-head">
+    <div>
+      <h1>Livestock Dashboard</h1>
+      <p>Herd register, locations, births, deaths, growth and mortality from the Livestock Master.</p>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi ok"><div class="label">Total animals</div><div class="value">{{ summary.total_owned }}</div></div>
+    <div class="kpi"><div class="label">Female</div><div class="value">{{ summary.female }}</div></div>
+    <div class="kpi"><div class="label">Male</div><div class="value">{{ summary.male }}</div></div>
+    <div class="kpi"><div class="label">Births</div><div class="value">{{ births.count }}</div></div>
+    <div class="kpi alert"><div class="label">Deaths</div><div class="value">{{ deaths.count }}</div></div>
+    <div class="kpi alert"><div class="label">Mortality</div><div class="value">{{ mortality.mortality_rate }}%</div></div>
+    <div class="kpi ok"><div class="label">Herd growth</div><div class="value">{{ growth.herd_growth }}</div><div class="meta">{{ growth.herd_growth_rate }}%</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="panel">
+      <h2>By location</h2>
+      <table>
+        <thead><tr><th>Location</th><th>Animals</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of summary.by_location">
+            <td>{{ row.location }}</td>
+            <td>{{ row.total }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="panel">
+      <h2>By species / age</h2>
+      <table>
+        <thead><tr><th>Species</th><th>Total</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let row of summary.by_species"><td>{{ row.species }}</td><td>{{ row.total }}</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">Juvenile {{ summary.by_age?.juvenile }} · Yearling {{ summary.by_age?.yearling }} · Adult {{ summary.by_age?.adult }}</p>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>Livestock Master</h2>
+    <div class="toolbar">
+      <input [(ngModel)]="q" placeholder="Search ID, tag, breed" (keyup.enter)="search()" />
+      <button class="btn" (click)="search()">Search</button>
+    </div>
+    <table>
+      <thead><tr><th>Animal ID</th><th>Species</th><th>Sex</th><th>Location</th><th>Health</th><th>Status</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let animal of animals">
+          <td>{{ animal.animal_id }}</td>
+          <td>{{ animal.species }} / {{ animal.breed }}</td>
+          <td><span class="badge" [class]="animal.sex">{{ animal.sex }}</span></td>
+          <td>{{ animal.location?.name }}</td>
+          <td><span class="badge" [class]="animal.health_status">{{ animal.health_status }}</span></td>
+          <td><span class="badge" [class]="animal.status">{{ animal.status }}</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

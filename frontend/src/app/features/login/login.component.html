@@ -1,0 +1,18 @@
+<div class="login">
+  <div class="card">
+    <div class="mark">EV</div>
+    <h1>Evolex Hub</h1>
+    <p>Sign in to the livestock, operations and CEO command center.</p>
+    <form (ngSubmit)="submit()">
+      <label>Email</label>
+      <select [(ngModel)]="email" name="email">
+        <option *ngFor="let account of accounts" [value]="account">{{ account }}</option>
+      </select>
+      <label>Password</label>
+      <input [(ngModel)]="password" name="password" type="password" />
+      <p class="err" *ngIf="error">{{ error }}</p>
+      <button class="btn" type="submit" [disabled]="loading">Enter Hub</button>
+    </form>
+    <p class="hint">Demo password for every role: password</p>
+  </div>
+</div>

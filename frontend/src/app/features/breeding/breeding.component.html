@@ -1,0 +1,28 @@
+<section class="page">
+  <div class="page-head">
+    <div>
+      <h1>Breeding Dashboard</h1>
+      <p>Active pregnancies and expected births.</p>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="label">Pregnant</div><div class="value">{{ data.count }}</div></div>
+    <div class="kpi"><div class="label">Next 7 days</div><div class="value">{{ data.expected_births?.next_7 }}</div></div>
+    <div class="kpi"><div class="label">Next 30 days</div><div class="value">{{ data.expected_births?.next_30 }}</div></div>
+    <div class="kpi"><div class="label">Next 90 days</div><div class="value">{{ data.expected_births?.next_90 }}</div></div>
+  </div>
+  <div class="panel">
+    <h2>Active pregnancies</h2>
+    <table>
+      <thead><tr><th>Animal</th><th>Confirmed</th><th>Expected birth</th><th>Location</th></tr></thead>
+      <tbody>
+        <tr *ngFor="let row of data.records">
+          <td>{{ row.animal?.animal_id }}</td>
+          <td>{{ row.confirmed_date }}</td>
+          <td>{{ row.expected_birth_date }}</td>
+          <td>{{ row.animal?.location?.name }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

@@ -1,0 +1,43 @@
+<section class="page">
+  <div class="page-head">
+    <div>
+      <h1>{{ title }}</h1>
+      <p>{{ subtitle }}</p>
+    </div>
+  </div>
+  <div class="kpis">
+    <div class="kpi" *ngFor="let kpi of kpis" [class]="kpi.cls || ''">
+      <div class="label">{{ kpi.label }}</div>
+      <div class="value">{{ kpi.value }}</div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>{{ title }}</h2>
+    <table>
+      <thead>
+        <tr><th *ngFor="let col of columns">{{ col.label }}</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of rows">
+          <td *ngFor="let col of columns">
+            <span *ngIf="col.key === 'status' || col.key === 'severity' || col.key === 'priority'" class="badge" [class]="cell(row, col.key)">{{ cell(row, col.key) }}</span>
+            <span *ngIf="col.key !== 'status' && col.key !== 'severity' && col.key !== 'priority'">{{ cell(row, col.key) }}</span>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="panel" *ngIf="extraTitle">
+    <h2>{{ extraTitle }}</h2>
+    <table>
+      <thead>
+        <tr><th *ngFor="let col of extraColumns">{{ col.label }}</th></tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of extraRows">
+          <td *ngFor="let col of extraColumns">{{ cell(row, col.key) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
