@@ -4,13 +4,9 @@ import { ShellComponent } from './layout/shell.component';
 import { LoginComponent } from './features/login/login.component';
 import { HubComponent } from './features/hub/hub.component';
 import { CeoComponent } from './features/ceo/ceo.component';
-import { LivestockComponent } from './features/livestock/livestock.component';
-import { HealthComponent } from './features/health/health.component';
 import { BreedingComponent } from './features/breeding/breeding.component';
 import { FeedComponent } from './features/feed/feed.component';
-import { InventoryComponent } from './features/inventory/inventory.component';
-import { ProcurementComponent } from './features/procurement/procurement.component';
-import { SimpleListComponent } from './features/simple-list/simple-list.component';
+import { CrudPageComponent } from './features/records/crud-page.component';
 
 export const routes: Routes = [
   { path: 'login', component: LoginComponent },
@@ -22,23 +18,26 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'ceo' },
       { path: 'hub', component: HubComponent },
       { path: 'ceo', component: CeoComponent },
-      { path: 'livestock', component: LivestockComponent },
-      { path: 'health', component: HealthComponent },
+      { path: 'livestock', component: CrudPageComponent, data: { resource: 'livestock' } },
+      { path: 'health', component: CrudPageComponent, data: { resource: 'health' } },
+      { path: 'treatments', component: CrudPageComponent, data: { resource: 'treatments' } },
       { path: 'breeding', component: BreedingComponent },
       { path: 'feed', component: FeedComponent },
-      { path: 'inventory', component: InventoryComponent },
-      { path: 'procurement', component: ProcurementComponent },
-      { path: 'suppliers', component: SimpleListComponent, data: { page: 'suppliers' } },
-      { path: 'assets', component: SimpleListComponent, data: { page: 'assets' } },
-      { path: 'maintenance', component: SimpleListComponent, data: { page: 'maintenance' } },
-      { path: 'hr', component: SimpleListComponent, data: { page: 'hr' } },
-      { path: 'tasks', component: SimpleListComponent, data: { page: 'tasks' } },
-      { path: 'finance', component: SimpleListComponent, data: { page: 'finance' } },
-      { path: 'crm', component: SimpleListComponent, data: { page: 'crm' } },
-      { path: 'marketing', component: SimpleListComponent, data: { page: 'marketing' } },
-      { path: 'risks', component: SimpleListComponent, data: { page: 'risks' } },
-      { path: 'decisions', component: SimpleListComponent, data: { page: 'decisions' } },
-      { path: 'sops', component: SimpleListComponent, data: { page: 'sops' } }
+      { path: 'inventory', component: CrudPageComponent, data: { resource: 'inventory' } },
+      { path: 'procurement', component: CrudPageComponent, data: { resource: 'procurement' } },
+      { path: 'suppliers', component: CrudPageComponent, data: { resource: 'suppliers' } },
+      { path: 'assets', component: CrudPageComponent, data: { resource: 'assets' } },
+      { path: 'maintenance', component: CrudPageComponent, data: { resource: 'maintenance' } },
+      { path: 'hr', component: CrudPageComponent, data: { resource: 'employees' } },
+      { path: 'tasks', component: CrudPageComponent, data: { resource: 'tasks' } },
+      { path: 'finance', component: CrudPageComponent, data: { resource: 'expenses' } },
+      { path: 'invoices', component: CrudPageComponent, data: { resource: 'invoices' } },
+      { path: 'crm', component: CrudPageComponent, data: { resource: 'companies' } },
+      { path: 'deals', component: CrudPageComponent, data: { resource: 'deals' } },
+      { path: 'marketing', component: CrudPageComponent, data: { resource: 'marketing' } },
+      { path: 'risks', component: CrudPageComponent, data: { resource: 'risks' } },
+      { path: 'decisions', component: CrudPageComponent, data: { resource: 'decisions' } },
+      { path: 'sops', component: CrudPageComponent, data: { resource: 'sops' } }
     ]
   },
   { path: '**', redirectTo: 'ceo' }

@@ -235,6 +235,26 @@ input, select {
   border: 1px solid var(--line);
 }
 
+div.dt-container {
+  font-size: 14px;
+}
+
+div.dt-container .dt-search input,
+div.dt-container .dt-length select {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+table.dataTable thead th {
+  background: #f7f1e4;
+}
+
+table.dataTable tbody tr:hover {
+  background: #fbf7ee;
+}
+
 .empty {
   padding: 20px;
   color: var(--ink-soft);

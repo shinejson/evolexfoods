@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AssetMaintenanceController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CrmController;
+use App\Http\Controllers\Api\V1\CrudController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\EventController;
 use App\Http\Controllers\Api\V1\FeedInventoryController;
@@ -75,5 +76,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/audit-logs', [GovernanceController::class, 'auditLogs']);
         Route::get('/sops', [GovernanceController::class, 'sops']);
         Route::get('/systems', [GovernanceController::class, 'systems']);
+
+        Route::get('/lookups', [CrudController::class, 'lookups']);
+        Route::get('/records/{resource}', [CrudController::class, 'index']);
+        Route::post('/records/{resource}', [CrudController::class, 'store']);
+        Route::get('/records/{resource}/{id}', [CrudController::class, 'show']);
+        Route::put('/records/{resource}/{id}', [CrudController::class, 'update']);
+        Route::delete('/records/{resource}/{id}', [CrudController::class, 'destroy']);
     });
 });

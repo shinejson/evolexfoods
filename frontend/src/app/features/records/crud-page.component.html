@@ -1,0 +1,43 @@
+<section class="page" *ngIf="def">
+  <div class="page-head">
+    <div>
+      <h1>{{ def.title }}</h1>
+      <p>{{ def.subtitle }}</p>
+    </div>
+    <button class="btn" (click)="openCreate()">Add record</button>
+  </div>
+
+  <p class="muted" *ngIf="message">{{ message }}</p>
+  <p class="err" *ngIf="error">{{ error }}</p>
+
+  <div class="panel" *ngIf="showForm">
+    <h2>{{ editingId ? 'Edit record' : 'New record' }}</h2>
+    <form class="crud-form" (ngSubmit)="save()">
+      <label *ngFor="let field of def.fields">
+        <span>{{ field.label }}<em *ngIf="field.required"> *</em></span>
+        <textarea *ngIf="field.type === 'textarea'" [(ngModel)]="form[field.key]" [name]="field.key"></textarea>
+        <select *ngIf="field.type === 'select'" [(ngModel)]="form[field.key]" [name]="field.key" [required]="!!field.required">
+          <option [ngValue]="''">Select</option>
+          <option *ngFor="let opt of optionsFor(field)" [ngValue]="opt.value">{{ opt.label }}</option>
+        </select>
+        <input *ngIf="field.type !== 'textarea' && field.type !== 'select'"
+          [type]="field.type"
+          [(ngModel)]="form[field.key]"
+          [name]="field.key"
+          [required]="!!field.required"
+          [placeholder]="field.placeholder || ''" />
+      </label>
+      <div class="toolbar">
+        <button class="btn" type="submit">Save</button>
+        <button class="btn ghost" type="button" (click)="cancel()">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel">
+    <table #table class="display crud-table" style="width:100%">
+      <thead></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>

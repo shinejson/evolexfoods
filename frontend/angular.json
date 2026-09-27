@@ -52,9 +52,17 @@
               "src/assets"
             ],
             "styles": [
+              "node_modules/datatables.net-dt/css/dataTables.dataTables.min.css",
               "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [
+              "node_modules/jquery/dist/jquery.min.js",
+              "node_modules/datatables.net/js/dataTables.min.js"
+            ],
+            "allowedCommonJsDependencies": [
+              "jquery",
+              "datatables.net"
+            ]
           },
           "configurations": {
             "production": {
@@ -62,7 +70,7 @@
                 {
                   "type": "initial",
                   "maximumWarning": "500kb",
-                  "maximumError": "1mb"
+                  "maximumError": "2mb"
                 },
                 {
                   "type": "anyComponentStyle",
