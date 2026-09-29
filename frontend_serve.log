@@ -1,0 +1,22 @@
+
+> frontend@0.0.0 start
+> ng serve --host 0.0.0.0 --port 4200 --disable-host-check
+
+Warning: Running a server with --disable-host-check is a security risk. See https://medium.com/webpack/webpack-dev-server-middleware-security-issues-1489d950874a for more information.
+The "disableHostCheck" option will not be used because it is not supported by the "@angular-devkit/build-angular:application" builder.
+- Building...
+
+Initial chunk files | Names         |  Raw size
+scripts.js          | scripts       | 288.77 kB | 
+main.js             | main          | 118.46 kB | 
+polyfills.js        | polyfills     |  88.09 kB | 
+styles.css          | styles        |  37.28 kB | 
+
+                    | Initial total | 532.60 kB
+
+Application bundle generation complete. [3.007 seconds]
+
+Watch mode enabled. Watching for file changes...
+  ➜  Local:   http://localhost:4200/
+  ➜  Network: http://192.168.10.101:4200/
+  ➜  press h + enter to show help
