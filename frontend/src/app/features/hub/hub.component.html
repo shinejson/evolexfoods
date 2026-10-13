@@ -1,63 +1,366 @@
-<section class="page">
-  <div class="page-head">
-    <div>
-      <h1>Evolex Hub</h1>
-      <p>Internal portal for farm operations, livestock, procurement, people and executive visibility.</p>
+<main class="hub-page">
+  <section class="welcome-banner" aria-labelledby="hub-welcome-title">
+    <div class="welcome-copy">
+      <div class="welcome-meta">
+        <span class="welcome-eyebrow"><span class="eyebrow-mark" aria-hidden="true"></span> EVOLEX OPERATIONS</span>
+        <span class="welcome-date">{{ dateLabel }}</span>
+      </div>
+      <h1 id="hub-welcome-title">{{ greeting }}</h1>
+      <p>Your farm’s daily work, people and priorities — all in one place.</p>
+      <div class="welcome-actions">
+        <a class="hub-button hub-button--light" routerLink="/ceo">
+          Open CEO Command
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-5-5 5 5-5 5" /></svg>
+        </a>
+        <a class="hub-button hub-button--outline" routerLink="/livestock">View livestock</a>
+      </div>
     </div>
+
+    <div class="welcome-art" aria-hidden="true">
+      <div class="art-sun"></div>
+      <svg class="field-lines" viewBox="0 0 520 280" preserveAspectRatio="xMidYMid slice">
+        <path class="field-back" d="M0 185c88-53 154-52 238-18 82 34 156 41 282-11v124H0V185Z" />
+        <path class="field-mid" d="M0 215c91-45 156-42 247-8 94 35 167 34 273-8v91H0v-75Z" />
+        <path class="field-front" d="M0 244c105-42 177-39 277-6 80 27 148 29 243 2v50H0v-46Z" />
+        <path class="field-line" d="M40 258c88-31 144-31 226-4 66 22 133 23 207 5" />
+        <path class="field-line" d="M85 276c62-20 112-18 176 1 53 16 99 16 151 3" />
+      </svg>
+      <div class="art-note">
+        <span class="art-note-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 20V9m0 0c4-6 8-6 8-6s0 6-8 6Zm0 0C8 3 4 3 4 3s0 6 8 6Z" /></svg>
+        </span>
+        <span>
+          <span class="art-note-label">ONE CONNECTED WORKSPACE</span>
+          <strong>Built around the way you work.</strong>
+        </span>
+      </div>
+      <span class="art-orbit art-orbit--one"></span>
+      <span class="art-orbit art-orbit--two"></span>
+    </div>
+  </section>
+
+  <div class="hub-alert hub-alert--loading" *ngIf="isLoading" role="status">
+    <span class="loading-spinner" aria-hidden="true"></span>
+    Loading your shortcuts…
+  </div>
+  <div class="hub-alert hub-alert--error" *ngIf="loadError" role="alert">
+    <span>{{ loadError }}</span>
+    <button type="button" class="text-button" (click)="loadHub()">Try again</button>
   </div>
 
-  <p class="muted" *ngIf="message">{{ message }}</p>
+  <div class="hub-content-grid">
+    <section class="quick-section" aria-labelledby="quick-actions-title">
+      <div class="section-heading">
+        <div>
+          <span class="section-kicker">MOVE WORK FORWARD</span>
+          <h2 id="quick-actions-title">Quick actions</h2>
+          <p>Common tasks, ready when you are.</p>
+        </div>
+        <div class="action-tools">
+          <span class="action-count" *ngIf="!isLoading && !loadError">
+            {{ actions.length }} {{ actions.length === 1 ? 'shortcut' : 'shortcuts' }}
+          </span>
+          <label class="action-search">
+            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" /></svg>
+            <input type="search" [(ngModel)]="searchTerm" placeholder="Find an action" aria-label="Find a quick action" />
+          </label>
+        </div>
+      </div>
 
-  <div class="panel" *ngIf="formType">
-    <h2>Record {{ formType }}</h2>
-    <form class="toolbar" (ngSubmit)="submit()" style="flex-direction: column; align-items: stretch;">
-      <ng-container *ngIf="formType === 'birth'">
-        <input [(ngModel)]="form.mother_animal_id" name="mother" placeholder="Mother animal ID" required />
-        <select [(ngModel)]="form.species" name="species" required>
-          <option value="goat">Goat</option>
-          <option value="sheep">Sheep</option>
-          <option value="cattle">Cattle</option>
-        </select>
-        <select [(ngModel)]="form.sex" name="sex" required>
-          <option value="female">Female</option>
-          <option value="male">Male</option>
-        </select>
-        <input [(ngModel)]="form.breed" name="breed" placeholder="Breed" />
-        <input [(ngModel)]="form.birth_weight" name="weight" placeholder="Birth weight" />
-      </ng-container>
-      <ng-container *ngIf="formType === 'death' || formType === 'sick' || formType === 'treatment'">
-        <input [(ngModel)]="form.animal_id" name="animal_id" placeholder="Animal ID e.g. EV-GT-000001" required />
-      </ng-container>
-      <input *ngIf="formType === 'death'" [(ngModel)]="form.cause" name="cause" placeholder="Cause of death" />
-      <input *ngIf="formType === 'sick'" [(ngModel)]="form.condition" name="condition" placeholder="Condition" required />
-      <input *ngIf="formType === 'treatment'" [(ngModel)]="form.treatment_type" name="treatment_type" placeholder="Treatment type" required />
-      <input *ngIf="formType === 'treatment'" [(ngModel)]="form.medicine" name="medicine" placeholder="Medicine" />
-      <input *ngIf="formType === 'treatment'" [(ngModel)]="form.dosage" name="dosage" placeholder="Dosage" />
-      <ng-container *ngIf="formType === 'purchase'">
-        <input [(ngModel)]="form.item_name" name="item_name" placeholder="Item name" required />
-        <input [(ngModel)]="form.category" name="category" placeholder="Category" />
-        <input [(ngModel)]="form.quantity" name="quantity" placeholder="Quantity" required />
-        <input [(ngModel)]="form.unit" name="unit" placeholder="Unit" />
-        <input [(ngModel)]="form.justification" name="justification" placeholder="Justification" />
-      </ng-container>
+      <div class="action-grid" *ngIf="!isLoading && !loadError && filteredActions.length">
+        <button
+          class="action-card"
+          type="button"
+          *ngFor="let action of filteredActions"
+          [disabled]="!action.available"
+          [attr.aria-label]="action.available ? action.label + '. ' + action.description : action.label + '. Coming soon.'"
+          (click)="go(action)">
+          <span class="action-icon" [ngClass]="'action-icon--' + action.icon" aria-hidden="true">
+            <svg [ngSwitch]="action.icon" viewBox="0 0 24 24">
+              <ng-container *ngSwitchCase="'animal'">
+                <path d="M7 8c0-1.7 1.8-3 4-3s4 1.3 4 3c2.2 0 4 1.6 4 3.5S17.2 15 15 15H8c-2.2 0-4-1.6-4-3.5S5.8 8 8 8H7Zm1 9v3m8-3v3M9 8V5m6 3V5" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'box'">
+                <path d="m3 7 9-4 9 4-9 4-9-4Zm0 5 9 4 9-4M3 17l9 4 9-4M12 11v5" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'tools'">
+                <path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L4 17l3 3 5.1-5.1a4 4 0 0 0 5.6-5.6L16 11l-3-3 1.7-1.7Z" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'alert'">
+                <path d="m12 3 10 18H2L12 3Zm0 6v5m0 3h.01" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'calendar'">
+                <path d="M5 4v3m14-3v3M4 8h16v12H4V8Zm4-6v4m8-4v4M8 12h3m2 0h3m-8 4h3" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'book'">
+                <path d="M5 4h10l4 4v12H5V4Zm10 0v4h4M8 12h8m-8 4h8" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'chart'">
+                <path d="M4 19V5m0 14h17M8 15l4-4 3 2 5-6" />
+              </ng-container>
+              <ng-container *ngSwitchDefault>
+                <path d="M5 12h14m-6-6 6 6-6 6" />
+              </ng-container>
+            </svg>
+          </span>
+          <span class="action-copy">
+            <strong>{{ action.label }}</strong>
+            <span>{{ action.description }}</span>
+          </span>
+          <span class="action-end" *ngIf="action.available" aria-hidden="true">
+            <svg viewBox="0 0 20 20"><path d="M4 10h11m-5-5 5 5-5 5" /></svg>
+          </span>
+          <span class="coming-soon" *ngIf="!action.available">Coming soon</span>
+        </button>
+      </div>
+
+      <div class="empty-state" *ngIf="!isLoading && !loadError && actions.length && !filteredActions.length">
+        <span class="empty-state-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m15.5 15.5 5 5" /></svg>
+        </span>
+        <div>
+          <strong>No actions found</strong>
+          <p>Try a different search term.</p>
+        </div>
+        <button type="button" class="text-button" (click)="searchTerm = ''">Clear search</button>
+      </div>
+
+      <div class="empty-state" *ngIf="!isLoading && !loadError && !actions.length">
+        <div>
+          <strong>No shortcuts to show yet</strong>
+          <p>Your available actions will appear here.</p>
+        </div>
+      </div>
+    </section>
+
+    <aside class="workflow-card" aria-labelledby="workflow-title">
+      <div class="workflow-topline">
+        <span class="workflow-kicker">A BETTER DAILY RHYTHM</span>
+        <span class="workflow-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 20V9m0 0c4-6 8-6 8-6s0 6-8 6Zm0 0C8 3 4 3 4 3s0 6 8 6Z" /></svg>
+        </span>
+      </div>
+      <h2 id="workflow-title">Capture the moment. Keep everyone in sync.</h2>
+      <p>Record events as they happen, then use the connected views to follow the work across your farm.</p>
+      <div class="workflow-steps">
+        <div class="workflow-step">
+          <span class="step-number">01</span>
+          <span><strong>Record</strong><small>Log an event or request</small></span>
+        </div>
+        <div class="workflow-connector" aria-hidden="true"></div>
+        <div class="workflow-step">
+          <span class="step-number">02</span>
+          <span><strong>Follow through</strong><small>Track it in the right workspace</small></span>
+        </div>
+      </div>
+      <a class="workflow-link" routerLink="/ceo">
+        Visit CEO Command
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-5-5 5 5-5 5" /></svg>
+      </a>
+    </aside>
+  </div>
+
+  <section class="workspace-section" aria-labelledby="workspace-title">
+    <div class="section-heading workspace-heading">
       <div>
-        <button class="btn" type="submit">Save</button>
-        <button class="btn ghost" type="button" (click)="formType=''">Cancel</button>
+        <span class="section-kicker">YOUR TOOLKIT</span>
+        <h2 id="workspace-title">Explore the workspace</h2>
+        <p>Go straight to the teams, records and tools you need.</p>
+      </div>
+      <span class="workspace-caption">One connected view of Evolex</span>
+    </div>
+
+    <div class="workspace-grid">
+      <section class="workspace-card" *ngFor="let group of workspaceGroups">
+        <div class="workspace-card-heading">
+          <span class="workspace-icon" [ngClass]="'workspace-icon--' + group.icon" aria-hidden="true">
+            <svg [ngSwitch]="group.icon" viewBox="0 0 24 24">
+              <ng-container *ngSwitchCase="'animal'">
+                <path d="M7 8c0-1.7 1.8-3 4-3s4 1.3 4 3c2.2 0 4 1.6 4 3.5S17.2 15 15 15H8c-2.2 0-4-1.6-4-3.5S5.8 8 8 8H7Zm1 9v3m8-3v3M9 8V5m6 3V5" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'box'">
+                <path d="m3 7 9-4 9 4-9 4-9-4Zm0 5 9 4 9-4M3 17l9 4 9-4M12 11v5" />
+              </ng-container>
+              <ng-container *ngSwitchCase="'people'">
+                <path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm9-1a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM2 20c0-3.3 3.1-6 7-6s7 2.7 7 6m1-6c2.9 0 5 2 5 4.5" />
+              </ng-container>
+              <ng-container *ngSwitchDefault>
+                <path d="M4 19V5m0 14h17M8 15l4-4 3 2 5-6" />
+              </ng-container>
+            </svg>
+          </span>
+          <div class="workspace-card-title">
+            <h3>{{ group.title }}</h3>
+            <p>{{ group.description }}</p>
+          </div>
+          <span class="module-count">{{ group.modules.length }} tools</span>
+        </div>
+        <nav class="module-list" [attr.aria-label]="group.title">
+          <a class="module-link" *ngFor="let module of group.modules" [routerLink]="module.route">
+            <span class="module-link-copy">
+              <strong>{{ module.label }}</strong>
+              <small>{{ module.description }}</small>
+            </span>
+            <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-5-5 5 5-5 5" /></svg>
+          </a>
+        </nav>
+      </section>
+    </div>
+  </section>
+</main>
+
+<div class="dialog-backdrop" *ngIf="activeForm" (click)="closeForm()">
+  <section
+    class="quick-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="quick-dialog-title"
+    (click)="$event.stopPropagation()">
+    <button class="dialog-close" type="button" aria-label="Close form" (click)="closeForm()" [disabled]="isSaving">
+      <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 5 10 10M15 5 5 15" /></svg>
+    </button>
+
+    <div class="dialog-heading">
+      <span class="dialog-eyebrow">QUICK ENTRY</span>
+      <h2 id="quick-dialog-title">Record {{ formTitle }}</h2>
+      <p>Add the key details below. Your entry will be saved to the relevant Evolex workspace.</p>
+    </div>
+
+    <div class="success-state" *ngIf="formSubmitted" role="status">
+      <span class="success-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="m5 12 4.5 4.5L19 7" /></svg>
+      </span>
+      <h3>Saved successfully</h3>
+      <p>Your {{ formTitle }} has been added to Evolex Hub.</p>
+      <button class="hub-button hub-button--solid" type="button" (click)="closeForm()">Return to hub</button>
+    </div>
+
+    <form #actionForm="ngForm" (ngSubmit)="submit(actionForm)" *ngIf="!formSubmitted">
+      <div class="form-grid" [ngSwitch]="activeForm">
+        <ng-container *ngSwitchCase="'birth'">
+          <label class="form-field form-field--wide">
+            <span>Mother’s animal ID <b>*</b></span>
+            <input [(ngModel)]="form.mother_animal_id" name="mother_animal_id" placeholder="e.g. EV-GT-000014" required autocomplete="off" />
+          </label>
+          <label class="form-field">
+            <span>Species <b>*</b></span>
+            <select [(ngModel)]="form.species" name="species" required>
+              <option value="goat">Goat</option>
+              <option value="sheep">Sheep</option>
+              <option value="cattle">Cattle</option>
+            </select>
+          </label>
+          <label class="form-field">
+            <span>Sex <b>*</b></span>
+            <select [(ngModel)]="form.sex" name="sex" required>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+          </label>
+          <label class="form-field">
+            <span>Breed</span>
+            <input [(ngModel)]="form.breed" name="breed" placeholder="e.g. West African Dwarf" />
+          </label>
+          <label class="form-field">
+            <span>Birth weight (kg)</span>
+            <input [(ngModel)]="form.birth_weight" name="birth_weight" type="number" min="0" step="0.1" placeholder="Optional" />
+          </label>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'death'">
+          <label class="form-field form-field--wide">
+            <span>Animal ID <b>*</b></span>
+            <input [(ngModel)]="form.animal_id" name="animal_id" placeholder="e.g. EV-GT-000001" required autocomplete="off" />
+          </label>
+          <label class="form-field form-field--wide">
+            <span>Cause of death</span>
+            <input [(ngModel)]="form.cause" name="cause" placeholder="Add a cause if known" />
+          </label>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'sick'">
+          <label class="form-field form-field--wide">
+            <span>Animal ID <b>*</b></span>
+            <input [(ngModel)]="form.animal_id" name="animal_id" placeholder="e.g. EV-GT-000001" required autocomplete="off" />
+          </label>
+          <label class="form-field">
+            <span>Condition <b>*</b></span>
+            <input [(ngModel)]="form.condition" name="condition" placeholder="Describe the condition" required />
+          </label>
+          <label class="form-field">
+            <span>Severity</span>
+            <select [(ngModel)]="form.severity" name="severity">
+              <option value="low">Low</option>
+              <option value="moderate">Moderate</option>
+              <option value="high">High</option>
+              <option value="critical">Critical</option>
+            </select>
+          </label>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'treatment'">
+          <label class="form-field form-field--wide">
+            <span>Animal ID <b>*</b></span>
+            <input [(ngModel)]="form.animal_id" name="animal_id" placeholder="e.g. EV-GT-000001" required autocomplete="off" />
+          </label>
+          <label class="form-field form-field--wide">
+            <span>Treatment type <b>*</b></span>
+            <input [(ngModel)]="form.treatment_type" name="treatment_type" placeholder="e.g. Deworming" required />
+          </label>
+          <label class="form-field">
+            <span>Medicine</span>
+            <input [(ngModel)]="form.medicine" name="medicine" placeholder="Medicine name" />
+          </label>
+          <label class="form-field">
+            <span>Dosage</span>
+            <input [(ngModel)]="form.dosage" name="dosage" placeholder="e.g. 5 ml" />
+          </label>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'purchase'">
+          <label class="form-field form-field--wide">
+            <span>Item name <b>*</b></span>
+            <input [(ngModel)]="form.item_name" name="item_name" placeholder="What do you need?" required />
+          </label>
+          <label class="form-field">
+            <span>Category</span>
+            <input [(ngModel)]="form.category" name="category" placeholder="e.g. Feed" />
+          </label>
+          <label class="form-field">
+            <span>Quantity <b>*</b></span>
+            <input [(ngModel)]="form.quantity" name="quantity" type="number" min="0.01" step="any" placeholder="Enter quantity" required />
+          </label>
+          <label class="form-field">
+            <span>Unit</span>
+            <input [(ngModel)]="form.unit" name="unit" placeholder="e.g. kg, bags" />
+          </label>
+          <label class="form-field">
+            <span>Estimated cost</span>
+            <input [(ngModel)]="form.estimated_cost" name="estimated_cost" type="number" min="0" step="0.01" placeholder="Optional" />
+          </label>
+          <label class="form-field">
+            <span>Priority</span>
+            <select [(ngModel)]="form.priority" name="priority">
+              <option value="low">Low</option>
+              <option value="normal">Normal</option>
+              <option value="high">High</option>
+            </select>
+          </label>
+          <label class="form-field form-field--wide">
+            <span>Why is this needed?</span>
+            <textarea [(ngModel)]="form.justification" name="justification" rows="3" placeholder="Add context for the approver"></textarea>
+          </label>
+        </ng-container>
+      </div>
+
+      <p class="form-error" *ngIf="formError" role="alert">{{ formError }}</p>
+      <div class="dialog-actions">
+        <button class="hub-button hub-button--quiet" type="button" (click)="closeForm()" [disabled]="isSaving">Cancel</button>
+        <button class="hub-button hub-button--solid" type="submit" [disabled]="isSaving">
+          <span class="button-spinner" *ngIf="isSaving" aria-hidden="true"></span>
+          {{ isSaving ? 'Saving…' : 'Save record' }}
+        </button>
       </div>
     </form>
-  </div>
-
-  <div class="panel">
-    <h2>Quick Actions</h2>
-    <div class="actions">
-      <button class="action" *ngFor="let action of hub.quick_actions" (click)="go(action)">{{ action.label }}</button>
-    </div>
-  </div>
-
-  <div class="panel">
-    <h2>Hub sections</h2>
-    <div class="actions">
-      <div class="action" *ngFor="let section of hub.sections">{{ section }}</div>
-    </div>
-  </div>
-</section>
+  </section>
+</div>
