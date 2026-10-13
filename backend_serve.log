@@ -45,3 +45,127 @@ Warning: Module "openssl" is already loaded in Unknown on line 0
   2026-09-29 17:53:04 /api/v1/dashboard/ceo .................................................................... ~ 3s
   2026-09-29 17:55:15 /api/v1/lookups .......................................................................... ~ 1s
   2026-09-29 17:55:16 /api/v1/records/livestock ............................................................ ~ 0.05ms
+
+   INFO  Environment modified. Restarting server...  
+
+  PHP Warning:  Module "openssl" is already loaded in Unknown on line 0
+
+   INFO  Server running on [http://127.0.0.1:8000].  
+
+  Press Ctrl+C to stop the server
+
+  2026-09-29 18:43:05 /api/v1/hub ............................................................................. ~ 13s
+  2026-09-29 18:43:05 /api/v1/auth/login ...................................................................... ~ 14s
+  2026-09-29 18:44:40 /api/v1/auth/login ................................................................. ~ 508.06ms
+  2026-09-29 18:45:10 /api/v1/auth/login ................................................................. ~ 508.45ms
+  2026-09-29 18:45:32 /api/v1/auth/login ....................................................................... ~ 1s
+  2026-09-29 18:45:51 /api/v1/auth/login ....................................................................... ~ 1s
+  2026-09-29 18:45:53 /api/v1/hub .......................................................................... ~ 0.08ms
+  2026-09-29 18:57:04 / ........................................................................................ ~ 1s
+  2026-09-29 18:57:04 /favicon.ico ............................................................................. ~ 2s
+  2026-09-29 21:48:46 /api/v1/lookups ......................................................................... ~ 34s
+  2026-09-29 21:48:46 /api/v1/records/livestock ............................................................... ~ 34s
+  2026-09-29 22:10:15 /api/market/products .................................................................... ~ 27s
+  2026-09-29 22:10:15 /api/market/stores ...................................................................... ~ 28s
+  2026-09-29 22:11:41 /api/market/products ............................................................... ~ 515.66ms
+  2026-09-29 22:11:47 /api/market/stores ................................................................... ~ 0.23ms
+  2026-09-29 22:11:51 /api/market/products ............................................................... ~ 502.78ms
+  2026-09-29 22:11:51 /api/market/stores ................................................................... ~ 0.16ms
+  2026-09-29 22:11:54 /api/market/products ................................................................. ~ 0.32ms
+  2026-09-29 22:11:59 /api/market/stores ................................................................... ~ 0.26ms
+  2026-09-29 22:12:03 /api/market/products ................................................................. ~ 0.08ms
+  2026-09-29 22:12:03 /api/market/stores ................................................................... ~ 0.04ms
+  2026-09-29 22:12:06 /api/market/products ............................................................... ~ 514.58ms
+  2026-09-29 22:12:08 /api/market/products ............................................................... ~ 498.05ms
+  2026-09-29 22:12:08 /api/market/stores ................................................................... ~ 0.07ms
+  2026-09-29 22:41:39 /api/market/categories ................................................................... ~ 7s
+  2026-09-29 22:41:46 /api/market/categories ............................................................. ~ 507.63ms
+  2026-09-29 22:47:46 /api/market/categories ............................................................... ~ 0.13ms
+  2026-09-29 22:48:10 /up ...................................................................................... ~ 1s
+  2026-09-29 22:48:35 /api/market/categories ............................................................... ~ 0.08ms
+  2026-09-29 22:48:35 /api/market/categories ............................................................... ~ 0.04ms
+  2026-09-29 22:48:35 /api/market/categories ............................................................. ~ 505.41ms
+  2026-09-29 22:48:36 /api/market/categories ............................................................... ~ 0.05ms
+  2026-09-29 22:48:57 /api/market/categories ............................................................... ~ 0.09ms
+  2026-09-30 09:54:41 /favicon.ico ....................................................................... ~ 515.79ms
+  2026-09-30 09:54:41 ...................................................................................... ~ 1m 45s
+  2026-09-30 13:54:18 /api/v1/lookups ......................................................................... ~ 35s
+  2026-09-30 13:54:18 /api/v1/records/livestock ............................................................... ~ 36s
+  PHP Fatal error:  Maximum execution time of 60 seconds exceeded in C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php on line 59
+  2026-10-01 10:38:12 / ........................................................................................ ~ 1m
+  2026-10-01 10:38:13 ....................................................................................... ~ 1m 4s
+  2026-10-01 10:39:21 /favicon.ico ......................................................................... ~ 0.17ms
+  2026-10-01 10:47:11 / ....................................................................................... ~ 15s
+  2026-10-01 10:47:11 /favicon.ico ............................................................................ ~ 17s
+  2026-10-01 10:49:36 / .................................................................................. ~ 515.02ms
+  2026-10-01 10:49:36 /favicon.ico ............................................................................. ~ 1s
+  2026-10-01 10:49:52 / .................................................................................. ~ 500.10ms
+  2026-10-01 10:49:52 /favicon.ico ............................................................................. ~ 1s
+  2026-10-01 10:49:56 / .................................................................................. ~ 516.86ms
+  2026-10-01 10:49:56 /favicon.ico ............................................................................. ~ 1s
+  2026-10-01 11:10:21 .......................................................................................... ~ 5m
+  2026-10-01 11:15:21 ...................................................................................... ~ 8m 35s
+  2026-10-01 11:25:21 ...................................................................................... ~ 5m 19s
+  2026-10-01 11:55:21 ...................................................................................... ~ 4m 45s
+  2026-10-01 12:00:07 ....................................................................................... ~ 2m 2s
+  2026-10-01 14:53:35 ...................................................................................... ~ 8m 35s
+  2026-10-01 15:03:18 / ....................................................................................... ~ 16s
+  2026-10-01 15:03:18 /favicon.ico ............................................................................ ~ 20s
+  2026-10-01 15:03:48 ...................................................................................... ~ 4m 48s
+  PHP Fatal error:  Maximum execution time of 60 seconds exceeded in C:\xampp\htdocs\evolexfood\backend\vendor\vlucas\phpdotenv\src\Repository\Adapter\ServerConstAdapter.php on line 10
+  2026-10-05 18:11:45 / ..................................................................................... ~ 1m 2s
+  PHP Fatal error:  Maximum execution time of 60 seconds exceeded in C:\xampp\htdocs\evolexfood\backend\vendor\composer\ClassLoader.php on line 429
+  PHP Fatal error:  Uncaught ReflectionException: Class "view" does not exist in C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php:1122
+  Stack trace:
+  #0 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(1122): ReflectionClass->__construct('view')
+  #1 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(933): Illuminate\Container\Container->build('view')
+  #2 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Application.php(1078): Illuminate\Container\Container->resolve('view', Array, true)
+  #3 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(864): Illuminate\Foundation\Application->resolve('view', Array)
+  #4 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Application.php(1058): Illuminate\Container\Container->make('view', Array)
+  #5 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(1805): Illuminate\Foundation\Application->make('view')
+  #6 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Routing\RoutingServiceProvider.php(177): Illuminate\Container\Container->offsetGet('Illuminate\\Cont...')
+  #7 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(1115): Illuminate\Routing\RoutingServiceProvider->Illuminate\Routing\{closure}(Object(Illuminate\Foundation\Application), Array)
+  #8 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(933): Illuminate\Container\Container->build(Object(Closure))
+  #9 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Application.php(1078): Illuminate\Container\Container->resolve('Illuminate\\Cont...', Array, true)
+  #10 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(864): Illuminate\Foundation\Application->resolve('Illuminate\\Cont...', Array)
+  #11 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Application.php(1058): Illuminate\Container\Container->make('Illuminate\\Cont...', Array)
+  #12 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\helpers.php(138): Illuminate\Foundation\Application->make('Illuminate\\Cont...', Array)
+  #13 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\helpers.php(850): app('Illuminate\\Cont...')
+  #14 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Exceptions\Handler.php(987): response('<!-- Target cla...', 500, Array)
+  #15 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Exceptions\Handler.php(839): Illuminate\Foundation\Exceptions\Handler->toIlluminateResponse(Object(Symfony\Component\HttpFoundation\Response), Object(Symfony\Component\ErrorHandler\Error\FatalError))
+  #16 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Exceptions\Handler.php(738): Illuminate\Foundation\Exceptions\Handler->prepareResponse(Object(Illuminate\Http\Request), Object(Symfony\Component\ErrorHandler\Error\FatalError))
+  #17 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Exceptions\Handler.php(626): Illuminate\Foundation\Exceptions\Handler->renderExceptionResponse(Object(Illuminate\Http\Request), Object(Symfony\Component\ErrorHandler\Error\FatalError))
+  #18 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Bootstrap\HandleExceptions.php(225): Illuminate\Foundation\Exceptions\Handler->render(Object(Illuminate\Http\Request), Object(Symfony\Component\ErrorHandler\Error\FatalError))
+  #19 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Bootstrap\HandleExceptions.php(202): Illuminate\Foundation\Bootstrap\HandleExceptions->renderHttpResponse(Object(Symfony\Component\ErrorHandler\Error\FatalError))
+  #20 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Bootstrap\HandleExceptions.php(238): Illuminate\Foundation\Bootstrap\HandleExceptions->handleException(Object(Symfony\Component\ErrorHandler\Error\FatalError))
+  #21 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Bootstrap\HandleExceptions.php(262): Illuminate\Foundation\Bootstrap\HandleExceptions->handleShutdown()
+  #22 [internal function]: Illuminate\Foundation\Bootstrap\HandleExceptions->Illuminate\Foundation\Bootstrap\{closure}()
+  #23 {main}
+  Next Illuminate\Contracts\Container\BindingResolutionException: Target class [view] does not exist. in C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php:1124
+  Stack trace:
+  #0 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(933): Illuminate\Container\Container->build('view')
+  #1 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Application.php(1078): Illuminate\Container\Container->resolve('view', Array, true)
+  #2 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(864): Illuminate\Foundation\Application->resolve('view', Array)
+  #3 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Application.php(1058): Illuminate\Container\Container->make('view', Array)
+  #4 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(1805): Illuminate\Foundation\Application->make('view')
+  #5 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Routing\RoutingServiceProvider.php(177): Illuminate\Container\Container->offsetGet('Illuminate\\Cont...')
+  #6 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(1115): Illuminate\Routing\RoutingServiceProvider->Illuminate\Routing\{closure}(Object(Illuminate\Foundation\Application), Array)
+  #7 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(933): Illuminate\Container\Container->build(Object(Closure))
+  #8 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Application.php(1078): Illuminate\Container\Container->resolve('Illuminate\\Cont...', Array, true)
+  #9 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php(864): Illuminate\Foundation\Application->resolve('Illuminate\\Cont...', Array)
+  #10 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Application.php(1058): Illuminate\Container\Container->make('Illuminate\\Cont...', Array)
+  #11 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\helpers.php(138): Illuminate\Foundation\Application->make('Illuminate\\Cont...', Array)
+  #12 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\helpers.php(850): app('Illuminate\\Cont...')
+  #13 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Exceptions\Handler.php(987): response('<!-- Target cla...', 500, Array)
+  #14 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Exceptions\Handler.php(839): Illuminate\Foundation\Exceptions\Handler->toIlluminateResponse(Object(Symfony\Component\HttpFoundation\Response), Object(Symfony\Component\ErrorHandler\Error\FatalError))
+  #15 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Exceptions\Handler.php(738): Illuminate\Foundation\Exceptions\Handler->prepareResponse(Object(Illuminate\Http\Request), Object(Symfony\Component\ErrorHandler\Error\FatalError))
+  #16 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Exceptions\Handler.php(626): Illuminate\Foundation\Exceptions\Handler->renderExceptionResponse(Object(Illuminate\Http\Request), Object(Symfony\Component\ErrorHandler\Error\FatalError))
+  #17 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Bootstrap\HandleExceptions.php(225): Illuminate\Foundation\Exceptions\Handler->render(Object(Illuminate\Http\Request), Object(Symfony\Component\ErrorHandler\Error\FatalError))
+  #18 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Bootstrap\HandleExceptions.php(202): Illuminate\Foundation\Bootstrap\HandleExceptions->renderHttpResponse(Object(Symfony\Component\ErrorHandler\Error\FatalError))
+  #19 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Bootstrap\HandleExceptions.php(238): Illuminate\Foundation\Bootstrap\HandleExceptions->handleException(Object(Symfony\Component\ErrorHandler\Error\FatalError))
+  #20 C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Foundation\Bootstrap\HandleExceptions.php(262): Illuminate\Foundation\Bootstrap\HandleExceptions->handleShutdown()
+  #21 [internal function]: Illuminate\Foundation\Bootstrap\HandleExceptions->Illuminate\Foundation\Bootstrap\{closure}()
+  #22 {main}
+  thrown in C:\xampp\htdocs\evolexfood\backend\vendor\laravel\framework\src\Illuminate\Container\Container.php on line 1124
+  2026-10-05 18:11:46 / .................................................................................... ~ 2m 39s
+  2026-10-05 18:12:50 ...................................................................................... ~ 1m 33s
