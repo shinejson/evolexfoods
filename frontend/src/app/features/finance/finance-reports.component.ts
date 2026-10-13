@@ -151,7 +151,10 @@ export class FinanceReportsComponent implements OnInit {
 
   private buildEntries(from: string, to: string): LedgerEntry[] {
     const expenses: LedgerEntry[] = this.expenses
-      .filter((expense) => expense.expense_date.slice(0, 10) >= from && expense.expense_date.slice(0, 10) <= to)
+      .filter((expense) => {
+        const d = (expense.expense_date || '').slice(0, 10);
+        return Boolean(d && d >= from && d <= to);
+      })
       .map((expense) => ({
         id: `expense-${expense.id}`,
         date: expense.expense_date,
@@ -163,7 +166,10 @@ export class FinanceReportsComponent implements OnInit {
       }));
 
     const payments: LedgerEntry[] = this.payments
-      .filter((payment) => payment.paid_at.slice(0, 10) >= from && payment.paid_at.slice(0, 10) <= to)
+      .filter((payment) => {
+        const d = (payment.paid_at || '').slice(0, 10);
+        return Boolean(d && d >= from && d <= to);
+      })
       .map((payment) => ({
         id: `payment-${payment.id}`,
         date: payment.paid_at,
@@ -174,7 +180,7 @@ export class FinanceReportsComponent implements OnInit {
         amount: Number(payment.amount)
       }));
 
-    return [...expenses, ...payments].sort((a, b) => b.date.localeCompare(a.date));
+    return [...expenses, ...payments].sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   }
 
   private rangeBounds(): { from: string; to: string } | null {

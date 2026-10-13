@@ -1640,19 +1640,186 @@ export const CRUD_RESOURCES: Record<string, ResourceDef> = {
   },
   expenses: {
     title: 'Expenses',
-    subtitle: 'Operating spend records.',
+    subtitle: 'Operating expenditure and cost register.',
     columns: [
       { key: 'expense_date', label: 'Date' },
-      { key: 'category', label: 'Category' },
+      {
+        key: 'category',
+        label: 'Category',
+        render: (row) => {
+          const cat = row.category || 'General';
+          return `<span class="badge badge-info">${cat}</span>`;
+        }
+      },
       { key: 'description', label: 'Description' },
-      { key: 'amount', label: 'Amount' }
+      {
+        key: 'amount',
+        label: 'Amount (GHS)',
+        render: (row) => row.amount != null ? 'GHS ' + Number(row.amount).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'
+      },
+      { key: 'source', label: 'Source' }
     ],
     fields: [
       { key: 'expense_date', label: 'Date', type: 'date', required: true },
-      { key: 'category', label: 'Category', type: 'text', required: true },
+      {
+        key: 'category',
+        label: 'Category',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Feed', label: 'Feed & Nutrition' },
+          { value: 'Veterinary', label: 'Veterinary & Healthcare' },
+          { value: 'Wages', label: 'Wages & Labor' },
+          { value: 'Fuel', label: 'Fuel & Energy' },
+          { value: 'Maintenance', label: 'Repairs & Maintenance' },
+          { value: 'Supplies', label: 'Farm Supplies' },
+          { value: 'Logistics', label: 'Logistics & Transport' },
+          { value: 'Utilities', label: 'Utilities & Water' },
+          { value: 'Administrative', label: 'Administrative & Other' }
+        ]
+      },
       { key: 'description', label: 'Description', type: 'text' },
-      { key: 'amount', label: 'Amount', type: 'number', required: true },
-      { key: 'source', label: 'Source', type: 'text' }
+      { key: 'amount', label: 'Amount (GHS)', type: 'number', required: true },
+      { key: 'source', label: 'Source / Channel', type: 'text', placeholder: 'e.g. Cash, Mobile Money, Bank' }
+    ],
+    quickFilters: [
+      { id: 'all', label: 'All Expenses', filterFn: () => true },
+      {
+        id: 'feed',
+        label: 'Feed & Nutrition',
+        badgeClass: 'ok',
+        filterFn: (row) => (row.category || '').toLowerCase().includes('feed')
+      },
+      {
+        id: 'vet',
+        label: 'Veterinary & Meds',
+        badgeClass: 'info',
+        filterFn: (row) => {
+          const cat = (row.category || '').toLowerCase();
+          return cat.includes('vet') || cat.includes('med') || cat.includes('health');
+        }
+      },
+      {
+        id: 'wages',
+        label: 'Wages & Labor',
+        badgeClass: 'warning',
+        filterFn: (row) => {
+          const cat = (row.category || '').toLowerCase();
+          return cat.includes('wage') || cat.includes('labor') || cat.includes('salary');
+        }
+      },
+      {
+        id: 'fuel',
+        label: 'Fuel & Operations',
+        filterFn: (row) => {
+          const cat = (row.category || '').toLowerCase();
+          return cat.includes('fuel') || cat.includes('maint') || cat.includes('util');
+        }
+      },
+      {
+        id: 'high',
+        label: 'High Value (≥ GHS 500)',
+        badgeClass: 'danger',
+        filterFn: (row) => Number(row.amount || 0) >= 500
+      }
+    ],
+    advancedFilters: [
+      {
+        key: 'category',
+        label: 'Expense Category',
+        type: 'select',
+        placeholder: 'All Categories',
+        options: [
+          { value: 'Feed', label: 'Feed & Nutrition' },
+          { value: 'Veterinary', label: 'Veterinary & Healthcare' },
+          { value: 'Wages', label: 'Wages & Labor' },
+          { value: 'Fuel', label: 'Fuel & Energy' },
+          { value: 'Maintenance', label: 'Repairs & Maintenance' },
+          { value: 'Supplies', label: 'Farm Supplies' },
+          { value: 'Logistics', label: 'Logistics & Transport' },
+          { value: 'Utilities', label: 'Utilities & Water' },
+          { value: 'Administrative', label: 'Administrative & Other' }
+        ],
+        filterFn: (row, val) => !val || (row.category || '').toLowerCase().includes(val.toLowerCase())
+      },
+      {
+        key: 'min_amount',
+        label: 'Min Amount (GHS)',
+        type: 'number',
+        placeholder: 'Min GHS',
+        filterFn: (row, val) => val == null || val === '' || Number(row.amount || 0) >= Number(val)
+      },
+      {
+        key: 'max_amount',
+        label: 'Max Amount (GHS)',
+        type: 'number',
+        placeholder: 'Max GHS',
+        filterFn: (row, val) => val == null || val === '' || Number(row.amount || 0) <= Number(val)
+      },
+      {
+        key: 'date_from',
+        label: 'From Date',
+        type: 'date',
+        filterFn: (row, val) => !val || !row.expense_date || row.expense_date >= val
+      },
+      {
+        key: 'date_to',
+        label: 'To Date',
+        type: 'date',
+        filterFn: (row, val) => !val || !row.expense_date || row.expense_date <= val
+      }
+    ],
+    kpiDefs: [
+      {
+        label: 'Total Spend',
+        compute: (rows, all) => {
+          const total = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+          return {
+            label: 'Total Spend',
+            value: `GHS ${total.toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+            meta: `${rows.length} expense entries recorded`,
+            ok: true
+          };
+        }
+      },
+      {
+        label: 'Total Expenses',
+        compute: (rows, all) => ({
+          label: 'Total Expenses',
+          value: rows.length,
+          meta: `Out of ${all.length} registered costs`,
+          info: true
+        })
+      },
+      {
+        label: 'Average Expense',
+        compute: (rows) => {
+          const total = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+          const avg = rows.length > 0 ? total / rows.length : 0;
+          return {
+            label: 'Average Expense',
+            value: `GHS ${avg.toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+            meta: 'Mean spend per transaction'
+          };
+        }
+      },
+      {
+        label: 'Top Spending Area',
+        compute: (rows) => {
+          const catTotals: Record<string, number> = {};
+          rows.forEach((r) => {
+            const cat = r.category || 'Other';
+            catTotals[cat] = (catTotals[cat] || 0) + Number(r.amount || 0);
+          });
+          const top = Object.entries(catTotals).sort((a, b) => b[1] - a[1])[0];
+          return {
+            label: 'Top Spending Area',
+            value: top ? top[0] : 'None',
+            meta: top ? `GHS ${top[1].toLocaleString('en-GH', { maximumFractionDigits: 0 })} spent` : 'No expenses',
+            alert: Boolean(top && top[1] >= 1000)
+          };
+        }
+      }
     ]
   },
   invoices: {
@@ -1682,24 +1849,163 @@ export const CRUD_RESOURCES: Record<string, ResourceDef> = {
     title: 'Payments',
     subtitle: 'Supplier payment register linked to invoice balances.',
     columns: [
-      { key: 'invoice', label: 'Invoice', render: (row) => row.invoice?.invoice_number || '' },
-      { key: 'supplier', label: 'Supplier', render: (row) => row.invoice?.supplier?.name || '' },
-      { key: 'amount', label: 'Amount' },
-      { key: 'paid_at', label: 'Paid on' },
-      { key: 'method', label: 'Method' },
+      { key: 'invoice', label: 'Invoice', render: (row) => row.invoice?.invoice_number || (row.invoice_id ? `Invoice #${row.invoice_id}` : '-') },
+      { key: 'supplier', label: 'Supplier', render: (row) => row.invoice?.supplier?.name || '-' },
+      {
+        key: 'amount',
+        label: 'Amount (GHS)',
+        render: (row) => row.amount != null ? 'GHS ' + Number(row.amount).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '-'
+      },
+      { key: 'paid_at', label: 'Paid On' },
+      {
+        key: 'method',
+        label: 'Method',
+        render: (row) => {
+          const m = row.method || 'other';
+          const badgeClass = m === 'mobile_money' ? 'badge-ok' : m === 'bank_transfer' ? 'badge-info' : 'badge-warning';
+          const label = m.replace('_', ' ').replace(/\b\w/g, (c: string) => c.toUpperCase());
+          return `<span class="badge ${badgeClass}">${label}</span>`;
+        }
+      },
       { key: 'reference', label: 'Reference' }
     ],
     fields: [
       { key: 'invoice_id', label: 'Invoice', type: 'select', required: true, lookup: 'invoices' },
-      { key: 'amount', label: 'Amount', type: 'number', required: true },
+      { key: 'amount', label: 'Amount (GHS)', type: 'number', required: true },
       { key: 'paid_at', label: 'Payment date', type: 'date', required: true },
       { key: 'method', label: 'Method', type: 'select', options: [
         { value: 'bank_transfer', label: 'Bank transfer' }, { value: 'mobile_money', label: 'Mobile money' },
         { value: 'cash', label: 'Cash' }, { value: 'card', label: 'Card' }, { value: 'other', label: 'Other' }
       ]},
-      { key: 'reference', label: 'Reference', type: 'text' }
+      { key: 'reference', label: 'Reference / Transaction ID', type: 'text' }
     ],
-    defaults: { method: 'bank_transfer' }
+    defaults: { method: 'bank_transfer' },
+    quickFilters: [
+      { id: 'all', label: 'All Payments', filterFn: () => true },
+      {
+        id: 'bank',
+        label: 'Bank Transfer',
+        badgeClass: 'info',
+        filterFn: (row) => (row.method || '').toLowerCase() === 'bank_transfer'
+      },
+      {
+        id: 'momo',
+        label: 'Mobile Money',
+        badgeClass: 'ok',
+        filterFn: (row) => (row.method || '').toLowerCase() === 'mobile_money'
+      },
+      {
+        id: 'cash',
+        label: 'Cash',
+        badgeClass: 'warning',
+        filterFn: (row) => (row.method || '').toLowerCase() === 'cash'
+      },
+      {
+        id: 'card',
+        label: 'Card & Other',
+        filterFn: (row) => ['card', 'other'].includes((row.method || '').toLowerCase())
+      },
+      {
+        id: 'high',
+        label: 'High Value (≥ GHS 1,000)',
+        badgeClass: 'danger',
+        filterFn: (row) => Number(row.amount || 0) >= 1000
+      }
+    ],
+    advancedFilters: [
+      {
+        key: 'method',
+        label: 'Payment Method',
+        type: 'select',
+        placeholder: 'All Payment Methods',
+        options: [
+          { value: 'bank_transfer', label: 'Bank transfer' },
+          { value: 'mobile_money', label: 'Mobile money' },
+          { value: 'cash', label: 'Cash' },
+          { value: 'card', label: 'Card' },
+          { value: 'other', label: 'Other' }
+        ],
+        filterFn: (row, val) => !val || (row.method || '').toLowerCase() === val.toLowerCase()
+      },
+      {
+        key: 'min_amount',
+        label: 'Min Amount (GHS)',
+        type: 'number',
+        placeholder: 'Min GHS',
+        filterFn: (row, val) => val == null || val === '' || Number(row.amount || 0) >= Number(val)
+      },
+      {
+        key: 'max_amount',
+        label: 'Max Amount (GHS)',
+        type: 'number',
+        placeholder: 'Max GHS',
+        filterFn: (row, val) => val == null || val === '' || Number(row.amount || 0) <= Number(val)
+      },
+      {
+        key: 'date_from',
+        label: 'From Date',
+        type: 'date',
+        filterFn: (row, val) => !val || !row.paid_at || row.paid_at >= val
+      },
+      {
+        key: 'date_to',
+        label: 'To Date',
+        type: 'date',
+        filterFn: (row, val) => !val || !row.paid_at || row.paid_at <= val
+      }
+    ],
+    kpiDefs: [
+      {
+        label: 'Total Disbursed',
+        compute: (rows, all) => {
+          const total = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+          return {
+            label: 'Total Disbursed',
+            value: `GHS ${total.toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+            meta: `${rows.length} payment vouchers issued`,
+            ok: true
+          };
+        }
+      },
+      {
+        label: 'Payments Count',
+        compute: (rows, all) => ({
+          label: 'Payments Count',
+          value: rows.length,
+          meta: `Out of ${all.length} registered payments`,
+          info: true
+        })
+      },
+      {
+        label: 'Average Disbursed',
+        compute: (rows) => {
+          const total = rows.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+          const avg = rows.length > 0 ? total / rows.length : 0;
+          return {
+            label: 'Average Disbursed',
+            value: `GHS ${avg.toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`,
+            meta: 'Mean disbursement per payment'
+          };
+        }
+      },
+      {
+        label: 'Dominant Channel',
+        compute: (rows) => {
+          const counts: Record<string, number> = {};
+          rows.forEach((r) => {
+            const m = r.method || 'Other';
+            counts[m] = (counts[m] || 0) + 1;
+          });
+          const top = Object.entries(counts).sort((a, b) => b[1] - a[1])[0];
+          const name = top ? top[0].replace('_', ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()) : 'None';
+          return {
+            label: 'Dominant Channel',
+            value: name,
+            meta: top ? `${top[1]} transactions` : 'No records'
+          };
+        }
+      }
+    ]
   },
   companies: {
     title: 'CRM Companies',
