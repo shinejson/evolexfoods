@@ -1,0 +1,204 @@
+<main class="finance-page">
+  <app-finance-nav />
+
+  <header class="finance-heading">
+    <div class="heading-copy">
+      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true"></span> EVOLEX · FINANCE &amp; ACCOUNTING</p>
+      <h1>Finance overview</h1>
+      <p class="subtitle">A clear view of operating spend, supplier payables and money moving through the farm.</p>
+    </div>
+    <div class="heading-actions">
+      <button type="button" class="icon-action" aria-label="Refresh finance data" (click)="refresh()" [disabled]="loading">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" /></svg>
+      </button>
+      <span class="updated" *ngIf="updatedAt">Updated {{ updatedAt | date:'h:mm a' }}</span>
+    </div>
+  </header>
+
+  <section class="controls-row" aria-label="Finance reporting period">
+    <div class="period-switch" role="group" aria-label="Choose a reporting period">
+      <button
+        *ngFor="let item of ranges"
+        type="button"
+        [class.is-active]="range === item.id"
+        [attr.aria-pressed]="range === item.id"
+        (click)="selectRange(item.id)">{{ item.label }}</button>
+    </div>
+    <div class="custom-period" *ngIf="range === 'custom'">
+      <label><span>From</span><input type="date" [(ngModel)]="customFrom" /></label>
+      <label><span>To</span><input type="date" [(ngModel)]="customTo" /></label>
+      <button type="button" class="small-button" [disabled]="!customFrom || !customTo || customFrom > customTo" (click)="applyCustomRange()">Apply</button>
+    </div>
+    <span class="period-label" *ngIf="overview">{{ periodLabel }}</span>
+  </section>
+
+  <div class="notice notice--error" *ngIf="error" role="alert">
+    <span>{{ error }}</span>
+    <button type="button" (click)="refresh()">Try again</button>
+  </div>
+  <div class="notice notice--loading" *ngIf="loading && !overview" aria-live="polite">
+    <span class="spinner" aria-hidden="true"></span> Loading your finance snapshot…
+  </div>
+
+  <ng-container *ngIf="overview as vm">
+    <section class="metric-grid" aria-label="Finance summary">
+      <article class="metric-card metric-card--primary">
+        <div class="metric-topline"><span>Recorded outflow</span><span class="metric-icon icon-outflow" aria-hidden="true">↘</span></div>
+        <strong>{{ formatCurrency(vm.totals.outflow) }}</strong>
+        <p>Direct expenses and supplier payments</p>
+        <div class="metric-caption"><span>{{ formatCurrency(vm.totals.expenses) }}</span> expenses <i></i> <span>{{ formatCurrency(vm.totals.payments) }}</span> paid to suppliers</div>
+      </article>
+      <article class="metric-card">
+        <div class="metric-topline"><span>Open payables</span><span class="metric-icon icon-bill" aria-hidden="true">▤</span></div>
+        <strong>{{ formatCurrency(vm.totals.open_payables) }}</strong>
+        <p>{{ vm.totals.open_invoice_count }} open supplier {{ vm.totals.open_invoice_count === 1 ? 'invoice' : 'invoices' }}</p>
+        <a class="metric-link" routerLink="/invoices">Review invoices <span aria-hidden="true">→</span></a>
+      </article>
+      <article class="metric-card" [class.metric-card--warning]="vm.totals.overdue_payables > 0">
+        <div class="metric-topline"><span>Past due</span><span class="metric-icon icon-overdue" aria-hidden="true">!</span></div>
+        <strong>{{ formatCurrency(vm.totals.overdue_payables) }}</strong>
+        <p>{{ vm.totals.overdue_invoice_count }} {{ vm.totals.overdue_invoice_count === 1 ? 'invoice needs' : 'invoices need' }} attention</p>
+        <a class="metric-link" routerLink="/invoices" [queryParams]="{ status: 'overdue' }">View overdue bills <span aria-hidden="true">→</span></a>
+      </article>
+      <article class="metric-card">
+        <div class="metric-topline"><span>Due in 7 days</span><span class="metric-icon icon-calendar" aria-hidden="true">◷</span></div>
+        <strong>{{ formatCurrency(vm.totals.due_7_days) }}</strong>
+        <p>{{ vm.totals.due_7_days_count }} upcoming {{ vm.totals.due_7_days_count === 1 ? 'payment' : 'payments' }}</p>
+        <a class="metric-link" routerLink="/payments">Open payment register <span aria-hidden="true">→</span></a>
+      </article>
+    </section>
+
+    <section class="chart-grid" aria-label="Financial analysis">
+      <article class="surface-panel activity-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="panel-kicker">Six month view</p>
+            <h2>Cash activity</h2>
+            <p class="panel-note">Direct expenses compared with payments against supplier bills.</p>
+          </div>
+          <a routerLink="/finance/reports" class="panel-link">View report <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="chart-legend" aria-label="Chart legend">
+          <span><i class="legend-dot legend-dot--expense"></i> Expenses</span>
+          <span><i class="legend-dot legend-dot--payment"></i> Supplier payments</span>
+        </div>
+        <div class="chart-scroll">
+          <svg class="activity-chart" viewBox="0 0 740 270" role="img" aria-label="Monthly expenses and supplier payments over the last six months">
+            <g class="chart-guides" aria-hidden="true">
+              <line x1="38" y1="68" x2="710" y2="68" />
+              <line x1="38" y1="118" x2="710" y2="118" />
+              <line x1="38" y1="168" x2="710" y2="168" />
+              <line x1="38" y1="218" x2="710" y2="218" />
+            </g>
+            <g *ngFor="let month of vm.monthly_activity; let i = index">
+              <rect class="bar-expense" [attr.x]="chartX(i)" [attr.y]="chartY(month.expenses)" width="25" [attr.height]="chartHeight(month.expenses)" rx="6">
+                <title>{{ month.label }} direct expenses: {{ formatCurrency(month.expenses) }}</title>
+              </rect>
+              <rect class="bar-payment" [attr.x]="chartX(i) + 31" [attr.y]="chartY(month.payments)" width="25" [attr.height]="chartHeight(month.payments)" rx="6">
+                <title>{{ month.label }} supplier payments: {{ formatCurrency(month.payments) }}</title>
+              </rect>
+              <text class="month-label" [attr.x]="chartX(i) + 28" y="246" text-anchor="middle">{{ month.label }}</text>
+            </g>
+          </svg>
+        </div>
+        <div class="chart-footnote"><span class="live-indicator" aria-hidden="true"></span> Six months ending this month <span class="chart-currency">GHS</span></div>
+      </article>
+
+      <article class="surface-panel category-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="panel-kicker">Selected period</p>
+            <h2>Expense mix</h2>
+            <p class="panel-note">Where direct operating spend is going.</p>
+          </div>
+          <a routerLink="/expenses" class="panel-link">Expense ledger <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="category-content" *ngIf="donutSegments.length; else noCategories">
+          <div class="donut-wrap">
+            <svg class="donut-chart" viewBox="0 0 180 180" role="img" aria-label="Expense category breakdown">
+              <circle class="donut-track" cx="90" cy="90" [attr.r]="ringRadius" />
+              <circle
+*ngFor="let segment of donutSegments; trackBy: trackByCategory"
+                class="donut-segment"
+                cx="90" cy="90" [attr.r]="ringRadius"
+                [attr.stroke]="segment.color"
+                [attr.stroke-dasharray]="segment.dasharray"
+                [attr.stroke-dashoffset]="segment.offset">
+                <title>{{ segment.category }}: {{ formatCurrency(segment.amount) }}</title>
+              </circle>
+              <text class="donut-center-value" x="90" y="87" text-anchor="middle">{{ shortCurrency(categoryTotal) }}</text>
+              <text class="donut-center-label" x="90" y="108" text-anchor="middle">TOP CATEGORIES</text>
+            </svg>
+          </div>
+          <ul class="category-legend">
+            <li *ngFor="let segment of donutSegments; trackBy: trackByCategory">
+              <span class="category-name"><i [style.backgroundColor]="segment.color"></i>{{ segment.category }}</span>
+              <strong>{{ formatCurrency(segment.amount) }}</strong>
+            </li>
+          </ul>
+        </div>
+        <ng-template #noCategories>
+          <div class="empty-chart">
+            <span class="empty-chart-mark" aria-hidden="true">◎</span>
+            <strong>No direct expenses in this period</strong>
+            <p>Expense categories will appear here once entries are recorded.</p>
+            <a routerLink="/expenses">Add an expense</a>
+          </div>
+        </ng-template>
+      </article>
+    </section>
+
+    <section class="lower-grid">
+      <article class="surface-panel upcoming-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="panel-kicker">Accounts payable</p>
+            <h2>Upcoming supplier bills</h2>
+          </div>
+          <a routerLink="/invoices" class="panel-link">All invoices <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="upcoming-list" *ngIf="vm.upcoming_invoices.length; else noUpcoming">
+          <div class="upcoming-row" *ngFor="let invoice of vm.upcoming_invoices">
+            <span class="invoice-mark" aria-hidden="true">INV</span>
+            <div class="invoice-copy">
+              <strong>{{ invoice.supplier }}</strong>
+              <span>{{ invoice.invoice_number }} <i></i> Due {{ formatDate(invoice.due_date) }}</span>
+            </div>
+            <div class="invoice-amount">
+              <strong>{{ formatCurrency(invoice.balance) }}</strong>
+              <span>{{ invoice.status === 'partial' ? 'Part-paid' : 'Unpaid' }}</span>
+            </div>
+          </div>
+        </div>
+        <ng-template #noUpcoming>
+          <div class="empty-inline">
+            <span class="check-mark" aria-hidden="true">✓</span>
+            <div><strong>Nothing due soon</strong><span>There are no open bills with a future due date.</span></div>
+          </div>
+        </ng-template>
+      </article>
+
+      <article class="surface-panel workflow-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="panel-kicker">Connected workflows</p>
+            <h2>Keep the books moving</h2>
+          </div>
+        </div>
+        <div class="workflow-list">
+          <a routerLink="/expenses"><span class="workflow-icon icon-expense">₵</span><span><strong>Capture an expense</strong><small>Log day-to-day operating costs</small></span><b aria-hidden="true">↗</b></a>
+          <a routerLink="/invoices"><span class="workflow-icon icon-invoice">▤</span><span><strong>Review supplier bills</strong><small>Track balances, due dates and aging</small></span><b aria-hidden="true">↗</b></a>
+          <a routerLink="/payments"><span class="workflow-icon icon-payment">⇄</span><span><strong>Record a payment</strong><small>Keep invoice balances in sync</small></span><b aria-hidden="true">↗</b></a>
+          <a routerLink="/finance/reports"><span class="workflow-icon icon-report">▥</span><span><strong>Prepare a finance report</strong><small>Review and export period activity</small></span><b aria-hidden="true">↗</b></a>
+        </div>
+        <div class="connected-links">
+          <span>Connected to</span>
+          <a routerLink="/suppliers">Suppliers</a>
+          <a routerLink="/procurement">Procurement</a>
+        </div>
+      </article>
+    </section>
+
+    <footer class="data-note"><span>Data sources</span> Expenses · supplier invoices · recorded invoice payments <i></i> Amounts shown in Ghana cedis (GHS)</footer>
+  </ng-container>
+</main>

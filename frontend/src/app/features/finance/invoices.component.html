@@ -1,0 +1,200 @@
+<main class="finance-page invoices-page">
+  <app-finance-nav />
+
+  <header class="page-heading">
+    <div>
+      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true"></span> FINANCE · ACCOUNTS PAYABLE</p>
+      <h1>Invoices &amp; payables</h1>
+      <p class="subtitle">Keep supplier bills, due dates and payment history under control.</p>
+    </div>
+    <div class="heading-actions">
+      <button type="button" class="button button--quiet refresh-button" (click)="refresh()" [disabled]="loading || loadingOverview" aria-label="Refresh invoice data">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" /></svg>
+        <span>Refresh</span>
+      </button>
+      <button type="button" class="button button--primary" (click)="openCreate()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        Add invoice
+      </button>
+    </div>
+  </header>
+
+  <p class="inline-message" *ngIf="message" role="status"><span aria-hidden="true">✓</span>{{ message }}</p>
+  <div class="inline-error" *ngIf="error && !modal" role="alert">{{ error }}<button type="button" (click)="error = ''" aria-label="Dismiss message">×</button></div>
+  <div class="inline-error" *ngIf="overviewError" role="status">{{ overviewError }}</div>
+
+  <section class="summary-grid" aria-label="Accounts payable summary">
+    <article class="summary-card summary-card--outstanding">
+      <span class="summary-label">Outstanding balance</span>
+      <strong>{{ formatCurrency(overview?.totals?.open_payables) }}</strong>
+      <span class="summary-foot">{{ overview?.totals?.open_invoice_count ?? 0 }} open supplier bills</span>
+      <span class="summary-mark" aria-hidden="true">₵</span>
+    </article>
+    <article class="summary-card">
+      <span class="summary-label">Past due</span>
+      <strong [class.text-alert]="(overview?.totals?.overdue_payables ?? 0) > 0">{{ formatCurrency(overview?.totals?.overdue_payables) }}</strong>
+      <span class="summary-foot">{{ overview?.totals?.overdue_invoice_count ?? 0 }} bills require follow-up</span>
+      <span class="summary-icon icon-alert" aria-hidden="true">!</span>
+    </article>
+    <article class="summary-card">
+      <span class="summary-label">Due in 7 days</span>
+      <strong>{{ formatCurrency(overview?.totals?.due_7_days) }}</strong>
+      <span class="summary-foot">{{ overview?.totals?.due_7_days_count ?? 0 }} payments coming up</span>
+      <span class="summary-icon icon-calendar" aria-hidden="true">◷</span>
+    </article>
+    <article class="summary-card">
+      <span class="summary-label">Paid this period</span>
+      <strong>{{ formatCurrency(paidThisPeriod) }}</strong>
+      <span class="summary-foot">Recorded invoice payments · last 30 days</span>
+      <span class="summary-icon icon-paid" aria-hidden="true">✓</span>
+    </article>
+  </section>
+
+  <section class="analysis-grid" aria-label="Payables analysis">
+    <article class="surface-panel aging-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">Outstanding invoice balance</p>
+          <h2>Payables aging</h2>
+          <p>See how much is current and how far overdue bills have moved.</p>
+        </div>
+        <span class="total-pill">{{ formatCurrency(overview?.totals?.open_payables) }} open</span>
+      </div>
+      <div class="aging-chart" *ngIf="agingRows.length; else agingLoading">
+        <div class="aging-row" *ngFor="let row of agingRows" [class]="'aging-row aging-row--' + row.tone">
+          <div class="aging-top"><span>{{ row.label }}</span><strong>{{ formatCurrency(row.amount) }}</strong></div>
+          <div class="aging-track" role="img" [attr.aria-label]="row.label + ': ' + formatCurrency(row.amount)">
+            <span [style.width.%]="agingWidth(row.amount)"></span>
+          </div>
+        </div>
+      </div>
+      <ng-template #agingLoading>
+        <div class="analysis-empty">{{ loadingOverview ? 'Loading aging breakdown…' : 'No open invoice balances.' }}</div>
+      </ng-template>
+      <div class="aging-note"><span class="note-mark" aria-hidden="true">i</span> Open balance is invoice amount less payments already recorded.</div>
+    </article>
+
+    <article class="surface-panel payment-trend-panel">
+      <div class="panel-heading">
+        <div>
+          <p class="panel-kicker">Last six months</p>
+          <h2>Payments made</h2>
+          <p>Cleared supplier payments by month.</p>
+        </div>
+        <a routerLink="/payments" class="panel-link">Payment register <span aria-hidden="true">→</span></a>
+      </div>
+      <div class="payment-bars" *ngIf="overview?.monthly_activity?.length; else noPaymentTrend">
+        <div class="payment-bar-column" *ngFor="let month of overview?.monthly_activity">
+          <span class="payment-bar-value" [title]="formatCurrency(month.payments)">{{ month.payments > 0 ? formatCurrency(month.payments) : '—' }}</span>
+          <div class="payment-bar-area"><span [style.height.px]="paymentBarHeight(month.payments)" [class.has-value]="month.payments > 0"></span></div>
+          <span class="payment-month">{{ month.label }}</span>
+        </div>
+      </div>
+      <ng-template #noPaymentTrend><div class="analysis-empty">Payment activity will appear here once recorded.</div></ng-template>
+      <div class="chart-footer"><span><i></i> Supplier payments</span><span>GHS</span></div>
+    </article>
+  </section>
+
+  <section class="surface-panel register-panel" aria-labelledby="invoice-register-title">
+    <div class="register-heading">
+      <div>
+        <p class="panel-kicker">Supplier ledger</p>
+        <h2 id="invoice-register-title">Invoice register</h2>
+        <p class="register-subtitle">Review amounts, vendors and payment status. Record a payment to automatically update the remaining balance.</p>
+      </div>
+      <label class="search-field">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></svg>
+        <input type="search" [(ngModel)]="searchTerm" placeholder="Find invoice or supplier" aria-label="Search invoices" />
+      </label>
+    </div>
+
+    <div class="table-filters" role="group" aria-label="Filter invoices by status">
+      <button *ngFor="let filter of filters" type="button" [class.is-active]="statusFilter === filter.id" [attr.aria-pressed]="statusFilter === filter.id" (click)="setFilter(filter.id)">
+        {{ filter.label }}
+        <span *ngIf="filter.id === 'all'">{{ invoices.length }}</span>
+      </button>
+      <span class="results-count">{{ filteredInvoices.length }} {{ filteredInvoices.length === 1 ? 'invoice' : 'invoices' }}</span>
+    </div>
+
+    <div class="table-scroll">
+      <table class="invoice-table">
+        <thead>
+          <tr><th scope="col">Invoice</th><th scope="col">Supplier</th><th scope="col">Invoice date</th><th scope="col">Due date</th><th scope="col" class="amount-cell">Amount</th><th scope="col" class="amount-cell">Balance</th><th scope="col">Status</th><th scope="col" class="action-cell">Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let invoice of filteredInvoices; trackBy: trackInvoiceById">
+            <td><strong class="invoice-number">{{ invoice.invoice_number }}</strong></td>
+            <td><span class="supplier-name">{{ supplierName(invoice) }}</span></td>
+            <td>{{ formatDate(invoice.invoice_date) }}</td>
+            <td [class.due-date-overdue]="displayStatus(invoice) === 'overdue'">{{ formatDate(invoice.due_date) }}</td>
+            <td class="amount-cell">{{ formatCurrency(invoice.amount) }}</td>
+            <td class="amount-cell balance-cell">{{ formatCurrency(outstandingBalance(invoice)) }}</td>
+            <td><span class="status-pill" [class]="'status-pill status-pill--' + displayStatus(invoice)">{{ statusLabel(invoice) }}</span></td>
+            <td class="action-cell">
+              <div class="row-actions">
+                <button *ngIf="outstandingBalance(invoice) > 0" type="button" class="row-link row-link--pay" (click)="openPayment(invoice)" [attr.aria-label]="'Record payment for ' + invoice.invoice_number">Pay</button>
+                <button type="button" class="row-icon" (click)="openEdit(invoice)" [attr.aria-label]="'Edit ' + invoice.invoice_number" title="Edit invoice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Zm10-14 4 4" /></svg></button>
+                <button type="button" class="row-icon row-icon--danger" (click)="removeInvoice(invoice)" [attr.aria-label]="'Delete ' + invoice.invoice_number" title="Delete invoice"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3m-7 0 1 13h8l1-13M10 11v6m4-6v6" /></svg></button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!loading && filteredInvoices.length === 0">
+            <td colspan="8">
+              <div class="table-empty">
+                <span aria-hidden="true">▤</span>
+                <strong>{{ invoices.length ? 'No invoices match these filters' : 'Your invoice register is ready' }}</strong>
+                <p>{{ invoices.length ? 'Try another status or search term.' : 'Add a supplier invoice to start tracking your payables.' }}</p>
+                <button *ngIf="!invoices.length" type="button" class="button button--quiet" (click)="openCreate()">Add first invoice</button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="loading && !invoices.length"><td colspan="8" class="loading-row">Loading supplier invoices…</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="register-foot"><span class="safe-note"><i aria-hidden="true">✓</i> Payment records update each invoice balance automatically.</span><a routerLink="/finance/reports">View finance reports <span aria-hidden="true">→</span></a></div>
+  </section>
+
+  <aside class="context-note"><span class="context-icon" aria-hidden="true">i</span><p><strong>Accounts payable workflow.</strong> Supplier invoices are tracked separately from expenses. Record bill payments in the payment register to keep the payable balance and invoice status in sync.</p><a routerLink="/suppliers">Manage suppliers</a></aside>
+</main>
+
+<div class="modal-backdrop" *ngIf="modal === 'invoice'" (click)="closeModal()">
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="invoice-modal-title" (click)="$event.stopPropagation()">
+    <div class="modal-heading">
+      <div><p class="panel-kicker">Accounts payable</p><h2 id="invoice-modal-title">{{ editingId ? 'Edit invoice details' : 'Add supplier invoice' }}</h2></div>
+      <button type="button" class="modal-close" (click)="closeModal()" aria-label="Close invoice form">×</button>
+    </div>
+    <p class="modal-intro">Capture the bill details now; payment status is driven by the payments you record.</p>
+    <form (ngSubmit)="saveInvoice()" #invoiceFormRef="ngForm">
+      <div class="form-grid">
+        <label class="form-field form-field--wide"><span>Invoice number <b>*</b></span><input [(ngModel)]="invoiceForm.invoice_number" name="invoice_number" placeholder="e.g. INV-2026-018" required autocomplete="off" /></label>
+        <label class="form-field form-field--wide"><span>Supplier</span><select [(ngModel)]="invoiceForm.supplier_id" name="supplier_id"><option [ngValue]="null">Choose a supplier</option><option *ngFor="let supplier of suppliers" [ngValue]="supplier.id">{{ supplier.name }}{{ supplier.code ? ' · ' + supplier.code : '' }}</option></select></label>
+        <label class="form-field"><span>Invoice amount <b>*</b></span><input [(ngModel)]="invoiceForm.amount" name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required /></label>
+        <label class="form-field"><span>Invoice date <b>*</b></span><input [(ngModel)]="invoiceForm.invoice_date" name="invoice_date" type="date" required /></label>
+        <label class="form-field form-field--wide"><span>Due date</span><input [(ngModel)]="invoiceForm.due_date" name="due_date" type="date" /></label>
+      </div>
+      <p class="form-error" *ngIf="error" role="alert">{{ error }}</p>
+      <div class="modal-actions"><button type="button" class="button button--quiet" (click)="closeModal()" [disabled]="saving">Cancel</button><button type="submit" class="button button--primary" [disabled]="saving || invoiceFormRef.invalid">{{ saving ? 'Saving…' : editingId ? 'Save changes' : 'Add invoice' }}</button></div>
+    </form>
+  </section>
+</div>
+
+<div class="modal-backdrop" *ngIf="modal === 'payment'" (click)="closeModal()">
+  <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title" (click)="$event.stopPropagation()">
+    <div class="modal-heading">
+      <div><p class="panel-kicker">Supplier payment</p><h2 id="payment-modal-title">Record a payment</h2></div>
+      <button type="button" class="modal-close" (click)="closeModal()" aria-label="Close payment form">×</button>
+    </div>
+    <p class="modal-intro">{{ paymentInvoiceLabel }}<br /><span>Outstanding balance: {{ formatCurrency(selectedPaymentBalance()) }}</span></p>
+    <form (ngSubmit)="savePayment()" #paymentFormRef="ngForm">
+      <div class="form-grid">
+        <label class="form-field"><span>Payment amount <b>*</b></span><input [(ngModel)]="paymentForm.amount" name="payment_amount" type="number" min="0.01" step="0.01" placeholder="0.00" required /></label>
+        <label class="form-field"><span>Payment date <b>*</b></span><input [(ngModel)]="paymentForm.paid_at" name="paid_at" type="date" required /></label>
+        <label class="form-field"><span>Method</span><select [(ngModel)]="paymentForm.method" name="method"><option *ngFor="let method of paymentMethods" [value]="method.value">{{ method.label }}</option></select></label>
+        <label class="form-field"><span>Reference</span><input [(ngModel)]="paymentForm.reference" name="reference" placeholder="Transaction reference" /></label>
+      </div>
+      <p class="form-error" *ngIf="error" role="alert">{{ error }}</p>
+      <div class="modal-actions"><button type="button" class="button button--quiet" (click)="closeModal()" [disabled]="saving">Cancel</button><button type="submit" class="button button--primary" [disabled]="saving || paymentFormRef.invalid">{{ saving ? 'Recording…' : 'Record payment' }}</button></div>
+    </form>
+  </section>
+</div>

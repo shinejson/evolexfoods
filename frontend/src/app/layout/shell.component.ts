@@ -99,12 +99,15 @@ export class ShellComponent {
       ]
     },
     {
-      label: 'Finance',
+      label: 'Finance & Accounting',
       icon: 'expenses',
-      expanded: false,
+      expanded: true,
       items: [
-        { path: '/finance', label: 'Expenses', icon: 'expenses' },
-        { path: '/invoices', label: 'Invoices', icon: 'invoices' }
+        { path: '/finance', label: 'Overview', icon: 'ceo' },
+        { path: '/expenses', label: 'Expenses', icon: 'expenses' },
+        { path: '/invoices', label: 'Invoices & Payables', icon: 'invoices' },
+        { path: '/payments', label: 'Payments', icon: 'invoices' },
+        { path: '/finance/reports', label: 'Reports', icon: 'ceo' }
       ]
     },
     {

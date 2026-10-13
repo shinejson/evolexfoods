@@ -171,8 +171,11 @@ export class HubComponent implements OnInit {
       icon: 'chart',
       modules: [
         { label: 'CEO Command', description: 'Executive overview', route: '/ceo' },
-        { label: 'Expenses', description: 'Spend and cost records', route: '/finance' },
-        { label: 'Invoices', description: 'Billing and receivables', route: '/invoices' },
+        { label: 'Finance overview', description: 'Spend, payables and cash activity', route: '/finance' },
+        { label: 'Expenses', description: 'Operating costs and expense records', route: '/expenses' },
+        { label: 'Invoices & payables', description: 'Supplier bills and due dates', route: '/invoices' },
+        { label: 'Payments', description: 'Supplier payment register', route: '/payments' },
+        { label: 'Finance reports', description: 'Period summaries and exports', route: '/finance/reports' },
         { label: 'CRM', description: 'Companies and contacts', route: '/crm' },
         { label: 'Deals', description: 'Sales pipeline', route: '/deals' },
         { label: 'Marketing', description: 'Campaigns and content', route: '/marketing' },

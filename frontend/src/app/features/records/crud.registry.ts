@@ -4,7 +4,7 @@ export interface FieldDef {
   type: 'text' | 'number' | 'date' | 'select' | 'textarea';
   required?: boolean;
   options?: { value: string; label: string }[];
-  lookup?: 'locations' | 'suppliers' | 'users' | 'employees' | 'animals' | 'assets' | 'companies';
+  lookup?: 'locations' | 'suppliers' | 'users' | 'employees' | 'animals' | 'assets' | 'companies' | 'invoices';
   lookupValue?: string;
   lookupLabel?: string;
   hidden?: boolean;
@@ -1677,6 +1677,29 @@ export const CRUD_RESOURCES: Record<string, ResourceDef> = {
       ]}
     ],
     defaults: { status: 'unpaid' }
+  },
+  payments: {
+    title: 'Payments',
+    subtitle: 'Supplier payment register linked to invoice balances.',
+    columns: [
+      { key: 'invoice', label: 'Invoice', render: (row) => row.invoice?.invoice_number || '' },
+      { key: 'supplier', label: 'Supplier', render: (row) => row.invoice?.supplier?.name || '' },
+      { key: 'amount', label: 'Amount' },
+      { key: 'paid_at', label: 'Paid on' },
+      { key: 'method', label: 'Method' },
+      { key: 'reference', label: 'Reference' }
+    ],
+    fields: [
+      { key: 'invoice_id', label: 'Invoice', type: 'select', required: true, lookup: 'invoices' },
+      { key: 'amount', label: 'Amount', type: 'number', required: true },
+      { key: 'paid_at', label: 'Payment date', type: 'date', required: true },
+      { key: 'method', label: 'Method', type: 'select', options: [
+        { value: 'bank_transfer', label: 'Bank transfer' }, { value: 'mobile_money', label: 'Mobile money' },
+        { value: 'cash', label: 'Cash' }, { value: 'card', label: 'Card' }, { value: 'other', label: 'Other' }
+      ]},
+      { key: 'reference', label: 'Reference', type: 'text' }
+    ],
+    defaults: { method: 'bank_transfer' }
   },
   companies: {
     title: 'CRM Companies',

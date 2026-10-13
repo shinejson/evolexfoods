@@ -1,0 +1,105 @@
+<main class="report-page">
+  <app-finance-nav />
+
+  <header class="report-heading">
+    <div>
+      <p class="eyebrow"><span class="eyebrow-mark" aria-hidden="true"></span> FINANCE · MANAGEMENT REPORTING</p>
+      <h1>Financial reports</h1>
+      <p>Review cash activity, operating spend and supplier payments in one clear period view.</p>
+    </div>
+    <div class="report-actions">
+      <button type="button" class="report-button report-button--quiet" (click)="print()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V3h10v6M7 19H5v-8h14v8h-2M8 15h8v6H8z" /></svg> Print
+      </button>
+      <button type="button" class="report-button report-button--primary" (click)="exportCsv()" [disabled]="loading">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14" /></svg> Export CSV
+      </button>
+    </div>
+  </header>
+
+  <section class="report-controls" aria-label="Report period">
+    <div class="range-switch" role="group" aria-label="Choose a report period">
+      <button *ngFor="let option of ranges" type="button" [class.is-active]="range === option.id" [attr.aria-pressed]="range === option.id" (click)="selectRange(option.id)">{{ option.label }}</button>
+    </div>
+    <div class="custom-range" *ngIf="range === 'custom'">
+      <label><span>From</span><input type="date" [(ngModel)]="customFrom" /></label>
+      <label><span>To</span><input type="date" [(ngModel)]="customTo" /></label>
+      <button type="button" class="apply-button" [disabled]="!customFrom || !customTo || customFrom > customTo" (click)="applyCustomRange()">Apply</button>
+    </div>
+    <span *ngIf="overview" class="period-caption">{{ formatDate(overview.from) }} – {{ formatDate(overview.to) }}</span>
+  </section>
+
+  <div class="report-error" *ngIf="error" role="alert"><span>{{ error }}</span><button type="button" (click)="load()">Retry</button></div>
+  <div class="loading-note" *ngIf="loading && !overview" aria-live="polite"><span class="spinner" aria-hidden="true"></span> Building your report…</div>
+
+  <ng-container *ngIf="overview as vm">
+    <section class="report-summary" aria-label="Period summary">
+      <article class="summary-tile summary-tile--outflow"><span>Recorded outflow</span><strong>{{ formatCurrency(vm.totals.outflow) }}</strong><small>Expenses + supplier payments</small></article>
+      <article class="summary-tile"><span>Direct expenses</span><strong>{{ formatCurrency(vm.totals.expenses) }}</strong><small>Operating costs recorded in the period</small></article>
+      <article class="summary-tile"><span>Supplier payments</span><strong>{{ formatCurrency(vm.totals.payments) }}</strong><small>Payments applied to vendor invoices</small></article>
+      <article class="summary-tile"><span>Open payables</span><strong>{{ formatCurrency(vm.totals.open_payables) }}</strong><small>{{ vm.totals.open_invoice_count }} outstanding invoices</small></article>
+    </section>
+
+    <section class="report-chart-grid" aria-label="Finance charts">
+      <article class="report-panel activity-report">
+        <div class="panel-header">
+          <div><p class="panel-kicker">Cash movement · GHS</p><h2>Monthly activity</h2><p>Expense entries and payments actually recorded each month.</p></div>
+          <span class="period-tag">6 months</span>
+        </div>
+        <div class="legend"><span><i class="legend-expenses"></i> Expenses</span><span><i class="legend-payments"></i> Supplier payments</span></div>
+        <div class="monthly-list">
+          <div class="monthly-row" *ngFor="let month of vm.monthly_activity">
+            <span class="month-name">{{ month.label }}</span>
+            <div class="activity-track" role="img" [attr.aria-label]="month.label + ': expenses ' + formatCurrency(month.expenses) + ', supplier payments ' + formatCurrency(month.payments)">
+              <span class="activity-expense" [style.width.%]="activityWidth(month.expenses)"></span>
+              <span class="activity-payment" [style.width.%]="activityWidth(month.payments)"></span>
+            </div>
+            <strong class="month-total">{{ formatCurrency(monthTotal(month.expenses, month.payments)) }}</strong>
+          </div>
+        </div>
+        <p class="chart-note">The two series are shown side by side as a stacked total indicator; each color represents a different cash outflow source.</p>
+      </article>
+
+      <article class="report-panel category-report">
+        <div class="panel-header">
+          <div><p class="panel-kicker">Selected period</p><h2>Expense categories</h2><p>Highest direct operating expense categories.</p></div>
+          <a routerLink="/expenses">Open ledger <span aria-hidden="true">→</span></a>
+        </div>
+        <div class="category-list" *ngIf="vm.expense_categories.length; else noCategories">
+          <div class="category-row" *ngFor="let category of vm.expense_categories">
+            <div class="category-line"><span>{{ category.category }}</span><strong>{{ formatCurrency(category.amount) }}</strong></div>
+            <div class="category-track"><span [style.width.%]="categoryWidth(category.amount)"></span></div>
+          </div>
+        </div>
+        <ng-template #noCategories><div class="report-empty">No expense categories were recorded in this period.</div></ng-template>
+      </article>
+    </section>
+
+    <section class="report-panel ledger-panel" aria-labelledby="activity-ledger-title">
+      <div class="ledger-heading">
+        <div><p class="panel-kicker">Transaction detail</p><h2 id="activity-ledger-title">Cash activity register</h2><p>Expenses and paid invoices that fall inside the selected reporting period.</p></div>
+        <span class="entry-count">{{ entries.length }} {{ entries.length === 1 ? 'entry' : 'entries' }}</span>
+      </div>
+      <div class="ledger-scroll">
+        <table>
+          <thead><tr><th scope="col">Date</th><th scope="col">Activity</th><th scope="col">Reference</th><th scope="col">Description / vendor</th><th scope="col">Method / source</th><th scope="col" class="amount-column">Amount (GHS)</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let entry of entries">
+              <td>{{ formatDate(entry.date) }}</td>
+              <td><span class="type-chip" [class.type-chip--payment]="entry.type === 'Supplier payment'">{{ entry.type }}</span></td>
+              <td class="reference-cell">{{ entry.reference }}</td>
+              <td>{{ entry.description }}</td>
+              <td>{{ entry.method }}</td>
+              <td class="amount-column">{{ formatCurrency(entry.amount) }}</td>
+            </tr>
+            <tr *ngIf="!loading && entries.length === 0"><td colspan="6"><div class="ledger-empty"><strong>No cash activity in this period</strong><span>Once expenses or supplier payments are recorded, the detail will appear here.</span></div></td></tr>
+            <tr *ngIf="loading && entries.length === 0"><td colspan="6" class="ledger-loading">Loading finance records…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="ledger-footer"><span>Source: expense register + payment register</span><a routerLink="/invoices">Review outstanding supplier bills <span aria-hidden="true">→</span></a></div>
+    </section>
+
+    <footer class="report-footnote"><span class="footnote-icon" aria-hidden="true">i</span><p><strong>Reporting note.</strong> Recorded outflow includes expense entries and payments applied to invoices. Outstanding payables are not cash outflow until paid; purchase-order commitments are not included in this cash activity report.</p></footer>
+  </ng-container>
+</main>

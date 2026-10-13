@@ -18,6 +18,7 @@ use App\Models\InventoryItem;
 use App\Models\Invoice;
 use App\Models\Location;
 use App\Models\MaintenanceTicket;
+use App\Models\Payment;
 use App\Models\Pregnancy;
 use App\Models\PurchaseRequest;
 use App\Models\Risk;
@@ -76,6 +77,10 @@ class CrudController extends Controller
         $record = $config['model']::create($data);
         $this->audit($request, $resource.'.created', $record);
 
+        if ($resource === 'payments') {
+            $this->syncInvoicePaymentStatus((int) $record->invoice_id);
+        }
+
         if (! empty($config['with'])) {
             $record->load($config['with']);
         }
@@ -87,10 +92,18 @@ class CrudController extends Controller
     {
         $config = $this->config($resource);
         $record = $config['model']::findOrFail($id);
+        $previousInvoiceId = $resource === 'payments' ? (int) $record->invoice_id : null;
         $data = $request->validate($config['rules']);
         $data = $this->beforeSave($resource, $data, $request, $record);
         $record->update($data);
         $this->audit($request, $resource.'.updated', $record);
+
+        if ($resource === 'payments') {
+            $this->syncInvoicePaymentStatus($previousInvoiceId);
+            $this->syncInvoicePaymentStatus((int) $record->invoice_id);
+        } elseif ($resource === 'invoices' && Payment::where('invoice_id', $record->id)->exists()) {
+            $this->syncInvoicePaymentStatus((int) $record->id);
+        }
 
         if (! empty($config['with'])) {
             $record->load($config['with']);
@@ -103,6 +116,14 @@ class CrudController extends Controller
     {
         $config = $this->config($resource);
         $record = $config['model']::findOrFail($id);
+        $invoiceId = $resource === 'payments' ? (int) $record->invoice_id : null;
+
+        if ($resource === 'invoices' && Payment::where('invoice_id', $record->id)->exists()) {
+            return response()->json([
+                'message' => 'This invoice has a payment history and cannot be deleted. Keep it for accounting records.',
+            ], 409);
+        }
+
         $this->audit($request, $resource.'.deleted', $record);
 
         try {
@@ -111,6 +132,10 @@ class CrudController extends Controller
             return response()->json([
                 'message' => 'This record has related data and cannot be deleted until those records are removed.',
             ], 409);
+        }
+
+        if ($resource === 'payments') {
+            $this->syncInvoicePaymentStatus($invoiceId);
         }
 
         return response()->json(['deleted' => true]);
@@ -126,6 +151,7 @@ class CrudController extends Controller
             'animals' => Animal::orderBy('animal_id')->get(['id', 'animal_id', 'species', 'sex', 'status']),
             'assets' => Asset::orderBy('asset_id')->get(['id', 'asset_id', 'name']),
             'companies' => Company::orderBy('name')->get(['id', 'name']),
+            'invoices' => Invoice::orderByDesc('invoice_date')->get(['id', 'invoice_number']),
         ]);
     }
 
@@ -203,6 +229,28 @@ class CrudController extends Controller
             'meta' => ['resource' => class_basename($record)],
             'ip_address' => $request->ip(),
         ]);
+    }
+
+    private function syncInvoicePaymentStatus(?int $invoiceId): void
+    {
+        if (! $invoiceId) {
+            return;
+        }
+
+        $invoice = Invoice::find($invoiceId);
+        if (! $invoice) {
+            return;
+        }
+
+        $paid = (float) Payment::where('invoice_id', $invoiceId)->sum('amount');
+        $amount = (float) $invoice->amount;
+        $status = $paid <= 0
+            ? 'unpaid'
+            : ($paid + 0.005 >= $amount ? 'paid' : 'partial');
+
+        if ($invoice->status !== $status) {
+            $invoice->update(['status' => $status]);
+        }
     }
 
     private function config(string $resource): array
@@ -424,7 +472,7 @@ class CrudController extends Controller
             ],
             'invoices' => [
                 'model' => Invoice::class,
-                'with' => ['supplier'],
+                'with' => ['supplier', 'payments'],
                 'search' => ['invoice_number', 'status'],
                 'rules' => [
                     'invoice_number' => 'required|string',
@@ -432,7 +480,19 @@ class CrudController extends Controller
                     'amount' => 'required|numeric',
                     'invoice_date' => 'required|date',
                     'due_date' => 'nullable|date',
-                    'status' => 'nullable|string',
+                    'status' => 'nullable|in:unpaid,partial,paid',
+                ],
+            ],
+            'payments' => [
+                'model' => Payment::class,
+                'with' => ['invoice.supplier'],
+                'search' => ['reference', 'method'],
+                'rules' => [
+                    'invoice_id' => 'required|exists:invoices,id',
+                    'amount' => 'required|numeric|min:0.01',
+                    'paid_at' => 'required|date',
+                    'method' => 'nullable|string',
+                    'reference' => 'nullable|string',
                 ],
             ],
             'companies' => [
