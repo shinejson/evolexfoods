@@ -40,8 +40,12 @@ export const routes: Routes = [
       { path: 'invoices', loadComponent: () => import('./features/finance/invoices.component').then((module) => module.InvoicesComponent) },
       { path: 'payments', component: CrudPageComponent, data: { resource: 'payments' } },
       { path: 'crm', component: CrudPageComponent, data: { resource: 'companies' } },
+      { path: 'contacts', component: CrudPageComponent, data: { resource: 'contacts' } },
       { path: 'deals', component: CrudPageComponent, data: { resource: 'deals' } },
-      { path: 'marketing', component: CrudPageComponent, data: { resource: 'marketing' } },
+      { path: 'sales', component: CrudPageComponent, data: { resource: 'sales' } },
+      { path: 'campaigns', component: CrudPageComponent, data: { resource: 'campaigns' } },
+      { path: 'marketing/performance', component: CrudPageComponent, data: { resource: 'channel_metrics' } },
+      { path: 'marketing', pathMatch: 'full', component: CrudPageComponent, data: { resource: 'marketing' } },
       { path: 'risks', component: CrudPageComponent, data: { resource: 'risks' } },
       { path: 'decisions', component: CrudPageComponent, data: { resource: 'decisions' } },
       { path: 'sops', component: CrudPageComponent, data: { resource: 'sops' } }

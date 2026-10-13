@@ -176,9 +176,13 @@ export class HubComponent implements OnInit {
         { label: 'Invoices & payables', description: 'Supplier bills and due dates', route: '/invoices' },
         { label: 'Payments', description: 'Supplier payment register', route: '/payments' },
         { label: 'Finance reports', description: 'Period summaries and exports', route: '/finance/reports' },
-        { label: 'CRM', description: 'Companies and contacts', route: '/crm' },
-        { label: 'Deals', description: 'Sales pipeline', route: '/deals' },
-        { label: 'Marketing', description: 'Campaigns and content', route: '/marketing' },
+        { label: 'CRM', description: 'Company accounts', route: '/crm' },
+        { label: 'Contacts', description: 'Buyer-side people and decision makers', route: '/contacts' },
+        { label: 'Deals', description: 'Commercial sales pipeline', route: '/deals' },
+        { label: 'Sales & culls', description: 'Livestock sales records and realized value', route: '/sales' },
+        { label: 'Campaigns', description: 'Marketing initiatives, timing and budgets', route: '/campaigns' },
+        { label: 'Content calendar', description: 'Create, review and schedule content', route: '/marketing' },
+        { label: 'Channel performance', description: 'Reach, engagement and lead metrics', route: '/marketing/performance' },
         { label: 'Risks', description: 'Risk register and alerts', route: '/risks' },
         { label: 'Decisions', description: 'Pending owner decisions', route: '/decisions' }
       ]

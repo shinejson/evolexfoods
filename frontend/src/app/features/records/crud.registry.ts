@@ -1,10 +1,10 @@
 export interface FieldDef {
   key: string;
   label: string;
-  type: 'text' | 'number' | 'date' | 'select' | 'textarea';
+  type: 'text' | 'email' | 'number' | 'date' | 'select' | 'textarea';
   required?: boolean;
   options?: { value: string; label: string }[];
-  lookup?: 'locations' | 'suppliers' | 'users' | 'employees' | 'animals' | 'assets' | 'companies' | 'invoices';
+  lookup?: 'locations' | 'suppliers' | 'users' | 'employees' | 'animals' | 'assets' | 'companies' | 'contacts' | 'pipeline_stages' | 'media_assets' | 'invoices';
   lookupValue?: string;
   lookupLabel?: string;
   hidden?: boolean;
@@ -29,7 +29,7 @@ export interface AdvancedFilterDef {
   type: 'select' | 'text' | 'date' | 'number';
   placeholder?: string;
   options?: AdvancedFilterOption[];
-  lookup?: 'locations' | 'suppliers' | 'users' | 'employees' | 'animals' | 'assets' | 'companies';
+  lookup?: 'locations' | 'suppliers' | 'users' | 'employees' | 'animals' | 'assets' | 'companies' | 'contacts' | 'pipeline_stages' | 'media_assets';
   filterFn?: (row: any, value: any) => boolean;
 }
 
@@ -50,6 +50,7 @@ export interface KpiDef {
 
 export interface ResourceDef {
   title: string;
+  recordLabel?: string;
   subtitle: string;
   columns: { key: string; label: string; render?: (row: any) => string }[];
   fields: FieldDef[];
@@ -1703,80 +1704,466 @@ export const CRUD_RESOURCES: Record<string, ResourceDef> = {
   },
   companies: {
     title: 'CRM Companies',
-    subtitle: 'Buyer database mirrored for reporting.',
+    recordLabel: 'company',
+    subtitle: 'Buyer accounts, lifecycle stage and contact details.',
     columns: [
       { key: 'name', label: 'Company' },
-      { key: 'category', label: 'Category' },
-      { key: 'lifecycle_stage', label: 'Stage' },
+      { key: 'category', label: 'Buyer type' },
+      { key: 'lifecycle_stage', label: 'Lifecycle' },
       { key: 'city', label: 'City' },
-      { key: 'phone', label: 'Phone' }
+      { key: 'email', label: 'Email' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'status', label: 'Status' }
     ],
     fields: [
-      { key: 'name', label: 'Name', type: 'text', required: true },
-      { key: 'category', label: 'Category', type: 'select', options: [
+      { key: 'name', label: 'Company name', type: 'text', required: true },
+      { key: 'category', label: 'Buyer type', type: 'select', options: [
         { value: 'restaurants', label: 'Restaurants' }, { value: 'hotels', label: 'Hotels' },
         { value: 'supermarkets', label: 'Supermarkets' }, { value: 'butchers', label: 'Butchers' },
         { value: 'distributors', label: 'Distributors' }, { value: 'caterers', label: 'Caterers' }
       ]},
-      { key: 'lifecycle_stage', label: 'Lifecycle', type: 'select', options: [
+      { key: 'lifecycle_stage', label: 'Lifecycle stage', type: 'select', options: [
         { value: 'lead', label: 'Lead' }, { value: 'prospect', label: 'Prospect' },
         { value: 'customer', label: 'Customer' }, { value: 'subscriber', label: 'Subscriber' }
       ]},
       { key: 'city', label: 'City', type: 'text' },
       { key: 'phone', label: 'Phone', type: 'text' },
-      { key: 'email', label: 'Email', type: 'text' },
+      { key: 'email', label: 'Email', type: 'email' },
       { key: 'status', label: 'Status', type: 'select', options: [
         { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }
       ]}
     ],
-    defaults: { lifecycle_stage: 'lead', status: 'active' }
+    defaults: { lifecycle_stage: 'lead', status: 'active' },
+    quickFilters: [
+      { id: 'all', label: 'All companies', filterFn: () => true },
+      { id: 'leads', label: 'Leads', badgeClass: 'info', filterFn: (row) => row.lifecycle_stage === 'lead' },
+      { id: 'prospects', label: 'Prospects', badgeClass: 'warning', filterFn: (row) => row.lifecycle_stage === 'prospect' },
+      { id: 'customers', label: 'Customers', badgeClass: 'ok', filterFn: (row) => row.lifecycle_stage === 'customer' },
+      { id: 'inactive', label: 'Inactive', badgeClass: 'danger', filterFn: (row) => row.status === 'inactive' }
+    ],
+    advancedFilters: [
+      { key: 'category', label: 'Buyer type', type: 'select', options: [
+        { value: 'restaurants', label: 'Restaurants' }, { value: 'hotels', label: 'Hotels' },
+        { value: 'supermarkets', label: 'Supermarkets' }, { value: 'butchers', label: 'Butchers' },
+        { value: 'distributors', label: 'Distributors' }, { value: 'caterers', label: 'Caterers' }
+      ]},
+      { key: 'lifecycle_stage', label: 'Lifecycle stage', type: 'select', options: [
+        { value: 'lead', label: 'Lead' }, { value: 'prospect', label: 'Prospect' },
+        { value: 'customer', label: 'Customer' }, { value: 'subscriber', label: 'Subscriber' }
+      ]},
+      { key: 'status', label: 'Status', type: 'select', options: [
+        { value: 'active', label: 'Active' }, { value: 'inactive', label: 'Inactive' }
+      ]},
+      { key: 'city', label: 'City', type: 'text', placeholder: 'Filter by city', filterFn: (row, value) => String(row.city || '').toLowerCase().includes(String(value).toLowerCase()) }
+    ],
+    kpiDefs: [
+      {
+        label: 'Companies in view',
+        compute: (rows) => ({ label: 'Companies in view', value: rows.length, meta: 'Accounts matching current filters', info: true })
+      },
+      {
+        label: 'Active customers',
+        compute: (rows, allRows) => {
+          const count = allRows.filter((row) => row.lifecycle_stage === 'customer' && row.status !== 'inactive').length;
+          return { label: 'Active customers', value: count, meta: 'Customer accounts in the directory', ok: true };
+        }
+      },
+      {
+        label: 'Leads & prospects',
+        compute: (rows) => {
+          const count = rows.filter((row) => ['lead', 'prospect'].includes(row.lifecycle_stage)).length;
+          return { label: 'Leads & prospects', value: count, meta: 'Potential buyers in the filtered view', info: true };
+        }
+      }
+    ]
+  },
+  contacts: {
+    title: 'Contacts',
+    recordLabel: 'contact',
+    subtitle: 'People and buyer-side decision makers linked to company accounts.',
+    columns: [
+      { key: 'name', label: 'Contact' },
+      { key: 'company', label: 'Company', render: (row) => row.company?.name || '-' },
+      { key: 'role', label: 'Role' },
+      { key: 'email', label: 'Email' },
+      { key: 'phone', label: 'Phone' },
+      { key: 'lifecycle_stage', label: 'Lifecycle' }
+    ],
+    fields: [
+      { key: 'name', label: 'Contact name', type: 'text', required: true },
+      { key: 'company_id', label: 'Company', type: 'select', lookup: 'companies' },
+      { key: 'role', label: 'Role / title', type: 'text' },
+      { key: 'email', label: 'Email', type: 'email' },
+      { key: 'phone', label: 'Phone', type: 'text' },
+      { key: 'lifecycle_stage', label: 'Lifecycle stage', type: 'select', options: [
+        { value: 'lead', label: 'Lead' }, { value: 'prospect', label: 'Prospect' },
+        { value: 'customer', label: 'Customer' }, { value: 'subscriber', label: 'Subscriber' }
+      ]}
+    ],
+    defaults: { lifecycle_stage: 'lead' },
+    quickFilters: [
+      { id: 'all', label: 'All contacts', filterFn: () => true },
+      { id: 'leads', label: 'Leads', badgeClass: 'info', filterFn: (row) => row.lifecycle_stage === 'lead' },
+      { id: 'prospects', label: 'Prospects', badgeClass: 'warning', filterFn: (row) => row.lifecycle_stage === 'prospect' },
+      { id: 'customers', label: 'Customers', badgeClass: 'ok', filterFn: (row) => row.lifecycle_stage === 'customer' }
+    ],
+    advancedFilters: [
+      { key: 'company_id', label: 'Company', type: 'select', lookup: 'companies' },
+      { key: 'lifecycle_stage', label: 'Lifecycle stage', type: 'select', options: [
+        { value: 'lead', label: 'Lead' }, { value: 'prospect', label: 'Prospect' },
+        { value: 'customer', label: 'Customer' }, { value: 'subscriber', label: 'Subscriber' }
+      ]},
+      { key: 'role', label: 'Role / title', type: 'text', placeholder: 'Filter by role', filterFn: (row, value) => String(row.role || '').toLowerCase().includes(String(value).toLowerCase()) }
+    ],
+    kpiDefs: [
+      {
+        label: 'Contacts in view',
+        compute: (rows) => ({ label: 'Contacts in view', value: rows.length, meta: 'People matching current filters', info: true })
+      },
+      {
+        label: 'Linked to a company',
+        compute: (rows) => {
+          const count = rows.filter((row) => !!row.company_id).length;
+          return { label: 'Linked to a company', value: count, meta: 'Contacts with an account relationship', ok: true };
+        }
+      }
+    ]
   },
   deals: {
-    title: 'Opportunities',
-    subtitle: 'Commercial pipeline deals.',
+    title: 'Deals & Pipeline',
+    recordLabel: 'deal',
+    subtitle: 'Manage buyer opportunities, pipeline stages and next actions.',
     columns: [
       { key: 'name', label: 'Deal' },
-      { key: 'company', label: 'Company', render: (row) => row.company?.name || '' },
-      { key: 'amount', label: 'Amount' },
+      { key: 'company', label: 'Company', render: (row) => row.company?.name || '-' },
+      { key: 'contact', label: 'Contact', render: (row) => row.contact?.name || '-' },
+      { key: 'stage', label: 'Pipeline stage', render: (row) => row.stage?.name || '-' },
+      { key: 'amount', label: 'Amount', render: (row) => row.amount === null || row.amount === undefined ? '-' : Number(row.amount).toLocaleString() },
+      { key: 'close_date', label: 'Expected close' },
       { key: 'next_action', label: 'Next action' },
       { key: 'status', label: 'Status' }
     ],
     fields: [
       { key: 'name', label: 'Deal name', type: 'text', required: true },
       { key: 'company_id', label: 'Company', type: 'select', lookup: 'companies' },
-      { key: 'amount', label: 'Amount', type: 'number' },
-      { key: 'close_date', label: 'Close date', type: 'date' },
+      { key: 'contact_id', label: 'Primary contact', type: 'select', lookup: 'contacts' },
+      { key: 'pipeline_stage_id', label: 'Pipeline stage', type: 'select', lookup: 'pipeline_stages' },
+      { key: 'amount', label: 'Deal value', type: 'number' },
+      { key: 'close_date', label: 'Expected close date', type: 'date' },
       { key: 'next_action', label: 'Next action', type: 'text' },
       { key: 'next_action_date', label: 'Next action date', type: 'date' },
       { key: 'status', label: 'Status', type: 'select', options: [
         { value: 'open', label: 'Open' }, { value: 'won', label: 'Won' }, { value: 'lost', label: 'Lost' }
       ]}
     ],
-    defaults: { status: 'open' }
+    defaults: { status: 'open' },
+    quickFilters: [
+      { id: 'all', label: 'All deals', filterFn: () => true },
+      { id: 'open', label: 'Open', badgeClass: 'info', filterFn: (row) => row.status === 'open' },
+      { id: 'won', label: 'Won', badgeClass: 'ok', filterFn: (row) => row.status === 'won' },
+      { id: 'lost', label: 'Lost', badgeClass: 'danger', filterFn: (row) => row.status === 'lost' },
+      { id: 'action_due', label: 'Follow-up overdue', badgeClass: 'warning', filterFn: (row) => row.status === 'open' && !!row.next_action_date && String(row.next_action_date).slice(0, 10) < new Date().toISOString().slice(0, 10) }
+    ],
+    advancedFilters: [
+      { key: 'status', label: 'Status', type: 'select', options: [
+        { value: 'open', label: 'Open' }, { value: 'won', label: 'Won' }, { value: 'lost', label: 'Lost' }
+      ]},
+      { key: 'company_id', label: 'Company', type: 'select', lookup: 'companies' },
+      { key: 'pipeline_stage_id', label: 'Pipeline stage', type: 'select', lookup: 'pipeline_stages' },
+      { key: 'close_from', label: 'Close date from', type: 'date', filterFn: (row, value) => !!row.close_date && String(row.close_date).slice(0, 10) >= String(value) },
+      { key: 'close_to', label: 'Close date to', type: 'date', filterFn: (row, value) => !!row.close_date && String(row.close_date).slice(0, 10) <= String(value) },
+      { key: 'amount_min', label: 'Minimum value', type: 'number', filterFn: (row, value) => Number(row.amount || 0) >= Number(value) },
+      { key: 'amount_max', label: 'Maximum value', type: 'number', filterFn: (row, value) => Number(row.amount || 0) <= Number(value) }
+    ],
+    kpiDefs: [
+      {
+        label: 'Open pipeline',
+        compute: (rows) => {
+          const deals = rows.filter((row) => row.status === 'open');
+          const value = deals.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+          return { label: 'Open pipeline', value: value.toLocaleString(), meta: `${deals.length} open deal${deals.length === 1 ? '' : 's'} in view`, info: true };
+        }
+      },
+      {
+        label: 'Won value',
+        compute: (rows) => {
+          const won = rows.filter((row) => row.status === 'won');
+          const value = won.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+          return { label: 'Won value', value: value.toLocaleString(), meta: `${won.length} closed-won deal${won.length === 1 ? '' : 's'}`, ok: true };
+        }
+      },
+      {
+        label: 'Follow-ups overdue',
+        compute: (rows) => {
+          const today = new Date().toISOString().slice(0, 10);
+          const count = rows.filter((row) => row.status === 'open' && row.next_action_date && String(row.next_action_date).slice(0, 10) < today).length;
+          return { label: 'Follow-ups overdue', value: count, meta: 'Open deal actions past due', alert: count > 0 };
+        }
+      }
+    ]
+  },
+  sales: {
+    title: 'Livestock Sales & Culls',
+    recordLabel: 'sale record',
+    subtitle: 'Track animals sold or culled, buyers and realized value.',
+    columns: [
+      { key: 'animal', label: 'Animal', render: (row) => row.animal?.animal_id || '-' },
+      { key: 'type', label: 'Event type' },
+      { key: 'event_date', label: 'Date' },
+      { key: 'buyer', label: 'Buyer' },
+      { key: 'amount', label: 'Amount', render: (row) => row.amount === null || row.amount === undefined ? '-' : Number(row.amount).toLocaleString() },
+      { key: 'notes', label: 'Notes' }
+    ],
+    fields: [
+      { key: 'animal_id', label: 'Animal', type: 'select', required: true, lookup: 'animals', lookupValue: 'id', lookupLabel: 'animal_id' },
+      { key: 'type', label: 'Event type', type: 'select', required: true, options: [
+        { value: 'sale', label: 'Sale' }, { value: 'cull', label: 'Cull' }
+      ]},
+      { key: 'event_date', label: 'Date', type: 'date', required: true },
+      { key: 'buyer', label: 'Buyer', type: 'text' },
+      { key: 'amount', label: 'Amount', type: 'number' },
+      { key: 'notes', label: 'Notes', type: 'textarea' }
+    ],
+    defaults: { type: 'sale' },
+    quickFilters: [
+      { id: 'all', label: 'All events', filterFn: () => true },
+      { id: 'sales', label: 'Sales', badgeClass: 'ok', filterFn: (row) => row.type === 'sale' },
+      { id: 'culls', label: 'Culls', badgeClass: 'warning', filterFn: (row) => row.type === 'cull' }
+    ],
+    advancedFilters: [
+      { key: 'type', label: 'Event type', type: 'select', options: [
+        { value: 'sale', label: 'Sale' }, { value: 'cull', label: 'Cull' }
+      ]},
+      { key: 'animal_id', label: 'Animal', type: 'select', lookup: 'animals' },
+      { key: 'event_from', label: 'Date from', type: 'date', filterFn: (row, value) => !!row.event_date && String(row.event_date).slice(0, 10) >= String(value) },
+      { key: 'event_to', label: 'Date to', type: 'date', filterFn: (row, value) => !!row.event_date && String(row.event_date).slice(0, 10) <= String(value) },
+      { key: 'buyer', label: 'Buyer', type: 'text', placeholder: 'Filter by buyer', filterFn: (row, value) => String(row.buyer || '').toLowerCase().includes(String(value).toLowerCase()) }
+    ],
+    kpiDefs: [
+      {
+        label: 'Sales value',
+        compute: (rows) => {
+          const sales = rows.filter((row) => row.type === 'sale');
+          const value = sales.reduce((sum, row) => sum + Number(row.amount || 0), 0);
+          return { label: 'Sales value', value: value.toLocaleString(), meta: `${sales.length} sale${sales.length === 1 ? '' : 's'} in view`, ok: true };
+        }
+      },
+      {
+        label: 'Culls',
+        compute: (rows) => ({ label: 'Culls', value: rows.filter((row) => row.type === 'cull').length, meta: 'Cull records in view', alert: rows.some((row) => row.type === 'cull') })
+      }
+    ]
   },
   marketing: {
-    title: 'Marketing Content',
-    subtitle: 'Content calendar items.',
+    title: 'Content Calendar',
+    recordLabel: 'content item',
+    subtitle: 'Plan, review and track approved content across channels.',
     columns: [
-      { key: 'title', label: 'Title' },
+      { key: 'title', label: 'Content' },
       { key: 'channel', label: 'Channel' },
-      { key: 'content_type', label: 'Type' },
+      { key: 'content_type', label: 'Format' },
       { key: 'scheduled_for', label: 'Scheduled' },
+      { key: 'published_at', label: 'Published' },
       { key: 'status', label: 'Status' }
     ],
     fields: [
       { key: 'title', label: 'Title', type: 'text', required: true },
-      { key: 'channel', label: 'Channel', type: 'text' },
-      { key: 'content_type', label: 'Type', type: 'text' },
+      { key: 'channel', label: 'Channel', type: 'select', options: [
+        { value: 'Instagram', label: 'Instagram' }, { value: 'Facebook', label: 'Facebook' },
+        { value: 'LinkedIn', label: 'LinkedIn' }, { value: 'Website', label: 'Website' },
+        { value: 'WhatsApp', label: 'WhatsApp' }, { value: 'YouTube', label: 'YouTube' },
+        { value: 'TikTok', label: 'TikTok' }, { value: 'Email', label: 'Email' }
+      ]},
+      { key: 'content_type', label: 'Format', type: 'select', options: [
+        { value: 'post', label: 'Post' }, { value: 'carousel', label: 'Carousel' },
+        { value: 'article', label: 'Article' }, { value: 'video', label: 'Video' },
+        { value: 'story', label: 'Story' }, { value: 'email', label: 'Email' }
+      ]},
       { key: 'status', label: 'Status', type: 'select', options: [
-        { value: 'draft', label: 'Draft' }, { value: 'review', label: 'Review' },
+        { value: 'draft', label: 'Draft' }, { value: 'review', label: 'In review' },
         { value: 'scheduled', label: 'Scheduled' }, { value: 'published', label: 'Published' }
       ]},
       { key: 'scheduled_for', label: 'Scheduled for', type: 'date' },
       { key: 'published_at', label: 'Published at', type: 'date' },
-      { key: 'body', label: 'Body', type: 'textarea' }
+      { key: 'media_asset_id', label: 'Media asset', type: 'select', lookup: 'media_assets' },
+      { key: 'body', label: 'Caption / copy', type: 'textarea' }
     ],
-    defaults: { status: 'draft' }
+    defaults: { status: 'draft' },
+    quickFilters: [
+      { id: 'all', label: 'All content', filterFn: () => true },
+      { id: 'draft', label: 'Draft', badgeClass: 'info', filterFn: (row) => row.status === 'draft' },
+      { id: 'review', label: 'In review', badgeClass: 'warning', filterFn: (row) => row.status === 'review' },
+      { id: 'scheduled', label: 'Scheduled', badgeClass: 'warning', filterFn: (row) => row.status === 'scheduled' },
+      { id: 'published', label: 'Published', badgeClass: 'ok', filterFn: (row) => row.status === 'published' }
+    ],
+    advancedFilters: [
+      { key: 'status', label: 'Status', type: 'select', options: [
+        { value: 'draft', label: 'Draft' }, { value: 'review', label: 'In review' },
+        { value: 'scheduled', label: 'Scheduled' }, { value: 'published', label: 'Published' }
+      ]},
+      { key: 'channel', label: 'Channel', type: 'select', options: [
+        { value: 'Instagram', label: 'Instagram' }, { value: 'Facebook', label: 'Facebook' },
+        { value: 'LinkedIn', label: 'LinkedIn' }, { value: 'Website', label: 'Website' },
+        { value: 'WhatsApp', label: 'WhatsApp' }, { value: 'YouTube', label: 'YouTube' },
+        { value: 'TikTok', label: 'TikTok' }, { value: 'Email', label: 'Email' }
+      ]},
+      { key: 'content_type', label: 'Format', type: 'select', options: [
+        { value: 'post', label: 'Post' }, { value: 'carousel', label: 'Carousel' },
+        { value: 'article', label: 'Article' }, { value: 'video', label: 'Video' },
+        { value: 'story', label: 'Story' }, { value: 'email', label: 'Email' }
+      ]},
+      { key: 'scheduled_from', label: 'Scheduled from', type: 'date', filterFn: (row, value) => !!row.scheduled_for && String(row.scheduled_for).slice(0, 10) >= String(value) },
+      { key: 'scheduled_to', label: 'Scheduled to', type: 'date', filterFn: (row, value) => !!row.scheduled_for && String(row.scheduled_for).slice(0, 10) <= String(value) }
+    ],
+    kpiDefs: [
+      {
+        label: 'Content items',
+        compute: (rows) => ({ label: 'Content items', value: rows.length, meta: 'Items in the filtered calendar', info: true })
+      },
+      {
+        label: 'Scheduled',
+        compute: (rows) => ({ label: 'Scheduled', value: rows.filter((row) => row.status === 'scheduled').length, meta: 'Queued to publish', info: true })
+      },
+      {
+        label: 'Published',
+        compute: (rows) => ({ label: 'Published', value: rows.filter((row) => row.status === 'published').length, meta: 'Published items in view', ok: true })
+      }
+    ]
+  },
+  campaigns: {
+    title: 'Campaigns',
+    recordLabel: 'campaign',
+    subtitle: 'Set campaign channels, dates, budgets and delivery status.',
+    columns: [
+      { key: 'name', label: 'Campaign' },
+      { key: 'channel', label: 'Channel' },
+      { key: 'start_date', label: 'Starts' },
+      { key: 'end_date', label: 'Ends' },
+      { key: 'budget', label: 'Budget', render: (row) => row.budget === null || row.budget === undefined ? '-' : Number(row.budget).toLocaleString() },
+      { key: 'status', label: 'Status' }
+    ],
+    fields: [
+      { key: 'name', label: 'Campaign name', type: 'text', required: true },
+      { key: 'channel', label: 'Channel', type: 'select', options: [
+        { value: 'Instagram', label: 'Instagram' }, { value: 'Facebook', label: 'Facebook' },
+        { value: 'LinkedIn', label: 'LinkedIn' }, { value: 'Website', label: 'Website' },
+        { value: 'WhatsApp', label: 'WhatsApp' }, { value: 'YouTube', label: 'YouTube' },
+        { value: 'multi', label: 'Multi-channel' }, { value: 'Email', label: 'Email' }
+      ]},
+      { key: 'start_date', label: 'Start date', type: 'date' },
+      { key: 'end_date', label: 'End date', type: 'date' },
+      { key: 'budget', label: 'Budget', type: 'number' },
+      { key: 'status', label: 'Status', type: 'select', options: [
+        { value: 'draft', label: 'Draft' }, { value: 'active', label: 'Active' },
+        { value: 'paused', label: 'Paused' }, { value: 'completed', label: 'Completed' }
+      ]}
+    ],
+    defaults: { status: 'draft' },
+    quickFilters: [
+      { id: 'all', label: 'All campaigns', filterFn: () => true },
+      { id: 'active', label: 'Active', badgeClass: 'ok', filterFn: (row) => row.status === 'active' },
+      { id: 'draft', label: 'Draft', badgeClass: 'info', filterFn: (row) => row.status === 'draft' },
+      { id: 'paused', label: 'Paused', badgeClass: 'warning', filterFn: (row) => row.status === 'paused' },
+      { id: 'completed', label: 'Completed', filterFn: (row) => row.status === 'completed' }
+    ],
+    advancedFilters: [
+      { key: 'status', label: 'Status', type: 'select', options: [
+        { value: 'draft', label: 'Draft' }, { value: 'active', label: 'Active' },
+        { value: 'paused', label: 'Paused' }, { value: 'completed', label: 'Completed' }
+      ]},
+      { key: 'channel', label: 'Channel', type: 'select', options: [
+        { value: 'Instagram', label: 'Instagram' }, { value: 'Facebook', label: 'Facebook' },
+        { value: 'LinkedIn', label: 'LinkedIn' }, { value: 'Website', label: 'Website' },
+        { value: 'WhatsApp', label: 'WhatsApp' }, { value: 'YouTube', label: 'YouTube' },
+        { value: 'multi', label: 'Multi-channel' }, { value: 'Email', label: 'Email' }
+      ]},
+      { key: 'starts_from', label: 'Starts from', type: 'date', filterFn: (row, value) => !!row.start_date && String(row.start_date).slice(0, 10) >= String(value) },
+      { key: 'starts_to', label: 'Starts by', type: 'date', filterFn: (row, value) => !!row.start_date && String(row.start_date).slice(0, 10) <= String(value) },
+      { key: 'budget_min', label: 'Minimum budget', type: 'number', filterFn: (row, value) => Number(row.budget || 0) >= Number(value) },
+      { key: 'budget_max', label: 'Maximum budget', type: 'number', filterFn: (row, value) => Number(row.budget || 0) <= Number(value) }
+    ],
+    kpiDefs: [
+      {
+        label: 'Campaigns in view',
+        compute: (rows) => ({ label: 'Campaigns in view', value: rows.length, meta: 'Campaigns matching current filters', info: true })
+      },
+      {
+        label: 'Active campaigns',
+        compute: (rows) => ({ label: 'Active campaigns', value: rows.filter((row) => row.status === 'active').length, meta: 'Currently active', ok: true })
+      },
+      {
+        label: 'Planned budget',
+        compute: (rows) => {
+          const total = rows.filter((row) => row.status !== 'completed').reduce((sum, row) => sum + Number(row.budget || 0), 0);
+          return { label: 'Planned budget', value: total.toLocaleString(), meta: 'Budget across active and planned campaigns', info: true };
+        }
+      }
+    ]
+  },
+  channel_metrics: {
+    title: 'Channel Performance',
+    recordLabel: 'channel metric',
+    subtitle: 'Record reach, engagement and leads by digital channel and date.',
+    columns: [
+      { key: 'channel', label: 'Channel' },
+      { key: 'metric_date', label: 'Metric date' },
+      { key: 'reach', label: 'Reach' },
+      { key: 'views', label: 'Views' },
+      { key: 'followers', label: 'Followers' },
+      { key: 'website_visits', label: 'Website visits' },
+      { key: 'leads', label: 'Leads' },
+      { key: 'engagement_rate', label: 'Engagement %' }
+    ],
+    fields: [
+      { key: 'channel', label: 'Channel', type: 'select', required: true, options: [
+        { value: 'Instagram', label: 'Instagram' }, { value: 'Facebook', label: 'Facebook' },
+        { value: 'LinkedIn', label: 'LinkedIn' }, { value: 'Website', label: 'Website' },
+        { value: 'WhatsApp', label: 'WhatsApp' }, { value: 'YouTube', label: 'YouTube' },
+        { value: 'TikTok', label: 'TikTok' }, { value: 'Email', label: 'Email' }
+      ]},
+      { key: 'metric_date', label: 'Metric date', type: 'date', required: true },
+      { key: 'reach', label: 'Reach', type: 'number' },
+      { key: 'views', label: 'Views', type: 'number' },
+      { key: 'followers', label: 'Followers', type: 'number' },
+      { key: 'website_visits', label: 'Website visits', type: 'number' },
+      { key: 'leads', label: 'Leads', type: 'number' },
+      { key: 'engagement_rate', label: 'Engagement rate (%)', type: 'number' }
+    ],
+    defaults: { reach: 0, views: 0, followers: 0, website_visits: 0, leads: 0, engagement_rate: 0 },
+    quickFilters: [
+      { id: 'all', label: 'All metrics', filterFn: () => true },
+      { id: 'instagram', label: 'Instagram', badgeClass: 'info', filterFn: (row) => row.channel === 'Instagram' },
+      { id: 'website', label: 'Website', badgeClass: 'ok', filterFn: (row) => row.channel === 'Website' },
+      { id: 'whatsapp', label: 'WhatsApp', badgeClass: 'warning', filterFn: (row) => row.channel === 'WhatsApp' }
+    ],
+    advancedFilters: [
+      { key: 'channel', label: 'Channel', type: 'select', options: [
+        { value: 'Instagram', label: 'Instagram' }, { value: 'Facebook', label: 'Facebook' },
+        { value: 'LinkedIn', label: 'LinkedIn' }, { value: 'Website', label: 'Website' },
+        { value: 'WhatsApp', label: 'WhatsApp' }, { value: 'YouTube', label: 'YouTube' },
+        { value: 'TikTok', label: 'TikTok' }, { value: 'Email', label: 'Email' }
+      ]},
+      { key: 'metric_from', label: 'Date from', type: 'date', filterFn: (row, value) => !!row.metric_date && String(row.metric_date).slice(0, 10) >= String(value) },
+      { key: 'metric_to', label: 'Date to', type: 'date', filterFn: (row, value) => !!row.metric_date && String(row.metric_date).slice(0, 10) <= String(value) },
+      { key: 'minimum_leads', label: 'Minimum leads', type: 'number', filterFn: (row, value) => Number(row.leads || 0) >= Number(value) }
+    ],
+    kpiDefs: [
+      {
+        label: 'Total reach',
+        compute: (rows) => ({ label: 'Total reach', value: rows.reduce((sum, row) => sum + Number(row.reach || 0), 0).toLocaleString(), meta: 'Sum across filtered metric rows', info: true })
+      },
+      {
+        label: 'Leads',
+        compute: (rows) => ({ label: 'Leads', value: rows.reduce((sum, row) => sum + Number(row.leads || 0), 0).toLocaleString(), meta: 'Leads captured in view', ok: true })
+      },
+      {
+        label: 'Average engagement',
+        compute: (rows) => {
+          const average = rows.length ? rows.reduce((sum, row) => sum + Number(row.engagement_rate || 0), 0) / rows.length : 0;
+          return { label: 'Average engagement', value: average.toFixed(2), unit: '%', meta: 'Across filtered metric rows', info: true };
+        }
+      }
+    ]
   },
   risks: {
     title: 'Risk Register',

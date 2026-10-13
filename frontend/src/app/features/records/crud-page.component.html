@@ -18,7 +18,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M12 5v14m-7-7h14" />
         </svg>
-        <span>Add record</span>
+        <span>Add {{ def.recordLabel || 'record' }}</span>
       </button>
     </div>
   </div>
@@ -28,7 +28,7 @@
 
   <!-- Create/Edit Form Panel -->
   <div class="panel" *ngIf="showForm">
-    <h2>{{ editingId ? 'Edit record' : 'New record' }}</h2>
+    <h2>{{ editingId ? 'Edit ' + (def.recordLabel || 'record') : 'New ' + (def.recordLabel || 'record') }}</h2>
     <form class="crud-form" (ngSubmit)="save()">
       <label *ngFor="let field of def.fields">
         <span>{{ field.label }}<em *ngIf="field.required"> *</em></span>
@@ -42,6 +42,7 @@
           [(ngModel)]="form[field.key]"
           [name]="field.key"
           [required]="!!field.required"
+          [step]="field.type === 'number' ? 'any' : null"
           [placeholder]="field.placeholder || ''" />
       </label>
       <div class="toolbar">
@@ -112,7 +113,7 @@
           <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
         </svg>
         Filters
-        <span class="filter-badge" *ngIf="hasActiveAdvancedFilters()">●</span>
+        <span class="filter-badge" *ngIf="hasActiveAdvancedFilters()">{{ activeAdvancedFilterCount }}</span>
       </button>
 
       <button class="btn btn-secondary btn-sm" *ngIf="hasActiveFilters()" (click)="clearFilters()">

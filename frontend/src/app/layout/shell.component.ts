@@ -115,9 +115,13 @@ export class ShellComponent {
       icon: 'crm',
       expanded: false,
       items: [
-        { path: '/crm', label: 'CRM', icon: 'crm' },
-        { path: '/deals', label: 'Deals', icon: 'deals' },
-        { path: '/marketing', label: 'Marketing', icon: 'marketing' }
+        { path: '/crm', label: 'CRM · Companies', icon: 'crm' },
+        { path: '/contacts', label: 'Contacts', icon: 'crm' },
+        { path: '/deals', label: 'Deals & Pipeline', icon: 'deals' },
+        { path: '/sales', label: 'Sales & Culls', icon: 'deals' },
+        { path: '/campaigns', label: 'Campaigns', icon: 'marketing' },
+        { path: '/marketing', label: 'Content Calendar', icon: 'marketing' },
+        { path: '/marketing/performance', label: 'Channel Performance', icon: 'marketing' }
       ]
     },
     {

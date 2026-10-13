@@ -112,7 +112,7 @@ describe('ceo insights', () => {
     it('maps sources to the module that owns the record', () => {
       expect(routeForSource('animals, locations')).toBe('/livestock');
       expect(routeForSource('purchase_orders, goods_receipts')).toBe('/procurement');
-      expect(routeForSource('channel_metrics')).toBe('/marketing');
+      expect(routeForSource('channel_metrics')).toBe('/marketing/performance');
       expect(routeForSource('unknown_source')).toBeNull();
     });
 
