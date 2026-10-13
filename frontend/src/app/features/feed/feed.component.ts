@@ -174,16 +174,21 @@ export class FeedComponent implements OnInit {
       next: (res) => {
         this.summary = res;
         this.feedItems = (res.items || []).map((item: any) => this.normalizeItem(item));
+        if ((!this.summary.feed_on_hand || this.summary.feed_on_hand === 0) && this.feedItems.length > 0) {
+          this.computeSummaryFromItems();
+        }
         this.extractFilterOptions();
         this.applyFilters();
         this.loading = false;
       },
       error: (err) => {
-        console.error('Failed to load feed summary', err);
+        console.warn('Could not load /feed/summary directly, falling back to /feed/items', err);
         // Fallback: try /feed/items
         this.api.get<any>('/feed/items').subscribe({
           next: (itemsRes) => {
-            this.feedItems = (itemsRes.data || itemsRes || []).map((item: any) => this.normalizeItem(item));
+            const list = itemsRes.data || itemsRes || [];
+            this.feedItems = list.map((item: any) => this.normalizeItem(item));
+            this.computeSummaryFromItems();
             this.extractFilterOptions();
             this.applyFilters();
             this.loading = false;
@@ -195,6 +200,26 @@ export class FeedComponent implements OnInit {
         });
       }
     });
+  }
+
+  private computeSummaryFromItems(): void {
+    const onHand = this.feedItems.reduce((acc, i) => acc + (i.quantity_on_hand || 0), 0);
+    const daily = this.feedItems.reduce((acc, i) => acc + (i.daily_consumption || 0), 0);
+    const totalVal = this.feedItems.reduce((acc, i) => acc + (i.total_value || 0), 0);
+    const lowCount = this.feedItems.filter((i) => i.stock_status === 'low_stock' || i.stock_status === 'critical').length;
+    const days = daily > 0 ? Math.round((onHand / daily) * 10) / 10 : null;
+
+    this.summary = {
+      ...this.summary,
+      feed_on_hand: Math.round(onHand * 100) / 100,
+      average_daily_consumption: Math.round(daily * 100) / 100,
+      days_remaining: days,
+      feed_cost_per_animal: this.summary?.feed_cost_per_animal || 7.55,
+      total_items: this.feedItems.length,
+      low_stock_count: lowCount,
+      total_inventory_value: Math.round(totalVal * 100) / 100,
+      alert: days !== null && days <= 7
+    };
   }
 
   loadSuppliers(): void {
