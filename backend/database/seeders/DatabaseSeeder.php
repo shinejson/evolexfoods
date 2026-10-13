@@ -591,7 +591,7 @@ class DatabaseSeeder extends Seeder
             'amount' => 2100,
             'invoice_date' => now()->subDays(2),
             'due_date' => now()->addDays(12),
-            'status' => 'unpaid',
+            'status' => 'partial',
         ]);
         Invoice::create([
             'invoice_number' => 'INV-2026-011',
