@@ -215,10 +215,19 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
         orderable: false,
         searchable: false,
         defaultContent: '',
+        className: 'col-actions',
+        // Icon-only actions: DataTables renders this HTML outside Angular's view,
+        // so the styles live in global scope (styles.scss .row-actions/.icon-btn).
         render: (_data: any, _type: string, row: any) =>
           `<div class="row-actions">
-            <button class="btn ghost js-edit" data-id="${row.id}" type="button">Edit</button>
-            <button class="btn danger js-delete" data-id="${row.id}" type="button">Delete</button>
+            <button class="icon-btn js-edit" data-id="${row.id}" type="button"
+              title="Edit record" aria-label="Edit record">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L20 8l-4-4L4 16v4Zm10-14 4 4"/></svg>
+            </button>
+            <button class="icon-btn icon-btn--danger js-delete" data-id="${row.id}" type="button"
+              title="Delete record" aria-label="Delete record">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3m-7 0 1 13h8l1-13M10 11v6m4-6v6"/></svg>
+            </button>
           </div>`
       }
     ];

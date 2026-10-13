@@ -20,8 +20,13 @@ Implemented routes:
 | GET    | `/api/v1/auth/me`        |                                           |
 | POST   | `/api/v1/auth/logout`    |                                           |
 | GET    | `/api/v1/dashboard/ceo`  | Honours `from` / `to`, mirrors the seeder |
+| GET    | `/api/v1/lookups`        | Locations + animals                       |
+| GET/POST | `/api/v1/records/health` | 18 seeded cases, in-memory writes        |
+| GET/POST | `/api/v1/records/treatments` | 14 seeded treatments                |
+| PUT/DELETE | `/api/v1/records/{health,treatments}/{id}` | Full CRUD        |
 
 The numbers mirror `backend/database/seeders/DatabaseSeeder.php` so the CEO
-Command Center, KPI thresholds and the 30-question answerability contract can be
-exercised end to end. Never use it as a source of truth — the real endpoints live
+Command Center, KPI thresholds, the 30-question answerability contract and the
+Animal Health workspace (filters, KPI tiles, create/edit/delete) can be exercised
+end to end. Writes are held in memory and reset when the process restarts. Never use it as a source of truth — the real endpoints live
 in `backend/routes/api.php`.

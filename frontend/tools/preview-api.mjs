@@ -182,6 +182,97 @@ function ceoPayload(url) {
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Health workspace fixtures (mirroring the seeder)                     */
+/* ------------------------------------------------------------------ */
+
+const PADDOCKS = [
+  { id: 1, name: 'North Paddock', code: 'PAD-A' },
+  { id: 2, name: 'South Paddock', code: 'PAD-B' },
+  { id: 3, name: 'River Field', code: 'PAD-C' },
+  { id: 4, name: 'Maternity Barn', code: 'BRN-1' },
+  { id: 5, name: 'Quarantine Pen', code: 'QRN-1' }
+];
+
+const SPECIES = ['goat', 'sheep', 'cattle'];
+const ANIMALS = Array.from({ length: 24 }, (_, index) => {
+  const id = index + 1;
+  const species = SPECIES[index % 3];
+  const prefix = species === 'goat' ? 'EV-GT' : species === 'sheep' ? 'EV-SH' : 'EV-CT';
+  return {
+    id,
+    animal_id: `${prefix}-${String(id).padStart(6, '0')}`,
+    species,
+    sex: index % 3 === 0 ? 'male' : 'female',
+    status: index === 22 ? 'dead' : 'alive',
+    location_id: PADDOCKS[index % PADDOCKS.length].id
+  };
+});
+
+const CONDITIONS = ['mastitis', 'lameness', 'respiratory', 'pneumonia', 'bloat', 'wound infection'];
+const SEVERITIES = ['low', 'moderate', 'high', 'critical'];
+
+function dayOffset(days) {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  return date.toISOString().slice(0, 10);
+}
+
+let healthRecords = Array.from({ length: 18 }, (_, index) => {
+  const id = index + 1;
+  const animal = ANIMALS[index % ANIMALS.length];
+  const open = index % 3 !== 2;
+  return {
+    id,
+    animal_id: animal.id,
+    recorded_date: dayOffset(open ? [2, 9, 21, 40][index % 4] : [12, 26, 55][index % 3]),
+    condition: CONDITIONS[index % CONDITIONS.length],
+    severity: SEVERITIES[index % SEVERITIES.length],
+    status: open ? 'open' : 'closed',
+    notes: open ? 'Under observation by the vet team.' : 'Recovered, no further action.',
+    recorded_by: 3,
+    animal: { ...animal, location: PADDOCKS.find((l) => l.id === animal.location_id) }
+  };
+});
+
+const TREATMENT_TYPES = ['medication', 'vaccination', 'wound care', 'isolation'];
+const MEDICINES = ['Oxytetracycline', 'Ivermectin', 'Multivitamin', 'Penicillin'];
+
+let treatments = Array.from({ length: 14 }, (_, index) => {
+  const id = index + 1;
+  const animal = ANIMALS[(index + 2) % ANIMALS.length];
+  const active = index % 4 !== 3;
+  return {
+    id,
+    animal_id: animal.id,
+    health_record_id: healthRecords[index % healthRecords.length].id,
+    start_date: dayOffset(active ? [1, 4, 11, 19][index % 4] : [20, 34, 47][index % 3]),
+    end_date: active ? null : dayOffset([10, 20, 30][index % 3]),
+    treatment_type: TREATMENT_TYPES[index % TREATMENT_TYPES.length],
+    medicine: MEDICINES[index % MEDICINES.length],
+    dosage: `${[5, 10, 15][index % 3]}ml ${index % 2 === 0 ? 'IM' : 'oral'}`,
+    status: active ? 'active' : 'completed',
+    notes: '',
+    animal: { ...animal, location: PADDOCKS.find((l) => l.id === animal.location_id) }
+  };
+});
+
+function attachAnimal(record, animals) {
+  const animal = animals.find((item) => item.id === record.animal_id);
+  return { ...record, animal: animal ? { ...animal, location: PADDOCKS.find((l) => l.id === animal.location_id) } : null };
+}
+
+const HEALTH_STORE = {
+  health: {
+    rows: healthRecords,
+    defaults: { severity: 'moderate', status: 'open' }
+  },
+  treatments: {
+    rows: treatments,
+    defaults: { status: 'active' }
+  }
+};
+
 function json(res, status, body) {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
@@ -227,6 +318,75 @@ const server = createServer((req, res) => {
 
   if (path === '/api/v1/dashboard/ceo') {
     json(res, 200, ceoPayload(url));
+    return;
+  }
+
+  if (req.method === 'GET' && path === '/api/v1/lookups') {
+    json(res, 200, {
+      locations: PADDOCKS,
+      animals: ANIMALS,
+      suppliers: [],
+      users: [],
+      employees: [],
+      assets: [],
+      companies: []
+    });
+    return;
+  }
+
+  const recordMatch = path.match(/^\/api\/v1\/records\/(health|treatments)(?:\/(\d+))?$/);
+  if (recordMatch) {
+    const store = HEALTH_STORE[recordMatch[1]];
+    const id = recordMatch[2] ? Number(recordMatch[2]) : null;
+
+    if (req.method === 'GET') {
+      if (id) {
+        const row = store.rows.find((item) => item.id === id);
+        row ? json(res, 200, attachAnimal(row, ANIMALS)) : json(res, 404, { message: 'Not found' });
+        return;
+      }
+      json(res, 200, { data: store.rows.map((row) => attachAnimal(row, ANIMALS)) });
+      return;
+    }
+
+    let raw = '';
+    req.on('data', (chunk) => (raw += chunk));
+    req.on('end', () => {
+      let body = {};
+      try {
+        body = JSON.parse(raw || '{}');
+      } catch {
+        json(res, 422, { message: 'Invalid JSON body' });
+        return;
+      }
+
+      if (req.method === 'POST') {
+        const nextId = store.rows.reduce((max, row) => Math.max(max, row.id), 0) + 1;
+        const created = { id: nextId, ...store.defaults, ...body };
+        store.rows = [created, ...store.rows];
+        json(res, 201, attachAnimal(created, ANIMALS));
+        return;
+      }
+
+      if (req.method === 'PUT' && id) {
+        const index = store.rows.findIndex((item) => item.id === id);
+        if (index < 0) {
+          json(res, 404, { message: 'Not found' });
+          return;
+        }
+        store.rows[index] = { ...store.rows[index], ...body, id };
+        json(res, 200, attachAnimal(store.rows[index], ANIMALS));
+        return;
+      }
+
+      if (req.method === 'DELETE' && id) {
+        store.rows = store.rows.filter((item) => item.id !== id);
+        json(res, 200, { message: 'Deleted' });
+        return;
+      }
+
+      json(res, 405, { message: `Method ${req.method} not allowed` });
+    });
     return;
   }
 

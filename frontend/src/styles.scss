@@ -181,6 +181,54 @@ td {
 .badge.female { background: #eadff0; color: #5b3b6e; }
 .badge.male { background: #d7e7f0; color: #24515f; }
 
+/* Icon-only row actions. Global because DataTables renders this markup outside
+   any Angular component view, so component-scoped styles cannot reach it. */
+.row-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-grid;
+  place-items: center;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+
+.icon-btn svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.icon-btn:hover {
+  border-color: var(--line);
+  background: #f2ece0;
+  color: var(--forest);
+}
+
+.icon-btn:focus-visible {
+  outline: 3px solid rgba(196, 163, 90, 0.75);
+  outline-offset: 2px;
+}
+
+.icon-btn--danger:hover {
+  border-color: #e6c3bb;
+  background: #fbeae7;
+  color: var(--danger);
+}
+
 .actions {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
