@@ -1,0 +1,73 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.governance-nav {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin: 0 0 24px;
+  padding: 5px;
+  border: 1px solid #e1d9c9;
+  border-radius: 14px;
+  background: rgba(255, 253, 248, 0.85);
+  scrollbar-width: thin;
+}
+
+.governance-nav a {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #687064;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: color 150ms ease, background-color 150ms ease, border-color 150ms ease;
+}
+
+.governance-nav a:hover {
+  color: #2f4a32;
+  background: #f5f0e4;
+}
+
+.governance-nav a.is-active {
+  border-color: #dce5d9;
+  background: #eaf0e7;
+  color: #254a32;
+  box-shadow: 0 1px 3px rgba(34, 58, 37, 0.06);
+}
+
+.governance-nav svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.governance-nav a:focus-visible {
+  outline: 3px solid rgba(196, 163, 90, 0.55);
+  outline-offset: 2px;
+}
+
+@media (max-width: 620px) {
+  .governance-nav {
+    margin-bottom: 20px;
+  }
+
+  .governance-nav a {
+    min-height: 36px;
+    padding: 0 10px;
+    font-size: 12px;
+  }
+}

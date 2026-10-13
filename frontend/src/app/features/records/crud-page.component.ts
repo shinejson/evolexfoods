@@ -13,11 +13,12 @@ import {
   ResourceDef
 } from './crud.registry';
 import { FinanceNavComponent } from '../finance/finance-nav.component';
+import { GovernanceNavComponent } from '../governance/governance-nav.component';
 
 @Component({
   selector: 'app-crud-page',
   standalone: true,
-  imports: [NgFor, NgIf, NgClass, FormsModule, FinanceNavComponent],
+  imports: [NgFor, NgIf, NgClass, FormsModule, FinanceNavComponent, GovernanceNavComponent],
   templateUrl: './crud-page.component.html',
   styleUrl: './crud-page.component.scss'
 })

@@ -1,0 +1,20 @@
+<nav class="governance-nav" aria-label="Governance and Compliance">
+  <a
+    *ngFor="let page of pages"
+    [routerLink]="page.route"
+    routerLinkActive="is-active"
+    [routerLinkActiveOptions]="{ exact: true }"
+    [ariaCurrentWhenActive]="'page'"
+    [title]="page.desc">
+    <svg *ngIf="page.icon === 'risks'" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3 2 20h20L12 3zm0 6v6m0 3h.01" />
+    </svg>
+    <svg *ngIf="page.icon === 'decisions'" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v18M7 8h10M8 16h8M4 12h16" />
+    </svg>
+    <svg *ngIf="page.icon === 'sops'" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 4h9l3 3v13H6V4zm3 6h6M9 14h6M9 18h4" />
+    </svg>
+    <span>{{ page.label }}</span>
+  </a>
+</nav>

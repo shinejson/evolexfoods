@@ -2086,73 +2086,662 @@ export const CRUD_RESOURCES: Record<string, ResourceDef> = {
   },
   risks: {
     title: 'Risk Register',
-    subtitle: 'Current risks, owners and mitigation.',
+    subtitle: 'Operational, biosecurity, financial and asset risk tracking with mitigation protocols.',
     columns: [
-      { key: 'title', label: 'Risk' },
-      { key: 'category', label: 'Category' },
-      { key: 'severity', label: 'Severity' },
-      { key: 'status', label: 'Status' }
+      {
+        key: 'title',
+        label: 'Risk & Mitigation Strategy',
+        render: (row) => `<strong>${row.title}</strong>${row.mitigation ? `<div class="sub-text"><span style="color:#b45309;font-weight:600;">Mitigation:</span> ${row.mitigation}</div>` : ''}`
+      },
+      {
+        key: 'category',
+        label: 'Category',
+        render: (row) => `<span class="badge category-pill">${(row.category || 'General').toUpperCase()}</span>`
+      },
+      {
+        key: 'severity',
+        label: 'Severity',
+        render: (row) => {
+          const s = (row.severity || 'medium').toLowerCase();
+          const cls = s === 'critical' ? 'badge-danger' : s === 'high' ? 'badge-warning' : s === 'medium' ? 'badge-info' : 'badge-ok';
+          return `<span class="badge ${cls}">${s.toUpperCase()}</span>`;
+        }
+      },
+      {
+        key: 'likelihood',
+        label: 'Likelihood',
+        render: (row) => {
+          const l = (row.likelihood || 'possible').toLowerCase();
+          const cls = l === 'likely' ? 'badge-danger' : l === 'possible' ? 'badge-warning' : 'badge-ok';
+          return `<span class="badge ${cls}">${l.charAt(0).toUpperCase() + l.slice(1)}</span>`;
+        }
+      },
+      {
+        key: 'owner',
+        label: 'Risk Owner',
+        render: (row) => row.owner?.name ? `<span style="font-weight:600;color:#1e293b;">${row.owner.name}</span>${row.owner.role ? `<div class="sub-text">${row.owner.role.replace('_', ' ')}</div>` : ''}` : '<span class="sub-text">Unassigned</span>'
+      },
+      {
+        key: 'identified_at',
+        label: 'Identified Date',
+        render: (row) => row.identified_at ? row.identified_at.slice(0, 10) : '-'
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        render: (row) => {
+          const st = (row.status || 'open').toLowerCase();
+          const cls = st === 'open' ? 'badge-danger' : st === 'mitigating' ? 'badge-warning' : 'badge-ok';
+          const lbl = st === 'open' ? 'Open Threat' : st === 'mitigating' ? 'Mitigating' : 'Controlled';
+          return `<span class="badge ${cls}">${lbl}</span>`;
+        }
+      }
     ],
     fields: [
-      { key: 'title', label: 'Title', type: 'text', required: true },
-      { key: 'category', label: 'Category', type: 'text' },
-      { key: 'severity', label: 'Severity', type: 'select', options: [
-        { value: 'low', label: 'Low' }, { value: 'medium', label: 'Medium' },
-        { value: 'high', label: 'High' }, { value: 'critical', label: 'Critical' }
-      ]},
-      { key: 'likelihood', label: 'Likelihood', type: 'select', options: [
-        { value: 'unlikely', label: 'Unlikely' }, { value: 'possible', label: 'Possible' }, { value: 'likely', label: 'Likely' }
-      ]},
-      { key: 'owner_id', label: 'Owner', type: 'select', lookup: 'users' },
-      { key: 'status', label: 'Status', type: 'select', options: [
-        { value: 'open', label: 'Open' }, { value: 'mitigating', label: 'Mitigating' }, { value: 'closed', label: 'Closed' }
-      ]},
-      { key: 'mitigation', label: 'Mitigation', type: 'textarea' },
-      { key: 'identified_at', label: 'Identified', type: 'date' }
+      { key: 'title', label: 'Risk Title', type: 'text', required: true, placeholder: 'e.g. Water pump failure during dry spell' },
+      {
+        key: 'category',
+        label: 'Category',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'health', label: 'Animal Health & Biosecurity' },
+          { value: 'feed', label: 'Feed & Nutrition Supply' },
+          { value: 'assets', label: 'Machinery & Farm Assets' },
+          { value: 'infrastructure', label: 'Water & Facilities' },
+          { value: 'financial', label: 'Financial & Cash Flow' },
+          { value: 'weather', label: 'Weather & Climate' },
+          { value: 'compliance', label: 'Regulatory & Compliance' },
+          { value: 'operational', label: 'General Operational' }
+        ]
+      },
+      {
+        key: 'severity',
+        label: 'Severity Level',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'critical', label: 'Critical (Severe business or herd impact)' },
+          { value: 'high', label: 'High (Significant interruption or cost)' },
+          { value: 'medium', label: 'Medium (Moderate disruption)' },
+          { value: 'low', label: 'Low (Minor operational variance)' }
+        ]
+      },
+      {
+        key: 'likelihood',
+        label: 'Likelihood',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'likely', label: 'Likely (High probability of occurrence)' },
+          { value: 'possible', label: 'Possible (May occur occasionally)' },
+          { value: 'unlikely', label: 'Unlikely (Low probability)' }
+        ]
+      },
+      { key: 'owner_id', label: 'Risk Owner', type: 'select', lookup: 'users' },
+      {
+        key: 'status',
+        label: 'Control Status',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'open', label: 'Open (Active uncontrolled threat)' },
+          { value: 'mitigating', label: 'Mitigating (Mitigation in progress)' },
+          { value: 'closed', label: 'Closed (Threat resolved or contained)' }
+        ]
+      },
+      { key: 'mitigation', label: 'Mitigation Plan & Action Protocol', type: 'textarea', placeholder: 'Detail immediate actions, preventative measures, and responsibilities' },
+      { key: 'identified_at', label: 'Date Identified', type: 'date' }
     ],
-    defaults: { status: 'open', severity: 'medium' }
+    defaults: { status: 'open', severity: 'medium', likelihood: 'possible', category: 'health' },
+    quickFilters: [
+      { id: 'all', label: 'All Risks', filterFn: () => true },
+      {
+        id: 'critical',
+        label: 'Critical & High',
+        badgeClass: 'danger',
+        filterFn: (r) => ['critical', 'high'].includes((r.severity || '').toLowerCase()) && (r.status || '').toLowerCase() !== 'closed'
+      },
+      {
+        id: 'open',
+        label: 'Active Threats (Open)',
+        badgeClass: 'warning',
+        filterFn: (r) => (r.status || '').toLowerCase() === 'open'
+      },
+      {
+        id: 'mitigating',
+        label: 'In Mitigation',
+        badgeClass: 'info',
+        filterFn: (r) => (r.status || '').toLowerCase() === 'mitigating'
+      },
+      {
+        id: 'health',
+        label: 'Health & Biosecurity',
+        filterFn: (r) => ['health', 'biosecurity', 'disease'].some(k => (r.category || '').toLowerCase().includes(k))
+      },
+      {
+        id: 'assets',
+        label: 'Assets & Facilities',
+        filterFn: (r) => ['assets', 'machinery', 'infrastructure', 'equipment'].some(k => (r.category || '').toLowerCase().includes(k))
+      },
+      {
+        id: 'closed',
+        label: 'Controlled / Resolved',
+        badgeClass: 'ok',
+        filterFn: (r) => (r.status || '').toLowerCase() === 'closed'
+      }
+    ],
+    advancedFilters: [
+      {
+        key: 'category',
+        label: 'Risk Category',
+        type: 'select',
+        placeholder: 'All Categories',
+        options: [
+          { value: 'health', label: 'Animal Health & Biosecurity' },
+          { value: 'feed', label: 'Feed & Nutrition Supply' },
+          { value: 'assets', label: 'Machinery & Farm Assets' },
+          { value: 'infrastructure', label: 'Water & Facilities' },
+          { value: 'financial', label: 'Financial & Cash Flow' },
+          { value: 'weather', label: 'Weather & Climate' },
+          { value: 'compliance', label: 'Regulatory & Compliance' },
+          { value: 'operational', label: 'General Operational' }
+        ],
+        filterFn: (row, val) => !val || (row.category || '').toLowerCase().includes(val.toLowerCase())
+      },
+      {
+        key: 'severity',
+        label: 'Severity Level',
+        type: 'select',
+        placeholder: 'All Severities',
+        options: [
+          { value: 'critical', label: 'Critical' },
+          { value: 'high', label: 'High' },
+          { value: 'medium', label: 'Medium' },
+          { value: 'low', label: 'Low' }
+        ],
+        filterFn: (row, val) => !val || (row.severity || '').toLowerCase() === val.toLowerCase()
+      },
+      {
+        key: 'likelihood',
+        label: 'Likelihood',
+        type: 'select',
+        placeholder: 'All Likelihoods',
+        options: [
+          { value: 'likely', label: 'Likely' },
+          { value: 'possible', label: 'Possible' },
+          { value: 'unlikely', label: 'Unlikely' }
+        ],
+        filterFn: (row, val) => !val || (row.likelihood || '').toLowerCase() === val.toLowerCase()
+      },
+      {
+        key: 'status',
+        label: 'Control Status',
+        type: 'select',
+        placeholder: 'All Statuses',
+        options: [
+          { value: 'open', label: 'Open' },
+          { value: 'mitigating', label: 'Mitigating' },
+          { value: 'closed', label: 'Closed' }
+        ],
+        filterFn: (row, val) => !val || (row.status || '').toLowerCase() === val.toLowerCase()
+      },
+      {
+        key: 'owner_id',
+        label: 'Assigned Owner',
+        type: 'select',
+        placeholder: 'All Owners',
+        lookup: 'users',
+        filterFn: (row, val) => !val || String(row.owner_id) === String(val)
+      },
+      {
+        key: 'date_from',
+        label: 'Identified After',
+        type: 'date',
+        filterFn: (row, val) => !val || !row.identified_at || row.identified_at.slice(0, 10) >= val
+      },
+      {
+        key: 'date_to',
+        label: 'Identified Before',
+        type: 'date',
+        filterFn: (row, val) => !val || !row.identified_at || row.identified_at.slice(0, 10) <= val
+      }
+    ],
+    kpiDefs: [
+      {
+        label: 'Total Risks Logged',
+        compute: (rows, all) => ({
+          label: 'Total Risks Logged',
+          value: rows.length,
+          meta: `${all.length} registered governance items`,
+          ok: true
+        })
+      },
+      {
+        label: 'Active Threats',
+        compute: (rows) => {
+          const count = rows.filter(r => (r.status || '').toLowerCase() !== 'closed').length;
+          return {
+            label: 'Active Threats',
+            value: count,
+            meta: 'Requiring active management',
+            alert: count > 0
+          };
+        }
+      },
+      {
+        label: 'Critical & High Exposure',
+        compute: (rows) => {
+          const count = rows.filter(r => ['critical', 'high'].includes((r.severity || '').toLowerCase()) && (r.status || '').toLowerCase() !== 'closed').length;
+          return {
+            label: 'Critical & High Exposure',
+            value: count,
+            meta: 'Immediate priority mitigations',
+            alert: count > 0
+          };
+        }
+      },
+      {
+        label: 'Controlled & Resolved',
+        compute: (rows) => {
+          const count = rows.filter(r => (r.status || '').toLowerCase() === 'closed').length;
+          return {
+            label: 'Controlled & Resolved',
+            value: count,
+            meta: 'Risks mitigated to safe level',
+            ok: true
+          };
+        }
+      }
+    ]
   },
   decisions: {
-    title: 'Owner Decisions',
-    subtitle: 'Decisions requiring ownership approval.',
+    title: 'Owner & Executive Decisions',
+    subtitle: 'Operational signoffs, capital expenditure authorizations and governance approvals.',
     columns: [
-      { key: 'title', label: 'Decision' },
-      { key: 'due_date', label: 'Due' },
-      { key: 'status', label: 'Status' }
+      {
+        key: 'title',
+        label: 'Decision & Context',
+        render: (row) => `<strong>${row.title}</strong>${row.description ? `<div class="sub-text">${row.description}</div>` : ''}`
+      },
+      {
+        key: 'requested_by',
+        label: 'Requested By',
+        render: (row) => row.requester?.name ? `<strong>${row.requester.name}</strong>${row.requester.department ? `<div class="sub-text">${row.requester.department}</div>` : ''}` : '<span class="sub-text">Staff Member</span>'
+      },
+      {
+        key: 'owner',
+        label: 'Decision Authority',
+        render: (row) => row.owner?.name ? `<span style="font-weight:600;color:#1e293b;">${row.owner.name}</span><div class="sub-text">Ownership / Exec</div>` : '<span class="sub-text">Unassigned Owner</span>'
+      },
+      {
+        key: 'due_date',
+        label: 'Due Date',
+        render: (row) => {
+          if (!row.due_date) return '<span class="sub-text">No deadline</span>';
+          const due = row.due_date.slice(0, 10);
+          const isOverdue = due < new Date().toISOString().slice(0, 10) && (row.status || '').toLowerCase() === 'pending_owner';
+          return isOverdue ? `<span class="badge badge-danger">Overdue: ${due}</span>` : `<span>${due}</span>`;
+        }
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        render: (row) => {
+          const s = (row.status || 'pending_owner').toLowerCase();
+          const cls = s === 'approved' ? 'badge-ok' : s === 'rejected' ? 'badge-danger' : s === 'pending_owner' ? 'badge-warning' : 'badge-info';
+          const label = s === 'pending_owner' ? 'Pending Owner' : s === 'approved' ? 'Approved' : s === 'rejected' ? 'Rejected' : s.replace('_', ' ');
+          return `<span class="badge ${cls}">${label}</span>`;
+        }
+      },
+      {
+        key: 'decision_notes',
+        label: 'Decision Notes / Outcome',
+        render: (row) => row.decision_notes ? `<span class="sub-text" style="color:#0f172a;">${row.decision_notes}</span>` : '<span class="sub-text">Pending outcome</span>'
+      }
     ],
     fields: [
-      { key: 'title', label: 'Title', type: 'text', required: true },
-      { key: 'description', label: 'Description', type: 'textarea' },
-      { key: 'status', label: 'Status', type: 'select', options: [
-        { value: 'pending_owner', label: 'Pending owner' }, { value: 'approved', label: 'Approved' }, { value: 'rejected', label: 'Rejected' }
-      ]},
-      { key: 'owner_id', label: 'Owner', type: 'select', lookup: 'users' },
-      { key: 'due_date', label: 'Due date', type: 'date' },
-      { key: 'decision_notes', label: 'Notes', type: 'textarea' }
+      { key: 'title', label: 'Decision Title', type: 'text', required: true, placeholder: 'e.g. Approve emergency feed supplier contract' },
+      { key: 'description', label: 'Context & Justification', type: 'textarea', placeholder: 'Explain why ownership or executive signoff is required, budget impact, or alternatives' },
+      {
+        key: 'status',
+        label: 'Decision Status',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'pending_owner', label: 'Pending Owner (Awaiting Executive Signoff)' },
+          { value: 'approved', label: 'Approved (Sanctioned to proceed)' },
+          { value: 'rejected', label: 'Rejected (Denied or deferred)' },
+          { value: 'under_review', label: 'Under Review (More info requested)' }
+        ]
+      },
+      { key: 'requested_by', label: 'Requested By', type: 'select', lookup: 'users' },
+      { key: 'owner_id', label: 'Decision Authority (Owner / CEO)', type: 'select', lookup: 'users' },
+      { key: 'due_date', label: 'Target Decision Date', type: 'date' },
+      { key: 'decision_notes', label: 'Decision Notes & Rationale', type: 'textarea', placeholder: 'Record condition of approval or reasons for rejection' }
     ],
-    defaults: { status: 'pending_owner' }
+    defaults: { status: 'pending_owner' },
+    quickFilters: [
+      { id: 'all', label: 'All Decisions', filterFn: () => true },
+      {
+        id: 'pending',
+        label: 'Pending Owner',
+        badgeClass: 'warning',
+        filterFn: (r) => (r.status || '').toLowerCase() === 'pending_owner'
+      },
+      {
+        id: 'overdue',
+        label: 'Overdue Signoffs',
+        badgeClass: 'danger',
+        filterFn: (r) => {
+          const due = (r.due_date || '').slice(0, 10);
+          return Boolean(due && due < new Date().toISOString().slice(0, 10) && (r.status || '').toLowerCase() === 'pending_owner');
+        }
+      },
+      {
+        id: 'approved',
+        label: 'Approved Decisions',
+        badgeClass: 'ok',
+        filterFn: (r) => (r.status || '').toLowerCase() === 'approved'
+      },
+      {
+        id: 'rejected',
+        label: 'Rejected / Denied',
+        badgeClass: 'danger',
+        filterFn: (r) => (r.status || '').toLowerCase() === 'rejected'
+      }
+    ],
+    advancedFilters: [
+      {
+        key: 'status',
+        label: 'Decision Status',
+        type: 'select',
+        placeholder: 'All Statuses',
+        options: [
+          { value: 'pending_owner', label: 'Pending Owner' },
+          { value: 'approved', label: 'Approved' },
+          { value: 'rejected', label: 'Rejected' },
+          { value: 'under_review', label: 'Under Review' }
+        ],
+        filterFn: (row, val) => !val || (row.status || '').toLowerCase() === val.toLowerCase()
+      },
+      {
+        key: 'owner_id',
+        label: 'Decision Authority',
+        type: 'select',
+        placeholder: 'All Decision Makers',
+        lookup: 'users',
+        filterFn: (row, val) => !val || String(row.owner_id) === String(val)
+      },
+      {
+        key: 'requested_by',
+        label: 'Requested By',
+        type: 'select',
+        placeholder: 'All Requesters',
+        lookup: 'users',
+        filterFn: (row, val) => !val || String(row.requested_by) === String(val)
+      },
+      {
+        key: 'due_before',
+        label: 'Due Before',
+        type: 'date',
+        filterFn: (row, val) => !val || !row.due_date || row.due_date.slice(0, 10) <= val
+      },
+      {
+        key: 'due_after',
+        label: 'Due After',
+        type: 'date',
+        filterFn: (row, val) => !val || !row.due_date || row.due_date.slice(0, 10) >= val
+      }
+    ],
+    kpiDefs: [
+      {
+        label: 'Total Decisions',
+        compute: (rows, all) => ({
+          label: 'Total Decisions',
+          value: rows.length,
+          meta: `${all.length} registered governance items`,
+          ok: true
+        })
+      },
+      {
+        label: 'Pending Owner',
+        compute: (rows) => {
+          const count = rows.filter(r => (r.status || '').toLowerCase() === 'pending_owner').length;
+          return {
+            label: 'Pending Owner',
+            value: count,
+            meta: 'Awaiting ownership signoff',
+            alert: count > 0
+          };
+        }
+      },
+      {
+        label: 'Overdue Signoffs',
+        compute: (rows) => {
+          const today = new Date().toISOString().slice(0, 10);
+          const count = rows.filter(r => {
+            const due = (r.due_date || '').slice(0, 10);
+            return due && due < today && (r.status || '').toLowerCase() === 'pending_owner';
+          }).length;
+          return {
+            label: 'Overdue Signoffs',
+            value: count,
+            meta: 'Exceeded target approval deadline',
+            alert: count > 0
+          };
+        }
+      },
+      {
+        label: 'Approved Decisions',
+        compute: (rows) => {
+          const count = rows.filter(r => (r.status || '').toLowerCase() === 'approved').length;
+          return {
+            label: 'Approved Decisions',
+            value: count,
+            meta: 'Sanctioned & executed mandates',
+            ok: true
+          };
+        }
+      }
+    ]
   },
   sops: {
-    title: 'SOP Library',
-    subtitle: 'Controlled standard operating procedures.',
+    title: 'Standard Operating Procedures',
+    subtitle: 'Official protocols, operational standards and compliance documentation.',
     columns: [
-      { key: 'code', label: 'Code' },
-      { key: 'title', label: 'Title' },
-      { key: 'category', label: 'Category' },
-      { key: 'version', label: 'Version' },
-      { key: 'status', label: 'Status' }
+      {
+        key: 'code',
+        label: 'SOP Code',
+        render: (row) => `<span class="badge sop-code">${row.code}</span>`
+      },
+      {
+        key: 'title',
+        label: 'Procedure Title & Summary',
+        render: (row) => `<strong>${row.title}</strong>${row.summary ? `<div class="sub-text">${row.summary}</div>` : ''}`
+      },
+      {
+        key: 'category',
+        label: 'Department / Scope',
+        render: (row) => `<span class="badge category-pill">${row.category || 'General'}</span>`
+      },
+      {
+        key: 'version',
+        label: 'Version',
+        render: (row) => `<span style="font-weight:600;color:#334155;">v${row.version || '1.0'}</span>`
+      },
+      {
+        key: 'status',
+        label: 'Status',
+        render: (row) => {
+          const s = (row.status || 'published').toLowerCase();
+          const cls = s === 'published' ? 'badge-ok' : s === 'draft' ? 'badge-warning' : s === 'review' ? 'badge-info' : 'badge-secondary';
+          return `<span class="badge ${cls}">${s.charAt(0).toUpperCase() + s.slice(1)}</span>`;
+        }
+      },
+      {
+        key: 'drive_url',
+        label: 'Reference Link',
+        render: (row) => row.drive_url ? `<a href="${row.drive_url}" target="_blank" rel="noopener noreferrer" class="link-doc">View Document &nearr;</a>` : '<span class="sub-text">In-Hub SOP</span>'
+      }
     ],
     fields: [
-      { key: 'code', label: 'Code', type: 'text', required: true },
-      { key: 'title', label: 'Title', type: 'text', required: true },
-      { key: 'category', label: 'Category', type: 'text' },
-      { key: 'version', label: 'Version', type: 'text' },
-      { key: 'status', label: 'Status', type: 'select', options: [
-        { value: 'draft', label: 'Draft' }, { value: 'published', label: 'Published' }
-      ]},
-      { key: 'summary', label: 'Summary', type: 'textarea' },
-      { key: 'drive_url', label: 'Drive URL', type: 'text' }
+      { key: 'code', label: 'SOP Code', type: 'text', required: true, placeholder: 'e.g. SOP-LS-004' },
+      { key: 'title', label: 'Procedure Title', type: 'text', required: true, placeholder: 'e.g. Routine vaccination and biosecurity protocol' },
+      {
+        key: 'category',
+        label: 'Operational Domain',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'Livestock', label: 'Livestock Care & Tagging' },
+          { value: 'Health', label: 'Animal Health & Disease Isolation' },
+          { value: 'Breeding', label: 'Breeding & Pregnancy Management' },
+          { value: 'Feed', label: 'Feed & Nutrition Storage & Issuing' },
+          { value: 'Procurement', label: 'Procurement & Purchase Approvals' },
+          { value: 'Inventory', label: 'Inventory & Goods Receiving' },
+          { value: 'Assets', label: 'Asset Maintenance & Equipment' },
+          { value: 'HR', label: 'HR, Attendance & Labor Safety' },
+          { value: 'Marketing', label: 'Commercial & Marketing Review' },
+          { value: 'Finance', label: 'Financial Control & Accounting' },
+          { value: 'General', label: 'General Farm Governance' }
+        ]
+      },
+      { key: 'version', label: 'Version Number', type: 'text', required: true, placeholder: 'e.g. 1.0, 1.1' },
+      {
+        key: 'status',
+        label: 'Lifecycle Status',
+        type: 'select',
+        required: true,
+        options: [
+          { value: 'published', label: 'Published (Active controlled standard)' },
+          { value: 'draft', label: 'Draft (In preparation)' },
+          { value: 'review', label: 'In Review (Pending review)' },
+          { value: 'archived', label: 'Archived (Superseded or deprecated)' }
+        ]
+      },
+      { key: 'summary', label: 'Procedure Summary & Scope', type: 'textarea', placeholder: 'Brief summary of the SOP objectives, trigger events, and steps' },
+      { key: 'drive_url', label: 'Cloud Document URL', type: 'text', placeholder: 'https://drive.google.com/...' }
     ],
-    defaults: { version: '1.0', status: 'published' }
+    defaults: { version: '1.0', status: 'published', category: 'Livestock' },
+    quickFilters: [
+      { id: 'all', label: 'All Procedures', filterFn: () => true },
+      {
+        id: 'published',
+        label: 'Published & Active',
+        badgeClass: 'ok',
+        filterFn: (r) => (r.status || '').toLowerCase() === 'published'
+      },
+      {
+        id: 'drafts',
+        label: 'Drafts & Revisions',
+        badgeClass: 'warning',
+        filterFn: (r) => ['draft', 'review'].includes((r.status || '').toLowerCase())
+      },
+      {
+        id: 'livestock',
+        label: 'Herd & Animal Health',
+        filterFn: (r) => ['livestock', 'health', 'breeding'].includes((r.category || '').toLowerCase())
+      },
+      {
+        id: 'supply',
+        label: 'Supply & Facilities',
+        filterFn: (r) => ['feed', 'procurement', 'inventory', 'assets'].includes((r.category || '').toLowerCase())
+      },
+      {
+        id: 'people_ops',
+        label: 'People & Operations',
+        filterFn: (r) => ['hr', 'marketing', 'finance', 'general'].includes((r.category || '').toLowerCase())
+      }
+    ],
+    advancedFilters: [
+      {
+        key: 'category',
+        label: 'Department / Scope',
+        type: 'select',
+        placeholder: 'All Domains',
+        options: [
+          { value: 'Livestock', label: 'Livestock' },
+          { value: 'Health', label: 'Animal Health' },
+          { value: 'Breeding', label: 'Breeding' },
+          { value: 'Feed', label: 'Feed' },
+          { value: 'Procurement', label: 'Procurement' },
+          { value: 'Inventory', label: 'Inventory' },
+          { value: 'Assets', label: 'Assets & Facilities' },
+          { value: 'HR', label: 'Human Resources' },
+          { value: 'Marketing', label: 'Marketing' },
+          { value: 'Finance', label: 'Finance' },
+          { value: 'General', label: 'General' }
+        ],
+        filterFn: (row, val) => !val || (row.category || '').toLowerCase() === val.toLowerCase()
+      },
+      {
+        key: 'status',
+        label: 'Lifecycle Status',
+        type: 'select',
+        placeholder: 'All Statuses',
+        options: [
+          { value: 'published', label: 'Published' },
+          { value: 'draft', label: 'Draft' },
+          { value: 'review', label: 'In Review' },
+          { value: 'archived', label: 'Archived' }
+        ],
+        filterFn: (row, val) => !val || (row.status || '').toLowerCase() === val.toLowerCase()
+      },
+      {
+        key: 'version',
+        label: 'Version',
+        type: 'text',
+        placeholder: 'e.g. 1.0',
+        filterFn: (row, val) => !val || (row.version || '').toLowerCase().includes(val.toLowerCase())
+      }
+    ],
+    kpiDefs: [
+      {
+        label: 'Total SOP Library',
+        compute: (rows, all) => ({
+          label: 'Total SOP Library',
+          value: rows.length,
+          meta: `${all.length} registered operating procedures`,
+          ok: true
+        })
+      },
+      {
+        label: 'Published & Enforced',
+        compute: (rows) => {
+          const count = rows.filter(r => (r.status || '').toLowerCase() === 'published').length;
+          return {
+            label: 'Published & Enforced',
+            value: count,
+            meta: 'Active standard protocols',
+            ok: true
+          };
+        }
+      },
+      {
+        label: 'Operational Domains',
+        compute: (rows) => {
+          const categories = new Set(rows.map(r => (r.category || '').toLowerCase()).filter(Boolean));
+          return {
+            label: 'Operational Domains',
+            value: categories.size,
+            meta: 'Core processes covered',
+            info: true
+          };
+        }
+      },
+      {
+        label: 'Pending Revisions',
+        compute: (rows) => {
+          const count = rows.filter(r => ['draft', 'review'].includes((r.status || '').toLowerCase())).length;
+          return {
+            label: 'Pending Revisions',
+            value: count,
+            meta: 'Drafts or under review',
+            alert: count > 0
+          };
+        }
+      }
+    ]
   }
 };

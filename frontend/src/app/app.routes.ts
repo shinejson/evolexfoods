@@ -42,6 +42,7 @@ export const routes: Routes = [
       { path: 'crm', component: CrudPageComponent, data: { resource: 'companies' } },
       { path: 'deals', component: CrudPageComponent, data: { resource: 'deals' } },
       { path: 'marketing', component: CrudPageComponent, data: { resource: 'marketing' } },
+      { path: 'governance', pathMatch: 'full', redirectTo: 'risks' },
       { path: 'risks', component: CrudPageComponent, data: { resource: 'risks' } },
       { path: 'decisions', component: CrudPageComponent, data: { resource: 'decisions' } },
       { path: 'sops', component: CrudPageComponent, data: { resource: 'sops' } }

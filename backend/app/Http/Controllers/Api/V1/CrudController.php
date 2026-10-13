@@ -216,6 +216,21 @@ class CrudController extends Controller
             $data['reported_at'] = $data['reported_at'] ?? now();
         }
 
+        if ($resource === 'risks') {
+            $data['identified_at'] = $data['identified_at'] ?? now()->toDateString();
+            $data['status'] = $data['status'] ?? 'open';
+            $data['severity'] = $data['severity'] ?? 'medium';
+            $data['likelihood'] = $data['likelihood'] ?? 'possible';
+        }
+
+        if ($resource === 'decisions') {
+            $data['requested_by'] = $data['requested_by'] ?? $request->user()?->id;
+            $data['status'] = $data['status'] ?? 'pending_owner';
+            if (in_array($data['status'] ?? '', ['approved', 'rejected']) && empty($data['decided_at'])) {
+                $data['decided_at'] = now();
+            }
+        }
+
         return $data;
     }
 
