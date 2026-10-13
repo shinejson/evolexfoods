@@ -1,18 +1,17 @@
 /**
- * Dev-only mock of the Evolex API, so the Angular app (and the CEO Command
- * Center in particular) can be previewed without a PHP runtime or a database.
+ * Dev-only mock of the Evolex API, so the Angular app can be previewed
+ * without a PHP runtime or a database.
  *
  *   node tools/preview-api.mjs        # serves http://127.0.0.1:8000
  *   npm start                         # ng serve proxies /api -> 127.0.0.1:8000
  *
- * It implements just enough of the surface the Hub needs:
- *   POST /api/v1/auth/login
- *   GET  /api/v1/auth/me
- *   POST /api/v1/auth/logout
- *   GET  /api/v1/dashboard/ceo
+ * It implements the sign-in, CEO dashboard, operations preview routes and the
+ * finance overview + expense, invoice and payment registers. Finance writes
+ * remain in memory and payment changes recalculate invoice statuses.
  *
- * The numbers below mirror backend/database/seeders/DatabaseSeeder.php.
- * This file is never bundled: it lives outside src/ and is not imported by the app.
+ * Operations figures mirror backend/database/seeders/DatabaseSeeder.php;
+ * finance includes a longer sample history to exercise the charts. This file is
+ * never bundled: it lives outside src/ and is not imported by the app.
  */
 import { createServer } from 'node:http';
 
@@ -437,6 +436,214 @@ const BREEDING_STORE = {
   }
 };
 
+/* ------------------------------------------------------------------ */
+/* Finance workspace fixtures and in-memory accounting actions         */
+/* ------------------------------------------------------------------ */
+
+let financeSuppliers = [
+  { id: 1, code: 'SUP-001', name: 'Green Valley Feeds', category: 'Feed', phone: '+233 20 555 0121', email: 'orders@greenvalley.example', status: 'active' },
+  { id: 2, code: 'SUP-002', name: 'Accra Vet Supplies', category: 'Veterinary', phone: '+233 30 555 0142', email: 'sales@accravet.example', status: 'active' },
+  { id: 3, code: 'SUP-003', name: 'Coastal Fuel & Energy', category: 'Fuel', phone: '+233 24 555 0183', email: 'dispatch@coastalfuel.example', status: 'active' },
+  { id: 4, code: 'SUP-004', name: 'Northstar Farm Services', category: 'Maintenance', phone: '+233 50 555 0194', email: 'admin@northstar.example', status: 'active' }
+];
+
+let financeExpenses = [
+  { id: 1, category: 'Feed', description: 'Emergency hay', amount: 640, expense_date: dayOffset(2), source: 'Manual entry' },
+  { id: 2, category: 'Fuel', description: 'Generator diesel', amount: 280, expense_date: dayOffset(1), source: 'Manual entry' },
+  { id: 3, category: 'Veterinary', description: 'Clinic visit', amount: 190, expense_date: dayOffset(8), source: 'Manual entry' },
+  { id: 4, category: 'Wages', description: 'Casual labour', amount: 900, expense_date: dayOffset(5), source: 'Manual entry' },
+  { id: 5, category: 'Maintenance', description: 'Water pump service', amount: 460, expense_date: dayOffset(42), source: 'Manual entry' },
+  { id: 6, category: 'Feed', description: 'Mineral blocks', amount: 720, expense_date: dayOffset(67), source: 'Manual entry' },
+  { id: 7, category: 'Fuel', description: 'Monthly diesel delivery', amount: 510, expense_date: dayOffset(98), source: 'Manual entry' },
+  { id: 8, category: 'Veterinary', description: 'Vaccination supplies', amount: 390, expense_date: dayOffset(129), source: 'Manual entry' },
+  { id: 9, category: 'Repairs', description: 'Paddock gate repairs', amount: 340, expense_date: dayOffset(158), source: 'Manual entry' },
+  { id: 10, category: 'Feed', description: 'Dairy mash', amount: 1180, expense_date: dayOffset(174), source: 'Manual entry' }
+];
+
+let financeInvoices = [
+  {
+    id: 1,
+    invoice_number: 'INV-2026-014',
+    supplier_id: 1,
+    amount: 2100,
+    invoice_date: dayOffset(2),
+    due_date: dayOffset(-12),
+    status: 'partial'
+  },
+  {
+    id: 2,
+    invoice_number: 'INV-2026-011',
+    supplier_id: 2,
+    amount: 360,
+    invoice_date: dayOffset(18),
+    due_date: dayOffset(3),
+    status: 'paid'
+  },
+  {
+    id: 3,
+    invoice_number: 'INV-2026-017',
+    supplier_id: 4,
+    amount: 1480,
+    invoice_date: dayOffset(4),
+    due_date: dayOffset(3),
+    status: 'unpaid'
+  },
+  {
+    id: 4,
+    invoice_number: 'INV-2026-019',
+    supplier_id: 3,
+    amount: 825,
+    invoice_date: dayOffset(1),
+    due_date: dayOffset(-6),
+    status: 'unpaid'
+  },
+  { id: 5, invoice_number: 'INV-2026-009', supplier_id: 1, amount: 1330, invoice_date: dayOffset(48), due_date: dayOffset(18), status: 'paid' },
+  { id: 6, invoice_number: 'INV-2026-006', supplier_id: 2, amount: 760, invoice_date: dayOffset(80), due_date: dayOffset(50), status: 'paid' },
+  { id: 7, invoice_number: 'INV-2026-004', supplier_id: 3, amount: 1120, invoice_date: dayOffset(111), due_date: dayOffset(81), status: 'paid' },
+  { id: 8, invoice_number: 'INV-2026-002', supplier_id: 4, amount: 890, invoice_date: dayOffset(140), due_date: dayOffset(110), status: 'paid' },
+  { id: 9, invoice_number: 'INV-2025-119', supplier_id: 1, amount: 1760, invoice_date: dayOffset(169), due_date: dayOffset(139), status: 'paid' }
+];
+
+let financePayments = [
+  { id: 1, invoice_id: 1, amount: 500, paid_at: dayOffset(1), method: 'bank_transfer', reference: 'PAY-441' },
+  { id: 2, invoice_id: 2, amount: 360, paid_at: dayOffset(9), method: 'mobile_money', reference: 'PAY-438' },
+  { id: 3, invoice_id: 5, amount: 1330, paid_at: dayOffset(31), method: 'bank_transfer', reference: 'PAY-421' },
+  { id: 4, invoice_id: 6, amount: 760, paid_at: dayOffset(63), method: 'mobile_money', reference: 'PAY-398' },
+  { id: 5, invoice_id: 7, amount: 1120, paid_at: dayOffset(93), method: 'bank_transfer', reference: 'PAY-374' },
+  { id: 6, invoice_id: 8, amount: 890, paid_at: dayOffset(123), method: 'cash', reference: 'PAY-351' },
+  { id: 7, invoice_id: 9, amount: 1760, paid_at: dayOffset(153), method: 'bank_transfer', reference: 'PAY-329' }
+];
+
+function financeInvoiceBalance(invoice) {
+  if (invoice.status === 'paid' && !financePayments.some((payment) => payment.invoice_id === invoice.id)) {
+    return 0;
+  }
+  const paid = financePayments
+    .filter((payment) => payment.invoice_id === invoice.id)
+    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+  return Math.max(0, Number(invoice.amount) - paid);
+}
+
+function financeInvoiceWithRelations(invoice) {
+  return {
+    ...invoice,
+    supplier: financeSuppliers.find((supplier) => supplier.id === invoice.supplier_id) ?? null,
+    payments: financePayments.filter((payment) => payment.invoice_id === invoice.id).map((payment) => ({ ...payment }))
+  };
+}
+
+function financePaymentWithRelations(payment) {
+  const invoice = financeInvoices.find((row) => row.id === payment.invoice_id);
+  return {
+    ...payment,
+    invoice: invoice ? {
+      ...invoice,
+      supplier: financeSuppliers.find((supplier) => supplier.id === invoice.supplier_id) ?? null
+    } : null
+  };
+}
+
+function syncFinanceInvoice(invoiceId) {
+  const invoice = financeInvoices.find((row) => row.id === Number(invoiceId));
+  if (!invoice) return;
+  const paid = financePayments
+    .filter((payment) => payment.invoice_id === invoice.id)
+    .reduce((sum, payment) => sum + Number(payment.amount), 0);
+  invoice.status = paid <= 0 ? 'unpaid' : (paid + 0.005 >= Number(invoice.amount) ? 'paid' : 'partial');
+}
+
+function monthStart(offset) {
+  const date = new Date();
+  return new Date(date.getFullYear(), date.getMonth() + offset, 1);
+}
+
+function financeOverview(url) {
+  const { from, to } = resolveRange(url);
+  const today = isoDay(new Date());
+  const nextWeek = new Date();
+  nextWeek.setDate(nextWeek.getDate() + 7);
+  const nextWeekDay = isoDay(nextWeek);
+  const rangeExpenses = financeExpenses.filter((expense) => expense.expense_date >= from && expense.expense_date <= to);
+  const rangePayments = financePayments.filter((payment) => payment.paid_at >= from && payment.paid_at <= to);
+  const openInvoices = financeInvoices.filter((invoice) => ['unpaid', 'partial'].includes(invoice.status));
+  const overdueInvoices = openInvoices.filter((invoice) => invoice.due_date && invoice.due_date < today && financeInvoiceBalance(invoice) > 0);
+  const dueSoonInvoices = openInvoices.filter((invoice) => invoice.due_date && invoice.due_date >= today && invoice.due_date <= nextWeekDay && financeInvoiceBalance(invoice) > 0);
+
+  const aging = { current: 0, days_1_30: 0, days_31_60: 0, days_61_plus: 0 };
+  for (const invoice of openInvoices) {
+    const balance = financeInvoiceBalance(invoice);
+    if (balance <= 0) continue;
+    if (!invoice.due_date || invoice.due_date >= today) {
+      aging.current += balance;
+      continue;
+    }
+    const daysLate = Math.floor((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${invoice.due_date}T00:00:00Z`)) / 86_400_000);
+    aging[daysLate <= 30 ? 'days_1_30' : daysLate <= 60 ? 'days_31_60' : 'days_61_plus'] += balance;
+  }
+
+  const categories = new Map();
+  for (const expense of rangeExpenses) {
+    const key = expense.category || 'Uncategorised';
+    categories.set(key, (categories.get(key) ?? 0) + Number(expense.amount));
+  }
+
+  const monthlyActivity = Array.from({ length: 6 }, (_, index) => {
+    const month = monthStart(index - 5);
+    const key = month.toISOString().slice(0, 7);
+    return {
+      month: key,
+      label: month.toLocaleDateString('en', { month: 'short', timeZone: 'UTC' }),
+      expenses: financeExpenses.filter((expense) => expense.expense_date.slice(0, 7) === key).reduce((sum, expense) => sum + Number(expense.amount), 0),
+      payments: financePayments.filter((payment) => payment.paid_at.slice(0, 7) === key).reduce((sum, payment) => sum + Number(payment.amount), 0)
+    };
+  });
+
+  const upcoming = openInvoices
+    .filter((invoice) => invoice.due_date && invoice.due_date >= today && financeInvoiceBalance(invoice) > 0)
+    .sort((a, b) => a.due_date.localeCompare(b.due_date))
+    .slice(0, 5)
+    .map((invoice) => ({
+      id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      supplier: financeSuppliers.find((supplier) => supplier.id === invoice.supplier_id)?.name ?? 'Unassigned supplier',
+      balance: financeInvoiceBalance(invoice),
+      due_date: invoice.due_date,
+      status: invoice.status
+    }));
+
+  const expensesTotal = rangeExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+  const paymentsTotal = rangePayments.reduce((sum, payment) => sum + Number(payment.amount), 0);
+  const openPayables = openInvoices.reduce((sum, invoice) => sum + financeInvoiceBalance(invoice), 0);
+  const overduePayables = overdueInvoices.reduce((sum, invoice) => sum + financeInvoiceBalance(invoice), 0);
+  const due7Days = dueSoonInvoices.reduce((sum, invoice) => sum + financeInvoiceBalance(invoice), 0);
+
+  return {
+    generated_at: new Date().toISOString(),
+    from,
+    to,
+    currency: 'GHS',
+    totals: {
+      expenses: expensesTotal,
+      payments: paymentsTotal,
+      outflow: expensesTotal + paymentsTotal,
+      open_payables: openPayables,
+      overdue_payables: overduePayables,
+      overdue_invoice_count: overdueInvoices.length,
+      due_7_days: due7Days,
+      due_7_days_count: dueSoonInvoices.length,
+      open_invoice_count: openInvoices.filter((invoice) => financeInvoiceBalance(invoice) > 0).length
+    },
+    expense_categories: [...categories.entries()]
+      .map(([category, amount]) => ({ category, amount }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 6),
+    monthly_activity: monthlyActivity,
+    invoice_aging: aging,
+    upcoming_invoices: upcoming,
+    source: 'expenses, invoices, payments'
+  };
+}
+
 function json(res, status, body) {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
@@ -485,15 +692,21 @@ const server = createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'GET' && path === '/api/v1/finance/overview') {
+    json(res, 200, financeOverview(url));
+    return;
+  }
+
   if (req.method === 'GET' && path === '/api/v1/lookups') {
     json(res, 200, {
       locations: PADDOCKS,
       animals: ANIMALS,
-      suppliers: [],
+      suppliers: financeSuppliers,
       users: [],
       employees: [],
       assets: [],
-      companies: []
+      companies: [],
+      invoices: financeInvoices.map(({ id, invoice_number }) => ({ id, invoice_number }))
     });
     return;
   }
@@ -533,6 +746,134 @@ const server = createServer((req, res) => {
       .filter((row) => row.birth_date >= from && row.birth_date <= to)
       .sort((a, b) => b.birth_date.localeCompare(a.birth_date));
     json(res, 200, { question: 6, from, to, count: records.length, records, source: 'births' });
+    return;
+  }
+
+  const financeRecordMatch = path.match(/^\/api\/v1\/records\/(expenses|invoices|payments|suppliers)(?:\/(\d+))?$/);
+  if (financeRecordMatch) {
+    const resource = financeRecordMatch[1];
+    const id = financeRecordMatch[2] ? Number(financeRecordMatch[2]) : null;
+    const rows = () => resource === 'expenses'
+      ? financeExpenses
+      : resource === 'invoices'
+        ? financeInvoices
+        : resource === 'payments'
+          ? financePayments
+          : financeSuppliers;
+    const replaceRows = (next) => {
+      if (resource === 'expenses') financeExpenses = next;
+      else if (resource === 'invoices') financeInvoices = next;
+      else if (resource === 'payments') financePayments = next;
+      else financeSuppliers = next;
+    };
+    const attach = (row) => resource === 'invoices'
+      ? financeInvoiceWithRelations(row)
+      : resource === 'payments'
+        ? financePaymentWithRelations(row)
+        : { ...row };
+
+    if (req.method === 'GET') {
+      if (id) {
+        const row = rows().find((item) => item.id === id);
+        row ? json(res, 200, attach(row)) : json(res, 404, { message: 'Not found' });
+        return;
+      }
+      json(res, 200, { data: [...rows()].sort((a, b) => b.id - a.id).map(attach) });
+      return;
+    }
+
+    if (req.method === 'DELETE' && id) {
+      const row = rows().find((item) => item.id === id);
+      if (!row) {
+        json(res, 404, { message: 'Not found' });
+        return;
+      }
+      if (resource === 'invoices' && financePayments.some((payment) => payment.invoice_id === id)) {
+        json(res, 409, { message: 'This invoice has a payment history and cannot be deleted. Keep it for accounting records.' });
+        return;
+      }
+      if (resource === 'payments') {
+        const invoiceId = row.invoice_id;
+        replaceRows(rows().filter((item) => item.id !== id));
+        syncFinanceInvoice(invoiceId);
+      } else {
+        replaceRows(rows().filter((item) => item.id !== id));
+      }
+      json(res, 200, { deleted: true });
+      return;
+    }
+
+    if (req.method === 'POST' || (req.method === 'PUT' && id)) {
+      let raw = '';
+      req.on('data', (chunk) => (raw += chunk));
+      req.on('end', () => {
+        let body = {};
+        try {
+          body = JSON.parse(raw || '{}');
+        } catch {
+          json(res, 422, { message: 'Invalid JSON body' });
+          return;
+        }
+
+        const existing = id ? rows().find((item) => item.id === id) : null;
+        if (id && !existing) {
+          json(res, 404, { message: 'Not found' });
+          return;
+        }
+
+        if (resource === 'expenses' && (!body.category || !body.expense_date || Number(body.amount) <= 0)) {
+          json(res, 422, { message: 'Category, date and a positive amount are required.' });
+          return;
+        }
+        if (resource === 'invoices' && (!body.invoice_number || !body.invoice_date || Number(body.amount) <= 0)) {
+          json(res, 422, { message: 'Invoice number, date and a positive amount are required.' });
+          return;
+        }
+        if (resource === 'invoices' && financeInvoices.some((invoice) => invoice.invoice_number === body.invoice_number && invoice.id !== id)) {
+          json(res, 422, { message: 'An invoice with this number already exists.' });
+          return;
+        }
+        if (resource === 'payments' && (!body.invoice_id || Number(body.amount) <= 0 || !body.paid_at)) {
+          json(res, 422, { message: 'Invoice, date and a positive payment amount are required.' });
+          return;
+        }
+        if (resource === 'payments' && !financeInvoices.some((invoice) => invoice.id === Number(body.invoice_id))) {
+          json(res, 422, { message: 'Choose an existing invoice.' });
+          return;
+        }
+        if (resource === 'suppliers' && !body.name) {
+          json(res, 422, { message: 'Supplier name is required.' });
+          return;
+        }
+
+        if (req.method === 'POST') {
+          const created = { id: nextId(rows()), ...body };
+          if (resource === 'invoices') created.status = body.status ?? 'unpaid';
+          if (resource === 'suppliers') {
+            created.code = body.code || `SUP-${String(created.id).padStart(3, '0')}`;
+            created.status = body.status ?? 'active';
+          }
+          replaceRows([created, ...rows()]);
+          if (resource === 'payments') syncFinanceInvoice(created.invoice_id);
+          json(res, 201, attach(created));
+          return;
+        }
+
+        const previousInvoiceId = resource === 'payments' ? existing.invoice_id : null;
+        const updated = { ...existing, ...body, id };
+        replaceRows(rows().map((item) => item.id === id ? updated : item));
+        if (resource === 'payments') {
+          syncFinanceInvoice(previousInvoiceId);
+          syncFinanceInvoice(updated.invoice_id);
+        } else if (resource === 'invoices' && financePayments.some((payment) => payment.invoice_id === id)) {
+          syncFinanceInvoice(id);
+        }
+        json(res, 200, attach(updated));
+      });
+      return;
+    }
+
+    json(res, 405, { message: `Method ${req.method} not allowed` });
     return;
   }
 

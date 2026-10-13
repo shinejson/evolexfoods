@@ -73,6 +73,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/hr/attendance/today', [HrTaskController::class, 'attendanceToday']);
         Route::get('/tasks/incomplete', [HrTaskController::class, 'incompleteTasks']);
 
+        Route::get('/finance/overview', [FinanceController::class, 'overview']);
         Route::get('/finance/spending', [FinanceController::class, 'spending']);
 
         Route::get('/crm/prospects', [CrmController::class, 'prospects']);

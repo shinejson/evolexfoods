@@ -5,11 +5,12 @@ import { ActivatedRoute } from '@angular/router';
 import DataTable from 'datatables.net';
 import { ApiService } from '../../core/services/api.service';
 import { CRUD_RESOURCES, FieldDef, ResourceDef } from './crud.registry';
+import { FinanceNavComponent } from '../finance/finance-nav.component';
 
 @Component({
   selector: 'app-crud-page',
   standalone: true,
-  imports: [NgFor, NgIf, FormsModule],
+  imports: [NgFor, NgIf, FormsModule, FinanceNavComponent],
   templateUrl: './crud-page.component.html',
   styleUrl: './crud-page.component.scss'
 })
@@ -148,6 +149,9 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
   private lookupLabel(lookup: string, item: any): string {
     if (lookup === 'animals') {
       return item.animal_id;
+    }
+    if (lookup === 'invoices') {
+      return item.invoice_number;
     }
     if (lookup === 'assets') {
       return `${item.asset_id} ${item.name}`;

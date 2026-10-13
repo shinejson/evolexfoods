@@ -1,0 +1,19 @@
+<nav class="finance-nav" aria-label="Finance and accounting">
+  <a
+    *ngFor="let page of pages"
+    [routerLink]="page.route"
+    routerLinkActive="is-active"
+    [routerLinkActiveOptions]="{ exact: true }"
+    [ariaCurrentWhenActive]="'page'">
+    <svg *ngIf="page.icon === 'overview' || page.icon === 'reports'" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 19V5m0 14h17M8 15l4-4 3 2 5-6" />
+    </svg>
+    <svg *ngIf="page.icon === 'expenses'" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3v18m4-14.5c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 3 4 3 4 1.2 4 3-1.8 3-4 3-4-1.3-4-3" />
+    </svg>
+    <svg *ngIf="page.icon === 'invoices' || page.icon === 'payments'" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5V3zm3 5h4m-4 4h4m-4 4h2" />
+    </svg>
+    <span>{{ page.label }}</span>
+  </a>
+</nav>
