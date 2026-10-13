@@ -60,7 +60,8 @@ class LivestockController extends Controller
             });
         }
 
-        return response()->json($query->orderBy('animal_id')->paginate(50));
+        $perPage = min(100, max(5, (int) $request->query('per_page', 10)));
+        return response()->json($query->orderBy('animal_id')->paginate($perPage));
     }
 
     public function show(int $id): JsonResponse

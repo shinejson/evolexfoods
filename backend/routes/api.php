@@ -49,6 +49,13 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/feed/summary', [FeedInventoryController::class, 'feedSummary']);
         Route::get('/feed/days-remaining', [FeedInventoryController::class, 'daysRemaining']);
+        Route::get('/feed/items', [FeedInventoryController::class, 'index']);
+        Route::post('/feed/items', [FeedInventoryController::class, 'store']);
+        Route::get('/feed/items/{id}', [FeedInventoryController::class, 'show']);
+        Route::put('/feed/items/{id}', [FeedInventoryController::class, 'update']);
+        Route::delete('/feed/items/{id}', [FeedInventoryController::class, 'destroy']);
+        Route::post('/feed/transactions', [FeedInventoryController::class, 'logTransaction']);
+        Route::get('/feed/transactions', [FeedInventoryController::class, 'transactions']);
         Route::get('/inventory', [FeedInventoryController::class, 'inventory']);
         Route::get('/inventory/medicines', [FeedInventoryController::class, 'medicines']);
         Route::get('/inventory/low-stock', [FeedInventoryController::class, 'lowStock']);

@@ -62,6 +62,6 @@ class Animal extends Model
 
     public function scopeAlive($query)
     {
-        return $query->where('status', 'alive')->where('current_status', 'active');
+        return $query->where('animals.status', 'alive')->where('animals.current_status', 'active');
     }
 }

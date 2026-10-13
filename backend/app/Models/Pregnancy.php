@@ -28,6 +28,6 @@ class Pregnancy extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('status', 'active');
+        return $query->where('pregnancies.status', 'active');
     }
 }

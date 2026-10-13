@@ -55,7 +55,9 @@ export class LivestockComponent implements OnInit {
   currentPage = 1;
   pageSize = 10;
   totalRecords = 0;
-  totalPages = 0;
+  totalPages = 1;
+  fromRecord = 0;
+  toRecord = 0;
   paginatedAnimals: Animal[] = [];
   Math = Math; // Expose Math to template
   
@@ -104,7 +106,7 @@ export class LivestockComponent implements OnInit {
     this.api.get<any>('/livestock/deaths').subscribe((d) => this.deaths = d || { count: 0 });
     this.api.get<any>('/livestock/growth').subscribe((d) => this.growth = d || { herd_growth: 0, herd_growth_rate: 0 });
     this.api.get<any>('/livestock/mortality-rate').subscribe((d) => this.mortality = d || { mortality_rate: 0 });
-    this.search();
+    this.search(1);
   }
 
   loadLocations(): void {
@@ -118,8 +120,12 @@ export class LivestockComponent implements OnInit {
     });
   }
 
-  search(): void {
-    const params: any = {};
+  search(page: number = 1): void {
+    this.currentPage = page;
+    const params: any = {
+      page: this.currentPage,
+      per_page: this.pageSize
+    };
     if (this.filters.search) params.q = this.filters.search;
     if (this.filters.species) params.species = this.filters.species;
     if (this.filters.sex) params.sex = this.filters.sex;
@@ -128,53 +134,74 @@ export class LivestockComponent implements OnInit {
     if (this.filters.status) params.status = this.filters.status;
 
     this.api.get<any>('/livestock', params).subscribe((d) => {
-      this.animals = d.data || d || [];
-      this.totalRecords = this.animals.length;
-      this.totalPages = Math.ceil(this.totalRecords / this.pageSize);
-      this.currentPage = 1; // Reset to first page on new search
-      this.updatePaginatedData();
+      if (d && d.data) {
+        this.animals = d.data;
+        this.paginatedAnimals = d.data;
+        this.totalRecords = d.total ?? d.data.length;
+        this.currentPage = d.current_page ?? page;
+        this.totalPages = d.last_page ?? Math.max(1, Math.ceil(this.totalRecords / this.pageSize));
+        this.fromRecord = d.from ?? (this.totalRecords > 0 ? (this.currentPage - 1) * this.pageSize + 1 : 0);
+        this.toRecord = d.to ?? Math.min(this.currentPage * this.pageSize, this.totalRecords);
+      } else if (Array.isArray(d)) {
+        this.animals = d;
+        this.totalRecords = d.length;
+        this.totalPages = Math.max(1, Math.ceil(this.totalRecords / this.pageSize));
+        this.fromRecord = this.totalRecords > 0 ? (this.currentPage - 1) * this.pageSize + 1 : 0;
+        this.toRecord = Math.min(this.currentPage * this.pageSize, this.totalRecords);
+        this.paginatedAnimals = d.slice(this.fromRecord - 1, this.toRecord);
+      } else {
+        this.animals = [];
+        this.paginatedAnimals = [];
+        this.totalRecords = 0;
+        this.totalPages = 1;
+        this.fromRecord = 0;
+        this.toRecord = 0;
+      }
     });
   }
 
-  updatePaginatedData(): void {
-    const startIndex = (this.currentPage - 1) * this.pageSize;
-    const endIndex = startIndex + this.pageSize;
-    this.paginatedAnimals = this.animals.slice(startIndex, endIndex);
+  onPageSizeChange(): void {
+    this.search(1);
   }
 
   nextPage(): void {
     if (this.currentPage < this.totalPages) {
-      this.currentPage++;
-      this.updatePaginatedData();
+      this.search(this.currentPage + 1);
     }
   }
 
   prevPage(): void {
     if (this.currentPage > 1) {
-      this.currentPage--;
-      this.updatePaginatedData();
+      this.search(this.currentPage - 1);
     }
   }
 
   goToPage(page: number): void {
-    if (page >= 1 && page <= this.totalPages) {
-      this.currentPage = page;
-      this.updatePaginatedData();
+    if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
+      this.search(page);
     }
   }
 
-  getPageNumbers(): number[] {
-    const pages: number[] = [];
-    const maxVisible = 5;
-    let startPage = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(this.totalPages, startPage + maxVisible - 1);
+  getPageNumbers(): (number | string)[] {
+    const pages: (number | string)[] = [];
+    const total = this.totalPages;
+    const current = this.currentPage;
 
-    if (endPage - startPage < maxVisible - 1) {
-      startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (current > 3) pages.push('...');
+      
+      const start = Math.max(2, current - 1);
+      const end = Math.min(total - 1, current + 1);
+      
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      if (current < total - 2) pages.push('...');
+      pages.push(total);
     }
     return pages;
   }
@@ -188,7 +215,7 @@ export class LivestockComponent implements OnInit {
       health_status: '',
       status: ''
     };
-    this.search();
+    this.search(1);
   }
 
   toggleFilters(): void {
@@ -204,8 +231,13 @@ export class LivestockComponent implements OnInit {
     if (event.target.checked) {
       this.paginatedAnimals.forEach(a => this.selectedAnimals.add(a.id));
     } else {
-      this.selectedAnimals.clear();
+      this.paginatedAnimals.forEach(a => this.selectedAnimals.delete(a.id));
     }
+  }
+
+  isAllSelected(): boolean {
+    return this.paginatedAnimals.length > 0 && 
+           this.paginatedAnimals.every(a => this.selectedAnimals.has(a.id));
   }
 
   toggleSelect(id: number): void {

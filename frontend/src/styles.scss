@@ -259,7 +259,7 @@ td {
   margin-bottom: 16px;
 }
 
-input, select {
+input:not([type="checkbox"]):not([type="radio"]), select {
   border: 1px solid var(--line);
   background: #fff;
   border-radius: 10px;
