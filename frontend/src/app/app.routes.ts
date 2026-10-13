@@ -20,13 +20,10 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'ceo' },
       { path: 'hub', component: HubComponent },
       { path: 'ceo', component: CeoComponent },
-<<<<<<< HEAD
+      // Merge resolution: keep both purpose-built workspaces (livestock + health)
+      // instead of routing either one back to the generic CRUD page.
       { path: 'livestock', component: LivestockComponent },
-      { path: 'health', component: CrudPageComponent, data: { resource: 'health' } },
-=======
-      { path: 'livestock', component: CrudPageComponent, data: { resource: 'livestock' } },
       { path: 'health', component: HealthComponent },
->>>>>>> 17d1701f100de1a88a78e14e5b3300379627a09d
       { path: 'treatments', component: CrudPageComponent, data: { resource: 'treatments' } },
       { path: 'breeding', component: BreedingComponent },
       { path: 'feed', component: FeedComponent },

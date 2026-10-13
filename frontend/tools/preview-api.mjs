@@ -264,12 +264,176 @@ function attachAnimal(record, animals) {
 
 const HEALTH_STORE = {
   health: {
-    rows: healthRecords,
+    rows: () => healthRecords,
+    set: (rows) => {
+      healthRecords = rows;
+    },
     defaults: { severity: 'moderate', status: 'open' }
   },
   treatments: {
-    rows: treatments,
+    rows: () => treatments,
+    set: (rows) => {
+      treatments = rows;
+    },
     defaults: { status: 'active' }
+  }
+};
+
+/* ------------------------------------------------------------------ */
+/* Breeding workspace fixtures (mirroring the seeder)                    */
+/* ------------------------------------------------------------------ */
+
+const GESTATION = { goat: 150, sheep: 147, cattle: 283 };
+const BREEDING_METHODS = ['natural', 'natural', 'natural', 'artificial_insemination', 'embryo_transfer'];
+
+function daysFromNow(days) {
+  return dayOffset(-days);
+}
+
+function weightFor(species) {
+  const value = species === 'cattle' ? 18 + (Math.random() * 14) : 1.5 + Math.random() * 3;
+  return Number(value.toFixed(1));
+}
+
+const BREEDING_FEMALES = ANIMALS.filter((animal) => animal.sex === 'female' && animal.status === 'alive');
+const BREEDING_MALES = ANIMALS.filter((animal) => animal.sex !== 'female' && animal.status === 'alive');
+
+function withLocation(animal) {
+  return animal ? { ...animal, location: PADDOCKS.find((paddock) => paddock.id === animal.location_id) ?? null } : null;
+}
+
+let breedingCycles = [];
+let pregnancies = [];
+let births = [];
+
+function nextId(rows) {
+  return rows.reduce((max, row) => Math.max(max, row.id), 0) + 1;
+}
+
+function breedingRecord(femaleId, maleId, servedAt, method) {
+  const female = ANIMALS.find((animal) => animal.id === femaleId) ?? null;
+  const male = ANIMALS.find((animal) => animal.id === maleId) ?? null;
+  return {
+    id: nextId(breedingCycles),
+    female_id: femaleId,
+    male_id: maleId,
+    breeding_date: servedAt,
+    method,
+    status: 'completed',
+    notes: null,
+    female: withLocation(female),
+    male: withLocation(male)
+  };
+}
+
+function pregnancyRecord(animalId, breedingId, confirmedAt, dueAt, status, endedAt = null) {
+  const pregnancy = {
+    id: nextId(pregnancies),
+    animal_id: animalId,
+    breeding_id: breedingId,
+    confirmed_date: confirmedAt,
+    expected_birth_date: dueAt,
+    status,
+    ended_at: endedAt,
+    notes: null,
+    animal: withLocation(ANIMALS.find((animal) => animal.id === animalId) ?? null),
+    breeding: breedingCycles.find((cycle) => cycle.id === breedingId) ?? null
+  };
+  pregnancies = [...pregnancies, pregnancy];
+  return pregnancy;
+}
+
+function birthRecord(calfId, mother, father, birthDate, locationId) {
+  const calf = ANIMALS.find((animal) => animal.id === calfId) ?? null;
+  const record = {
+    id: nextId(births),
+    animal_id: calfId,
+    mother_animal_id: mother?.animal_id ?? null,
+    father_animal_id: father?.animal_id ?? null,
+    birth_date: birthDate,
+    sex: calf?.sex ?? 'female',
+    birth_weight: weightFor(calf?.species ?? mother?.species ?? 'goat'),
+    location_id: locationId,
+    status: 'alive',
+    notes: null,
+    animal: withLocation(calf),
+    location: PADDOCKS.find((paddock) => paddock.id === locationId) ?? null
+  };
+  births = [...births, record];
+  return record;
+}
+
+// Eight active pregnancies, mirroring the eight dams flagged in the seeder.
+BREEDING_FEMALES.slice(0, 8).forEach((dam, index) => {
+  const sire = BREEDING_MALES[index % BREEDING_MALES.length];
+  const length = GESTATION[dam.species] ?? 150;
+  const due = daysFromNow(8 + index * 9);
+  const served = dayOffset(length - (8 + index * 9));
+  const cycle = breedingRecord(dam.id, sire.id, served, BREEDING_METHODS[index % 3]);
+  breedingCycles = [...breedingCycles, cycle];
+  pregnancyRecord(dam.id, cycle.id, dayOffset(length - 29 - index * 9), due, 'active');
+});
+
+// Breeding programme: sixteen services across the last year, three in four took.
+Array.from({ length: 16 }, (_, index) => index).forEach((index) => {
+  const dam = BREEDING_FEMALES[(index + 8) % BREEDING_FEMALES.length];
+  const sire = BREEDING_MALES[(index * 3) % BREEDING_MALES.length];
+  const servedDaysAgo = 60 + index * 21;
+  const length = GESTATION[dam.species] ?? 150;
+  const dueDaysAhead = length - servedDaysAgo;
+  const conceived = index % 4 !== 3;
+  const calf = ANIMALS[20 + index] ?? null;
+
+  const cycle = breedingRecord(dam.id, sire.id, dayOffset(servedDaysAgo), BREEDING_METHODS[index % BREEDING_METHODS.length]);
+  breedingCycles = [...breedingCycles, cycle];
+
+  pregnancyRecord(
+    dam.id,
+    cycle.id,
+    dayOffset(servedDaysAgo - 21),
+    dueDaysAhead >= 0 ? daysFromNow(dueDaysAhead) : dayOffset(-dueDaysAhead),
+    conceived ? (dueDaysAhead >= 0 ? 'active' : 'completed') : 'failed',
+    conceived && dueDaysAhead < 0 ? dayOffset(-dueDaysAhead) : null
+  );
+
+  if (conceived && dueDaysAhead < 0 && calf) {
+    birthRecord(calf.id, dam, sire, dayOffset(-dueDaysAhead), PADDOCKS[3].id);
+  }
+});
+
+// Recent arrivals at the maternity barn.
+Array.from({ length: 9 }, (_, index) => index + 1).forEach((index) => {
+  const dam = BREEDING_FEMALES[index % BREEDING_FEMALES.length];
+  const calf = ANIMALS[index] ?? null;
+  if (calf) {
+    birthRecord(calf.id, dam, null, dayOffset(index * 9), PADDOCKS[3].id);
+  }
+});
+
+const BREEDING_STORE = {
+  breeding: {
+    rows: () => breedingCycles,
+    defaults: { method: 'natural', status: 'completed' },
+    set: (rows) => {
+      breedingCycles = rows;
+    },
+    attach: (row) => ({
+      ...row,
+      female: withLocation(ANIMALS.find((animal) => animal.id === row.female_id) ?? null),
+      male: withLocation(ANIMALS.find((animal) => animal.id === row.male_id) ?? null)
+    })
+  },
+  pregnancies: {
+    rows: () => pregnancies,
+    defaults: { status: 'active' },
+    set: (rows) => {
+      pregnancies = rows;
+    },
+    attach: (row) => ({
+      ...row,
+      animal: withLocation(ANIMALS.find((animal) => animal.id === row.animal_id) ?? null),
+      breeding: breedingCycles.find((cycle) => cycle.id === row.breeding_id) ?? null
+    })
   }
 };
 
@@ -334,18 +498,59 @@ const server = createServer((req, res) => {
     return;
   }
 
-  const recordMatch = path.match(/^\/api\/v1\/records\/(health|treatments)(?:\/(\d+))?$/);
+  if (req.method === 'GET' && path === '/api/v1/livestock/pregnancies') {
+    // Mirrors LivestockController::pregnancies — status/date_field/from/to.
+    const status = url.searchParams.get('status') ?? 'active';
+    const field = url.searchParams.get('date_field') === 'confirmed_date' ? 'confirmed_date' : 'expected_birth_date';
+    const from = url.searchParams.get('from');
+    const to = url.searchParams.get('to');
+
+    const records = pregnancies
+      .filter((row) => status === 'all' || row.status === status)
+      .filter((row) => (from ? row[field] >= from : true))
+      .filter((row) => (to ? row[field] <= to : true))
+      .sort((a, b) => a[field].localeCompare(b[field]))
+      .map((row) => BREEDING_STORE.pregnancies.attach(row));
+
+    const active = pregnancies.filter((row) => row.status === 'active');
+    const within = (days) => active.filter((row) => row.expected_birth_date >= dayOffset(0) && row.expected_birth_date <= daysFromNow(days)).length;
+
+    json(res, 200, {
+      question: 5,
+      count: active.length,
+      expected_births: { next_7: within(7), next_30: within(30), next_60: within(60), next_90: within(90) },
+      filters: { status, date_field: field },
+      records,
+      source: 'pregnancies'
+    });
+    return;
+  }
+
+  if (req.method === 'GET' && path === '/api/v1/livestock/births') {
+    const to = url.searchParams.get('to') ?? dayOffset(0);
+    const from = url.searchParams.get('from') ?? dayOffset(30);
+    const records = births
+      .filter((row) => row.birth_date >= from && row.birth_date <= to)
+      .sort((a, b) => b.birth_date.localeCompare(a.birth_date));
+    json(res, 200, { question: 6, from, to, count: records.length, records, source: 'births' });
+    return;
+  }
+
+  const recordMatch = path.match(/^\/api\/v1\/records\/(health|treatments|breeding|pregnancies)(?:\/(\d+))?$/);
   if (recordMatch) {
-    const store = HEALTH_STORE[recordMatch[1]];
+    const store = HEALTH_STORE[recordMatch[1]] ?? BREEDING_STORE[recordMatch[1]];
+    const rowsOf = () => (store.rows instanceof Function ? store.rows() : store.rows);
+    const write = (rows) => store.set(rows);
+    const attach = (row) => (store.attach ? store.attach(row) : attachAnimal(row, ANIMALS));
     const id = recordMatch[2] ? Number(recordMatch[2]) : null;
 
     if (req.method === 'GET') {
       if (id) {
-        const row = store.rows.find((item) => item.id === id);
-        row ? json(res, 200, attachAnimal(row, ANIMALS)) : json(res, 404, { message: 'Not found' });
+        const row = rowsOf().find((item) => item.id === id);
+        row ? json(res, 200, attach(row)) : json(res, 404, { message: 'Not found' });
         return;
       }
-      json(res, 200, { data: store.rows.map((row) => attachAnimal(row, ANIMALS)) });
+      json(res, 200, { data: rowsOf().map((row) => attach(row)) });
       return;
     }
 
@@ -360,27 +565,30 @@ const server = createServer((req, res) => {
         return;
       }
 
+      const rows = rowsOf();
+
       if (req.method === 'POST') {
-        const nextId = store.rows.reduce((max, row) => Math.max(max, row.id), 0) + 1;
-        const created = { id: nextId, ...store.defaults, ...body };
-        store.rows = [created, ...store.rows];
-        json(res, 201, attachAnimal(created, ANIMALS));
+        const created = { id: nextId(rows), ...store.defaults, ...body };
+        write([created, ...rows]);
+        json(res, 201, attach(created));
         return;
       }
 
       if (req.method === 'PUT' && id) {
-        const index = store.rows.findIndex((item) => item.id === id);
+        const index = rows.findIndex((item) => item.id === id);
         if (index < 0) {
           json(res, 404, { message: 'Not found' });
           return;
         }
-        store.rows[index] = { ...store.rows[index], ...body, id };
-        json(res, 200, attachAnimal(store.rows[index], ANIMALS));
+        const next = [...rows];
+        next[index] = { ...rows[index], ...body, id };
+        write(next);
+        json(res, 200, attach(next[index]));
         return;
       }
 
       if (req.method === 'DELETE' && id) {
-        store.rows = store.rows.filter((item) => item.id !== id);
+        write(rows.filter((item) => item.id !== id));
         json(res, 200, { message: 'Deleted' });
         return;
       }
