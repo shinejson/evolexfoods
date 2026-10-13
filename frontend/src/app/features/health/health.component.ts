@@ -79,7 +79,7 @@ export class HealthComponent implements OnInit {
 
   readonly tabs = TABS;
   readonly ageingDays = AGEING_DAYS;
-  readonly pageSizes = [10, 25, 50, 100];
+  readonly pageSizes = [10, 25, 50];
   readonly titleCase = titleCase;
   readonly formatDate = formatDate;
   readonly formatAge = formatAge;
@@ -105,6 +105,7 @@ export class HealthComponent implements OnInit {
   readonly dialogTab = signal<HealthTab>('cases');
   readonly selectedRow = signal<HealthRow | null>(null);
   readonly serverError = signal('');
+  readonly selectedIds = signal<Set<number>>(new Set());
 
   private readonly records = signal<HealthRecord[]>([]);
   private readonly treatments = signal<Treatment[]>([]);
@@ -436,6 +437,66 @@ export class HealthComponent implements OnInit {
 
   dismissMessage(): void {
     this.message.set('');
+  }
+
+  toggleSelection(id: number): void {
+    const current = new Set(this.selectedIds());
+    if (current.has(id)) {
+      current.delete(id);
+    } else {
+      current.add(id);
+    }
+    this.selectedIds.set(current);
+  }
+
+  toggleSelectAll(): void {
+    const current = this.selectedIds();
+    const pageIds = this.paged().rows.map(row => row.id);
+    if (pageIds.every(id => current.has(id))) {
+      pageIds.forEach(id => current.delete(id));
+      this.selectedIds.set(new Set(current));
+    } else {
+      this.selectedIds.set(new Set([...current, ...pageIds]));
+    }
+  }
+
+  isAllSelected(): boolean {
+    const rows = this.paged().rows;
+    if (!rows.length) {
+      return false;
+    }
+    const current = this.selectedIds();
+    return rows.every((row) => current.has(row.id));
+  }
+
+  clearSelection(): void {
+    this.selectedIds.set(new Set());
+  }
+
+  bulkDelete(): void {
+    const count = this.selectedIds().size;
+    if (count === 0 || !confirm(`Delete ${count} selected record${count === 1 ? '' : 's'}? This cannot be undone.`)) {
+      return;
+    }
+
+    this.saving.set(true);
+    const endpoint = tabDef(this.tab()).endpoint;
+    const deleteRequests = Array.from(this.selectedIds()).map(id => this.api.delete(`${endpoint}/${id}`));
+
+    forkJoin(deleteRequests)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.message.set(`${count} record${count === 1 ? '' : 's'} deleted.`);
+          this.clearSelection();
+          this.load(true);
+        },
+        error: (error: HttpErrorResponse) => {
+          this.saving.set(false);
+          this.message.set('Some records could not be deleted. Please try again.');
+        }
+      });
   }
 
   focusSearch(): void {

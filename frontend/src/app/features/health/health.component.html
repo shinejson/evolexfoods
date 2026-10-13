@@ -21,6 +21,13 @@
     </div>
 
     <div class="page-actions">
+      @if (selectedIds().size > 0) {
+        <button type="button" class="btn btn--danger" (click)="bulkDelete()" [disabled]="saving()">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3m-7 0 1 13h8l1-13" /></svg>
+          Delete {{ selectedIds().size }} selected
+        </button>
+        <button type="button" class="btn btn--quiet" (click)="clearSelection()">Clear selection</button>
+      }
       <button type="button" class="btn btn--solid" (click)="openCreate()">
         <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
         {{ currentTabDef().createLabel }}
@@ -254,6 +261,13 @@
             </caption>
             <thead>
               <tr>
+                <th scope="col" class="col-select">
+                  <input
+                    type="checkbox"
+                    [checked]="isAllSelected()"
+                    (change)="toggleSelectAll()"
+                    aria-label="Select all on this page" />
+                </th>
                 @for (column of currentTabDef().columns; track column.key) {
                   <th
                     scope="col"
@@ -280,7 +294,14 @@
             </thead>
             <tbody>
               @for (row of paged().rows; track row.id) {
-                <tr [class.is-open]="row.isOpen">
+                <tr [class.is-open]="row.isOpen" [class.is-selected]="selectedIds().has(row.id)">
+                  <td class="col-select" data-label="Select">
+                    <input
+                      type="checkbox"
+                      [checked]="selectedIds().has(row.id)"
+                      (change)="toggleSelection(row.id)"
+                      [attr.aria-label]="'Select ' + row.animalCode" />
+                  </td>
                   @for (column of currentTabDef().columns; track column.key) {
                     <td [class.is-right]="column.align === 'right'" [attr.data-label]="column.label">
                       @switch (column.cell) {

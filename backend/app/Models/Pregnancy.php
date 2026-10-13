@@ -26,6 +26,11 @@ class Pregnancy extends Model
         return $this->belongsTo(Animal::class);
     }
 
+    public function breeding(): BelongsTo
+    {
+        return $this->belongsTo(Breeding::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('pregnancies.status', 'active');

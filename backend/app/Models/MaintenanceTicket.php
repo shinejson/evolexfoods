@@ -21,4 +21,14 @@ class MaintenanceTicket extends Model
     {
         return $this->belongsTo(Asset::class);
     }
+
+    public function reporter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reported_by');
+    }
+
+    public function assignee(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'assigned_to');
+    }
 }

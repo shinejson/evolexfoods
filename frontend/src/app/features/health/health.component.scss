@@ -195,10 +195,10 @@ h3 {
 .icon-btn {
   display: inline-grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 50%;
   background: transparent;
   color: var(--ink-soft);
   cursor: pointer;
@@ -212,7 +212,7 @@ h3 {
 }
 
 .icon-btn:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: scale(0.95);
 }
 
 .icon-btn:disabled {
@@ -455,8 +455,8 @@ h3 {
 /* ── Filter bar ──────────────────────────────────────────────────────── */
 
 .filter-bar {
-  margin-bottom: 16px;
-  padding: 16px 18px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
   border: 1px solid var(--hc-hairline);
   border-radius: var(--radius);
   background: var(--hc-surface);
@@ -809,8 +809,25 @@ tbody tr:hover td {
   background: #fdfaf2;
 }
 
-tbody tr.is-open td:first-child {
+tbody tr.is-selected td {
+  background: #f4f8f3;
+}
+
+tbody tr.is-open td:nth-child(2) {
   box-shadow: inset 3px 0 0 var(--hc-action);
+}
+
+.col-select {
+  width: 42px;
+  padding: 11px 8px !important;
+  text-align: center;
+}
+
+.col-select input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--forest);
 }
 
 .animal {
@@ -847,12 +864,13 @@ tbody tr.is-open td:first-child {
 }
 
 .col-actions {
-  width: 128px;
+  width: 110px;
   text-align: right;
 }
 
 .col-actions .icon-actions {
   justify-content: flex-end;
+  gap: 2px;
 }
 
 /* ── Table footer / pagination ───────────────────────────────────────── */
@@ -895,18 +913,21 @@ tbody tr.is-open td:first-child {
 }
 
 .page-btn {
-  min-width: 32px;
+  min-width: 36px;
   justify-content: center;
-  border: 1px solid transparent;
+  border: 1px solid var(--hc-hairline);
+  background: #fff;
 }
 
 .page-btn:hover {
   background: var(--hc-surface-sunk);
+  border-color: var(--moss);
 }
 
 .page-btn.is-active {
   background: var(--forest);
   color: #fffdf7;
+  border-color: var(--forest);
 }
 
 .page-foot {
@@ -1256,6 +1277,15 @@ tbody tr.is-open td:first-child {
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
+  }
+
+  .col-select {
+    grid-template-columns: auto;
+    justify-items: start;
+  }
+
+  .col-select::before {
+    display: none;
   }
 
   .col-actions {

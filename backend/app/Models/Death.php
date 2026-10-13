@@ -18,4 +18,9 @@ class Death extends Model
     {
         return $this->belongsTo(Animal::class);
     }
+
+    public function location(): BelongsTo
+    {
+        return $this->belongsTo(Location::class);
+    }
 }

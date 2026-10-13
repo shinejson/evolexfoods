@@ -365,7 +365,7 @@ class CrudController extends Controller
             ],
             'maintenance' => [
                 'model' => MaintenanceTicket::class,
-                'with' => ['asset'],
+                'with' => ['asset', 'assignee', 'reporter'],
                 'search' => ['ticket_number', 'title', 'status', 'priority'],
                 'rules' => [
                     'ticket_number' => 'nullable|string',
@@ -398,7 +398,7 @@ class CrudController extends Controller
             ],
             'tasks' => [
                 'model' => Task::class,
-                'with' => ['assignee'],
+                'with' => ['assignee', 'creator'],
                 'search' => ['title', 'status', 'module', 'priority'],
                 'rules' => [
                     'title' => 'required|string',

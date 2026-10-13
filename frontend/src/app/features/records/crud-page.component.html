@@ -1,15 +1,30 @@
 <section class="page" *ngIf="def">
+  <!-- Page Header -->
   <div class="page-head">
     <div>
       <h1>{{ def.title }}</h1>
       <p>{{ def.subtitle }}</p>
     </div>
-    <button class="btn" (click)="openCreate()">Add record</button>
+    <div class="page-head-actions">
+      <button class="btn btn-secondary" (click)="exportCsv()" title="Export CSV" *ngIf="rows.length">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-5 5 5 5-5m-5 5V3" />
+        </svg>
+        <span>Export</span>
+      </button>
+      <button class="btn btn-primary" (click)="openCreate()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14m-7-7h14" />
+        </svg>
+        <span>Add record</span>
+      </button>
+    </div>
   </div>
 
   <p class="muted" *ngIf="message">{{ message }}</p>
   <p class="err" *ngIf="error">{{ error }}</p>
 
+  <!-- Create/Edit Form Panel -->
   <div class="panel" *ngIf="showForm">
     <h2>{{ editingId ? 'Edit record' : 'New record' }}</h2>
     <form class="crud-form" (ngSubmit)="save()">
@@ -28,16 +43,126 @@
           [placeholder]="field.placeholder || ''" />
       </label>
       <div class="toolbar">
-        <button class="btn" type="submit">Save</button>
-        <button class="btn ghost" type="button" (click)="cancel()">Cancel</button>
+        <button class="btn btn-primary" type="submit">Save</button>
+        <button class="btn btn-secondary" type="button" (click)="cancel()">Cancel</button>
       </div>
     </form>
   </div>
 
+  <!-- KPI Cards -->
+  <div class="kpis" *ngIf="computedKpis.length">
+    <div class="kpi" *ngFor="let kpi of computedKpis" [class.alert]="kpi.alert" [class.ok]="kpi.ok" [class.info]="kpi.info">
+      <div class="label">{{ kpi.label }}</div>
+      <div class="value">
+        {{ kpi.value }}
+        <span class="unit" *ngIf="kpi.unit">{{ kpi.unit }}</span>
+      </div>
+      <div class="meta" *ngIf="kpi.meta">{{ kpi.meta }}</div>
+    </div>
+  </div>
+
+  <!-- Main Table Panel -->
   <div class="panel">
-    <table #table class="display crud-table" style="width:100%">
-      <thead></thead>
-      <tbody></tbody>
-    </table>
+    <div class="panel-header">
+      <div class="panel-header-title">
+        <h2>{{ def.title }} Register</h2>
+        <span class="badge-subtle">{{ filteredRows.length }} / {{ rows.length }} records</span>
+      </div>
+    </div>
+
+    <!-- Quick Filter Chips -->
+    <div class="quick-filters" *ngIf="def.quickFilters && def.quickFilters.length">
+      <button
+        *ngFor="let qf of def.quickFilters"
+        type="button"
+        class="chip-btn"
+        [class]="qf.badgeClass || ''"
+        [class.active]="activeQuickFilterId === qf.id"
+        (click)="setQuickFilter(qf.id)">
+        {{ qf.label }} ({{ quickFilterCount(qf) }})
+      </button>
+    </div>
+
+    <!-- Toolbar: Search + Advanced Filters Toggle + Clear Filters -->
+    <div class="toolbar">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+        <input
+          [(ngModel)]="searchQuery"
+          [placeholder]="searchPlaceholder"
+          (input)="onSearchInput()"
+        />
+        <button class="clear-search" *ngIf="searchQuery" (click)="searchQuery = ''; applyFilters()">
+          &times;
+        </button>
+      </div>
+
+      <button
+        *ngIf="def.advancedFilters && def.advancedFilters.length"
+        type="button"
+        class="btn-filter"
+        [class.active]="showAdvancedFilters || hasActiveAdvancedFilters()"
+        (click)="toggleAdvancedFilters()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+        </svg>
+        Filters
+        <span class="filter-badge" *ngIf="hasActiveAdvancedFilters()">●</span>
+      </button>
+
+      <button class="btn btn-secondary btn-sm" *ngIf="hasActiveFilters()" (click)="clearFilters()">
+        Clear Filters
+      </button>
+    </div>
+
+    <!-- Collapsible Advanced Filters Drawer -->
+    <div class="filters-panel" *ngIf="showAdvancedFilters && def.advancedFilters && def.advancedFilters.length">
+      <div class="filters-grid">
+        <div class="filter-group" *ngFor="let filter of def.advancedFilters">
+          <label>{{ filter.label }}</label>
+          <select *ngIf="filter.type === 'select'" [(ngModel)]="filterValues[filter.key]" (change)="applyFilters()">
+            <option value="">{{ filter.placeholder || 'All' }}</option>
+            <option *ngFor="let opt of optionsForFilter(filter)" [value]="opt.value">{{ opt.label }}</option>
+          </select>
+          <input
+            *ngIf="filter.type === 'text'"
+            type="text"
+            [(ngModel)]="filterValues[filter.key]"
+            [placeholder]="filter.placeholder || ''"
+            (input)="applyFilters()"
+          />
+          <input
+            *ngIf="filter.type === 'number'"
+            type="number"
+            [(ngModel)]="filterValues[filter.key]"
+            [placeholder]="filter.placeholder || ''"
+            (input)="applyFilters()"
+          />
+          <input
+            *ngIf="filter.type === 'date'"
+            type="date"
+            [(ngModel)]="filterValues[filter.key]"
+            (change)="applyFilters()"
+          />
+        </div>
+
+        <div class="filter-actions">
+          <button type="button" class="btn btn-secondary btn-sm" (click)="resetAdvancedFilters()">
+            Reset Advanced
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-container">
+      <table #table class="display crud-table" style="width:100%">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
   </div>
 </section>

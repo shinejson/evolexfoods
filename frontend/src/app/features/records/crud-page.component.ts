@@ -1,15 +1,22 @@
 import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { NgFor, NgIf } from '@angular/common';
+import { NgClass, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import DataTable from 'datatables.net';
 import { ApiService } from '../../core/services/api.service';
-import { CRUD_RESOURCES, FieldDef, ResourceDef } from './crud.registry';
+import {
+  AdvancedFilterDef,
+  CRUD_RESOURCES,
+  FieldDef,
+  KpiMetric,
+  QuickFilterDef,
+  ResourceDef
+} from './crud.registry';
 
 @Component({
   selector: 'app-crud-page',
   standalone: true,
-  imports: [NgFor, NgIf, FormsModule],
+  imports: [NgFor, NgIf, NgClass, FormsModule],
   templateUrl: './crud-page.component.html',
   styleUrl: './crud-page.component.scss'
 })
@@ -19,6 +26,7 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
   resource = '';
   def!: ResourceDef;
   rows: any[] = [];
+  filteredRows: any[] = [];
   lookups: any = {};
   form: Record<string, any> = {};
   editingId: number | null = null;
@@ -28,6 +36,13 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
   table: any;
   viewReady = false;
   private clickBound = false;
+
+  // Filter & Search states
+  searchQuery = '';
+  activeQuickFilterId = 'all';
+  filterValues: Record<string, any> = {};
+  showAdvancedFilters = false;
+  computedKpis: KpiMetric[] = [];
 
   constructor(
     private route: ActivatedRoute,
@@ -42,6 +57,10 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
       this.showForm = false;
       this.message = '';
       this.error = '';
+      this.searchQuery = '';
+      this.activeQuickFilterId = 'all';
+      this.filterValues = {};
+      this.showAdvancedFilters = false;
       this.destroyTable();
       this.loadLookups();
       this.load();
@@ -59,14 +78,155 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   loadLookups(): void {
-    this.api.get<any>('/lookups').subscribe((data) => this.lookups = data);
+    this.api.get<any>('/lookups').subscribe((data) => this.lookups = data || {});
   }
 
   load(): void {
     this.api.get<{ data: any[] }>(`/records/${this.resource}`).subscribe((res) => {
       this.rows = res.data || [];
-      this.renderTable();
+      this.applyFilters();
     });
+  }
+
+  get searchPlaceholder(): string {
+    if (this.resource === 'inventory') {
+      return 'Search by item name, ID, category, supplier, storage location...';
+    }
+    if (this.resource === 'procurement') {
+      return 'Search by PR number, item, category, requester, status...';
+    }
+    if (this.resource === 'suppliers') {
+      return 'Search by supplier name, code, contact, category, email, phone, location...';
+    }
+    if (this.resource === 'assets') {
+      return 'Search by asset ID, equipment name, serial number, location, supplier...';
+    }
+    if (this.resource === 'maintenance') {
+      return 'Search by ticket #, issue title, asset, priority, status, assignee...';
+    }
+    if (this.resource === 'employees') {
+      return 'Search by employee code, name, role, department, phone, email...';
+    }
+    if (this.resource === 'tasks') {
+      return 'Search by task title, description, module, priority, assignee...';
+    }
+    return `Search ${this.def?.title || 'records'}...`;
+  }
+
+  setQuickFilter(id: string): void {
+    this.activeQuickFilterId = id;
+    this.applyFilters();
+  }
+
+  quickFilterCount(qf: QuickFilterDef): number {
+    if (!this.rows) return 0;
+    if (qf.id === 'all') return this.rows.length;
+    return this.rows.filter(r => qf.filterFn(r)).length;
+  }
+
+  toggleAdvancedFilters(): void {
+    this.showAdvancedFilters = !this.showAdvancedFilters;
+  }
+
+  hasActiveAdvancedFilters(): boolean {
+    if (!this.def?.advancedFilters) return false;
+    return Object.values(this.filterValues).some(v => v !== undefined && v !== null && v !== '');
+  }
+
+  hasActiveFilters(): boolean {
+    const hasSearch = !!(this.searchQuery && this.searchQuery.trim());
+    const hasQuick = !!(this.activeQuickFilterId && this.activeQuickFilterId !== 'all');
+    return hasSearch || hasQuick || this.hasActiveAdvancedFilters();
+  }
+
+  clearFilters(): void {
+    this.searchQuery = '';
+    this.activeQuickFilterId = 'all';
+    this.filterValues = {};
+    this.applyFilters();
+  }
+
+  resetAdvancedFilters(): void {
+    this.filterValues = {};
+    this.applyFilters();
+  }
+
+  onSearchInput(): void {
+    this.applyFilters();
+  }
+
+  applyFilters(): void {
+    if (!this.def) return;
+
+    let res = [...this.rows];
+
+    // 1. Quick filter
+    if (this.activeQuickFilterId && this.def.quickFilters) {
+      const qf = this.def.quickFilters.find(f => f.id === this.activeQuickFilterId);
+      if (qf && qf.id !== 'all') {
+        res = res.filter(row => qf.filterFn(row));
+      }
+    }
+
+    // 2. Advanced filters
+    if (this.def.advancedFilters) {
+      for (const filter of this.def.advancedFilters) {
+        const val = this.filterValues[filter.key];
+        if (val !== undefined && val !== null && val !== '') {
+          if (filter.filterFn) {
+            res = res.filter(row => filter.filterFn!(row, val));
+          } else {
+            res = res.filter(row => String(row[filter.key] ?? '').toLowerCase() === String(val).toLowerCase());
+          }
+        }
+      }
+    }
+
+    // 3. Search query
+    const q = (this.searchQuery || '').trim().toLowerCase();
+    if (q) {
+      res = res.filter(row => {
+        return Object.entries(row).some(([k, v]) => {
+          if (v === null || v === undefined) return false;
+          if (typeof v === 'object') {
+            return Object.values(v).some(sub => sub && String(sub).toLowerCase().includes(q));
+          }
+          return String(v).toLowerCase().includes(q);
+        });
+      });
+    }
+
+    this.filteredRows = res;
+    this.updateKpis();
+
+    if (this.table) {
+      this.table.clear();
+      this.table.rows.add(this.filteredRows);
+      this.table.draw();
+    } else if (this.viewReady) {
+      this.renderTable();
+    }
+  }
+
+  updateKpis(): void {
+    if (!this.def) return;
+    if (this.def.kpiDefs && this.def.kpiDefs.length) {
+      this.computedKpis = this.def.kpiDefs.map(kpi => kpi.compute(this.filteredRows, this.rows));
+    } else {
+      this.computedKpis = [
+        {
+          label: 'Total Records',
+          value: this.rows.length,
+          meta: `${this.def.title} in system`,
+          ok: true
+        },
+        {
+          label: 'Showing Records',
+          value: this.filteredRows.length,
+          meta: this.hasActiveFilters() ? 'Filtered subset' : 'All items active'
+        }
+      ];
+    }
   }
 
   optionsFor(field: FieldDef): { value: any; label: string }[] {
@@ -82,6 +242,41 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
       }));
     }
     return [];
+  }
+
+  optionsForFilter(filter: AdvancedFilterDef): { value: any; label: string }[] {
+    if (filter.options) {
+      return filter.options;
+    }
+    if (filter.lookup) {
+      const source = this.lookups[filter.lookup] || [];
+      return source.map((item: any) => ({
+        value: item.id,
+        label: item.name || item.animal_id || item.code || String(item.id)
+      }));
+    }
+    return [];
+  }
+
+  exportCsv(): void {
+    if (!this.filteredRows.length) return;
+    const cols = this.def.columns;
+    const header = cols.map(c => `"${c.label}"`).join(',');
+    const rows = this.filteredRows.map(row =>
+      cols.map(c => {
+        let val = c.render ? c.render(row) : (row[c.key] ?? '');
+        val = String(val).replace(/<[^>]*>/g, '').replace(/"/g, '""').trim();
+        return `"${val}"`;
+      }).join(',')
+    );
+    const csvContent = 'data:text/csv;charset=utf-8,' + [header, ...rows].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `${this.resource}-export-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   }
 
   openCreate(): void {
@@ -202,9 +397,12 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
         data: col.key,
         defaultContent: '',
         render: (_data: any, _type: string, row: any) => {
-          const value = col.render ? col.render(row) : (row[col.key] ?? '');
+          if (col.render) {
+            return col.render(row);
+          }
+          const value = row[col.key] ?? '';
           if (badgeKeys.includes(col.key) && value) {
-            return `<span class="badge ${value}">${value}</span>`;
+            return `<span class="badge ${String(value).toLowerCase().replace(/[^a-z0-9]/g, '_')}">${value}</span>`;
           }
           return value === null || value === undefined ? '' : String(value);
         }
@@ -216,8 +414,6 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
         searchable: false,
         defaultContent: '',
         className: 'col-actions',
-        // Icon-only actions: DataTables renders this HTML outside Angular's view,
-        // so the styles live in global scope (styles.scss .row-actions/.icon-btn).
         render: (_data: any, _type: string, row: any) =>
           `<div class="row-actions">
             <button class="icon-btn js-edit" data-id="${row.id}" type="button"
@@ -233,14 +429,17 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
     ];
 
     this.table = new DataTable(this.tableRef.nativeElement, {
-      data: this.rows,
+      data: this.filteredRows,
       columns,
       pageLength: 10,
       lengthMenu: [10, 25, 50, 100],
       order: [],
       autoWidth: false,
       destroy: true,
-      language: { search: 'Search records:' }
+      language: {
+        search: 'Search records:',
+        emptyTable: 'No matching records found'
+      }
     });
   }
 
@@ -253,6 +452,10 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
       const tbody = this.tableRef.nativeElement.querySelector('tbody');
       if (tbody) {
         tbody.innerHTML = '';
+      }
+      const thead = this.tableRef.nativeElement.querySelector('thead');
+      if (thead) {
+        thead.innerHTML = '';
       }
     }
   }

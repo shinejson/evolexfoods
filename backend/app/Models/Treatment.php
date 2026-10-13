@@ -21,4 +21,9 @@ class Treatment extends Model
     {
         return $this->belongsTo(Animal::class);
     }
+
+    public function healthRecord(): BelongsTo
+    {
+        return $this->belongsTo(HealthRecord::class);
+    }
 }
