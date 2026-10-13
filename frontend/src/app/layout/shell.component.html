@@ -1,52 +1,228 @@
-<div class="shell">
+<div class="shell" [class.sidebar-collapsed]="sidebarCollapsed" [class.dark-mode]="darkMode">
   <aside>
     <div class="brand">
       <div class="mark">EV</div>
-      <div>
+      <div class="brand-text" *ngIf="!sidebarCollapsed">
         <strong>Evolex Hub</strong>
         <span>Digital operations</span>
       </div>
     </div>
     <nav>
-      <ng-container *ngFor="let group of navGroups; let last = last">
-        <a *ngFor="let item of group.items" [routerLink]="item.path" routerLinkActive="active">
-          <span class="ico" [ngSwitch]="item.icon">
-            <svg *ngSwitchCase="'hub'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>
-            <svg *ngSwitchCase="'ceo'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5h2v14H4zm4-8v8h3v-8H8zm5-5v13h3V6h-3zm5 8v5h3v-5h-3z"/></svg>
-            <svg *ngSwitchCase="'livestock'" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8c0-1.7 1.8-3 4-3s4 1.3 4 3c2.2 0 4 1.6 4 3.5S17.2 15 15 15H8c-2.2 0-4-1.6-4-3.5S5.8 8 8 8H7zm1 9v3m8-3v3M9 8V5m6 3V5"/></svg>
-            <svg *ngSwitchCase="'health'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-9.5-8.2C.4 9.6 2.2 5 6.5 5 9 5 10.5 6.4 12 8.2 13.5 6.4 15 5 17.5 5c4.3 0 6.1 4.6 4 7.8C19 16.6 12 21 12 21z"/></svg>
-            <svg *ngSwitchCase="'treatments'" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3.5 10 5l-6 6-1.5-1.5 6-6zm2.1 1.1 9.2 9.2c.8.8.8 2 0 2.8l-2.1 2.1c-.8.8-2 .8-2.8 0l-9.2-9.2 4.9-4.9zM7 14l3 3"/></svg>
-            <svg *ngSwitchCase="'breeding'" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm8 4a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM11 12l2 2"/></svg>
-            <svg *ngSwitchCase="'feed'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V9m0 0c4-6 8-6 8-6s0 6-8 6zm0 0C8 3 4 3 4 3s0 6 8 6z"/></svg>
-            <svg *ngSwitchCase="'inventory'" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7 12 3l9 4-9 4L3 7zm0 4 9 4 9-4M3 15l9 4 9-4"/></svg>
-            <svg *ngSwitchCase="'procurement'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h2l2.2 10h9.6L20 8H8m1 13a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm9 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>
-            <svg *ngSwitchCase="'suppliers'" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16V8h11v8H3zm11 0h5l3 3v-7h-3l-2-3h-3v7zM7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>
-            <svg *ngSwitchCase="'assets'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-5 8 5v11H4zm4-1v-6h8v6"/></svg>
-            <svg *ngSwitchCase="'maintenance'" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L4 17l3 3 5.1-5.1a4 4 0 0 0 5.6-5.6L16 11l-3-3 1.7-1.7z"/></svg>
-            <svg *ngSwitchCase="'people'" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm9-1a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3.3 3.1-6 7-6s7 2.7 7 6m1-6c2.9 0 5 2 5 4.5"/></svg>
-            <svg *ngSwitchCase="'tasks'" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1.2 1.2L7.5 5M4 12l1.2 1.2L7.5 11M4 18l1.2 1.2L7.5 17"/></svg>
-            <svg *ngSwitchCase="'expenses'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18m4-14.5c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 3 4 3 4 1.2 4 3-1.8 3-4 3-4-1.3-4-3"/></svg>
-            <svg *ngSwitchCase="'invoices'" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5V3zm3 5h4M10 12h4M10 16h2"/></svg>
-            <svg *ngSwitchCase="'crm'" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V8l9-5 9 5v12H3zm5-1v-6h8v6"/></svg>
-            <svg *ngSwitchCase="'deals'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3z"/></svg>
-            <svg *ngSwitchCase="'marketing'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l7 4V5L8 9H4zm15 1.5a4 4 0 0 1 0 3"/></svg>
-            <svg *ngSwitchCase="'risks'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20L12 3zm0 6v6m0 3h.01"/></svg>
-            <svg *ngSwitchCase="'decisions'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M7 8h10M8 16h8M4 12h16"/></svg>
-            <svg *ngSwitchCase="'sops'" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6V4zm3 6h6M9 14h6M9 18h4"/></svg>
-          </span>
-          <span>{{ item.label }}</span>
-        </a>
-        <hr *ngIf="!last" class="nav-line" />
+      <ng-container *ngFor="let group of navGroups">
+        <div class="nav-group">
+          <!-- Collapsed view: show only icon -->
+          <a *ngIf="sidebarCollapsed && group.items.length === 1" 
+             [routerLink]="group.items[0].path" 
+             routerLinkActive="active"
+             class="nav-group-icon-only"
+             [title]="group.label">
+            <span class="ico" [ngSwitch]="group.icon">
+              <svg *ngSwitchCase="'hub'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>
+              <svg *ngSwitchCase="'ceo'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5h2v14H4zm4-8v8h3v-8H8zm5-5v13h3V6h-3zm5 8v5h3v-5h-3z"/></svg>
+              <svg *ngSwitchCase="'livestock'" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8c0-1.7 1.8-3 4-3s4 1.3 4 3c2.2 0 4 1.6 4 3.5S17.2 15 15 15H8c-2.2 0-4-1.6-4-3.5S5.8 8 8 8H7zm1 9v3m8-3v3M9 8V5m6 3V5"/></svg>
+              <svg *ngSwitchCase="'health'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-9.5-8.2C.4 9.6 2.2 5 6.5 5 9 5 10.5 6.4 12 8.2 13.5 6.4 15 5 17.5 5c4.3 0 6.1 4.6 4 7.8C19 16.6 12 21 12 21z"/></svg>
+              <svg *ngSwitchCase="'treatments'" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3.5 10 5l-6 6-1.5-1.5 6-6zm2.1 1.1 9.2 9.2c.8.8.8 2 0 2.8l-2.1 2.1c-.8.8-2 .8-2.8 0l-9.2-9.2 4.9-4.9zM7 14l3 3"/></svg>
+              <svg *ngSwitchCase="'breeding'" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm8 4a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM11 12l2 2"/></svg>
+              <svg *ngSwitchCase="'feed'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V9m0 0c4-6 8-6 8-6s0 6-8 6zm0 0C8 3 4 3 4 3s0 6 8 6z"/></svg>
+              <svg *ngSwitchCase="'inventory'" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7 12 3l9 4-9 4L3 7zm0 4 9 4 9-4M3 15l9 4 9-4"/></svg>
+              <svg *ngSwitchCase="'procurement'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h2l2.2 10h9.6L20 8H8m1 13a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm9 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>
+              <svg *ngSwitchCase="'suppliers'" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16V8h11v8H3zm11 0h5l3 3v-7h-3l-2-3h-3v7zM7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>
+              <svg *ngSwitchCase="'assets'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-5 8 5v11H4zm4-1v-6h8v6"/></svg>
+              <svg *ngSwitchCase="'maintenance'" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L4 17l3 3 5.1-5.1a4 4 0 0 0 5.6-5.6L16 11l-3-3 1.7-1.7z"/></svg>
+              <svg *ngSwitchCase="'people'" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm9-1a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3.3 3.1-6 7-6s7 2.7 7 6m1-6c2.9 0 5 2 5 4.5"/></svg>
+              <svg *ngSwitchCase="'tasks'" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1.2 1.2L7.5 5M4 12l1.2 1.2L7.5 11M4 18l1.2 1.2L7.5 17"/></svg>
+              <svg *ngSwitchCase="'expenses'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18m4-14.5c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 3 4 3 4 1.2 4 3-1.8 3-4 3-4-1.3-4-3"/></svg>
+              <svg *ngSwitchCase="'invoices'" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5V3zm3 5h4M10 12h4M10 16h2"/></svg>
+              <svg *ngSwitchCase="'crm'" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V8l9-5 9 5v12H3zm5-1v-6h8v6"/></svg>
+              <svg *ngSwitchCase="'deals'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3z"/></svg>
+              <svg *ngSwitchCase="'marketing'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l7 4V5L8 9H4zm15 1.5a4 4 0 0 1 0 3"/></svg>
+              <svg *ngSwitchCase="'risks'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20L12 3zm0 6v6m0 3h.01"/></svg>
+              <svg *ngSwitchCase="'decisions'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M7 8h10M8 16h8M4 12h16"/></svg>
+              <svg *ngSwitchCase="'sops'" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6V4zm3 6h6M9 14h6M9 18h4"/></svg>
+            </span>
+          </a>
+          
+          <!-- Expanded view: show dropdown -->
+          <ng-container *ngIf="!sidebarCollapsed">
+            <button class="nav-group-header" (click)="toggleNavGroup(group)">
+              <div class="nav-group-left">
+                <span class="ico" [ngSwitch]="group.icon">
+                  <svg *ngSwitchCase="'hub'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>
+                  <svg *ngSwitchCase="'livestock'" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8c0-1.7 1.8-3 4-3s4 1.3 4 3c2.2 0 4 1.6 4 3.5S17.2 15 15 15H8c-2.2 0-4-1.6-4-3.5S5.8 8 8 8H7zm1 9v3m8-3v3M9 8V5m6 3V5"/></svg>
+                  <svg *ngSwitchCase="'inventory'" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7 12 3l9 4-9 4L3 7zm0 4 9 4 9-4M3 15l9 4 9-4"/></svg>
+                  <svg *ngSwitchCase="'people'" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm9-1a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3.3 3.1-6 7-6s7 2.7 7 6m1-6c2.9 0 5 2 5 4.5"/></svg>
+                  <svg *ngSwitchCase="'expenses'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18m4-14.5c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 3 4 3 4 1.2 4 3-1.8 3-4 3-4-1.3-4-3"/></svg>
+                  <svg *ngSwitchCase="'crm'" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V8l9-5 9 5v12H3zm5-1v-6h8v6"/></svg>
+                  <svg *ngSwitchCase="'risks'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20L12 3zm0 6v6m0 3h.01"/></svg>
+                </span>
+                <span class="nav-group-title">{{ group.label }}</span>
+              </div>
+              <svg class="nav-chevron" [class.rotated]="group.expanded" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </button>
+            
+            <div class="nav-group-items" [class.expanded]="group.expanded">
+              <a *ngFor="let item of group.items" [routerLink]="item.path" routerLinkActive="active">
+                <span class="ico" [ngSwitch]="item.icon">
+                  <svg *ngSwitchCase="'hub'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>
+                  <svg *ngSwitchCase="'ceo'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5h2v14H4zm4-8v8h3v-8H8zm5-5v13h3V6h-3zm5 8v5h3v-5h-3z"/></svg>
+                  <svg *ngSwitchCase="'livestock'" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 8c0-1.7 1.8-3 4-3s4 1.3 4 3c2.2 0 4 1.6 4 3.5S17.2 15 15 15H8c-2.2 0-4-1.6-4-3.5S5.8 8 8 8H7zm1 9v3m8-3v3M9 8V5m6 3V5"/></svg>
+                  <svg *ngSwitchCase="'health'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-9.5-8.2C.4 9.6 2.2 5 6.5 5 9 5 10.5 6.4 12 8.2 13.5 6.4 15 5 17.5 5c4.3 0 6.1 4.6 4 7.8C19 16.6 12 21 12 21z"/></svg>
+                  <svg *ngSwitchCase="'treatments'" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3.5 10 5l-6 6-1.5-1.5 6-6zm2.1 1.1 9.2 9.2c.8.8.8 2 0 2.8l-2.1 2.1c-.8.8-2 .8-2.8 0l-9.2-9.2 4.9-4.9zM7 14l3 3"/></svg>
+                  <svg *ngSwitchCase="'breeding'" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 14a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm8 4a4 4 0 1 1 0-8 4 4 0 0 1 0 8zM11 12l2 2"/></svg>
+                  <svg *ngSwitchCase="'feed'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21V9m0 0c4-6 8-6 8-6s0 6-8 6zm0 0C8 3 4 3 4 3s0 6 8 6z"/></svg>
+                  <svg *ngSwitchCase="'inventory'" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7 12 3l9 4-9 4L3 7zm0 4 9 4 9-4M3 15l9 4 9-4"/></svg>
+                  <svg *ngSwitchCase="'procurement'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h2l2.2 10h9.6L20 8H8m1 13a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zm9 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z"/></svg>
+                  <svg *ngSwitchCase="'suppliers'" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 16V8h11v8H3zm11 0h5l3 3v-7h-3l-2-3h-3v7zM7 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z"/></svg>
+                  <svg *ngSwitchCase="'assets'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V9l8-5 8 5v11H4zm4-1v-6h8v6"/></svg>
+                  <svg *ngSwitchCase="'maintenance'" viewBox="0 0 24 24" aria-hidden="true"><path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L4 17l3 3 5.1-5.1a4 4 0 0 0 5.6-5.6L16 11l-3-3 1.7-1.7z"/></svg>
+                  <svg *ngSwitchCase="'people'" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zm9-1a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM2 20c0-3.3 3.1-6 7-6s7 2.7 7 6m1-6c2.9 0 5 2 5 4.5"/></svg>
+                  <svg *ngSwitchCase="'tasks'" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6l1.2 1.2L7.5 5M4 12l1.2 1.2L7.5 11M4 18l1.2 1.2L7.5 17"/></svg>
+                  <svg *ngSwitchCase="'expenses'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18m4-14.5c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 3 4 3 4 1.2 4 3-1.8 3-4 3-4-1.3-4-3"/></svg>
+                  <svg *ngSwitchCase="'invoices'" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v18l-2-1.5L13 21l-2-1.5L9 21l-2-1.5V3zm3 5h4M10 12h4M10 16h2"/></svg>
+                  <svg *ngSwitchCase="'crm'" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 20V8l9-5 9 5v12H3zm5-1v-6h8v6"/></svg>
+                  <svg *ngSwitchCase="'deals'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3z"/></svg>
+                  <svg *ngSwitchCase="'marketing'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l7 4V5L8 9H4zm15 1.5a4 4 0 0 1 0 3"/></svg>
+                  <svg *ngSwitchCase="'risks'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 20h20L12 3zm0 6v6m0 3h.01"/></svg>
+                  <svg *ngSwitchCase="'decisions'" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M7 8h10M8 16h8M4 12h16"/></svg>
+                  <svg *ngSwitchCase="'sops'" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4h9l3 3v13H6V4zm3 6h6M9 14h6M9 18h4"/></svg>
+                </span>
+                <span>{{ item.label }}</span>
+              </a>
+            </div>
+          </ng-container>
+        </div>
       </ng-container>
     </nav>
   </aside>
   <div class="main">
-    <header>
-      <div>
-        <div class="eyebrow">Management visibility layer</div>
-        <div class="who">{{ auth.user?.name }} · {{ auth.user?.role }}</div>
+    <header class="topnav">
+      <!-- Left Section: Hamburger & Search -->
+      <div class="topnav-left">
+        <button class="hamburger-btn" (click)="toggleSidebar()" aria-label="Toggle sidebar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
+        </button>
+        
+        <div class="search-bar">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
+          </svg>
+          <input 
+            type="text" 
+            placeholder="Search..." 
+            [(ngModel)]="searchQuery"
+            (input)="onSearch()"
+          />
+          <kbd *ngIf="!searchQuery">Ctrl+K</kbd>
+        </div>
       </div>
-      <button class="btn ghost" (click)="auth.logout()">Sign out</button>
+
+      <!-- Right Section: Actions -->
+      <div class="topnav-right">
+        <!-- Dark Mode Toggle -->
+        <button class="icon-btn" (click)="toggleDarkMode()" aria-label="Toggle dark mode">
+          <svg *ngIf="!darkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="5" />
+            <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+          </svg>
+          <svg *ngIf="darkMode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+        </button>
+
+        <!-- Notifications -->
+        <button class="icon-btn notification-btn" (click)="toggleNotifications()" aria-label="Notifications">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" />
+          </svg>
+          <span class="badge" *ngIf="notificationCount > 0">{{ notificationCount }}</span>
+        </button>
+
+        <!-- Notifications Dropdown -->
+        <div class="dropdown notifications-dropdown" *ngIf="showNotifications">
+          <div class="dropdown-header">
+            <h3>Notifications</h3>
+            <button class="text-btn" (click)="markAllRead()">Mark all read</button>
+          </div>
+          <div class="notifications-list">
+            <div class="notification-item" *ngFor="let notif of notifications" [class.unread]="!notif.read">
+              <div class="notif-icon" [ngClass]="notif.type">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <circle cx="12" cy="12" r="10" />
+                </svg>
+              </div>
+              <div class="notif-content">
+                <p class="notif-title">{{ notif.title }}</p>
+                <p class="notif-message">{{ notif.message }}</p>
+                <span class="notif-time">{{ notif.time }}</span>
+              </div>
+            </div>
+            <div class="notification-empty" *ngIf="notifications.length === 0">
+              <p>No notifications</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Profile -->
+        <div class="user-menu">
+          <button class="user-btn" (click)="toggleUserMenu()" aria-label="User menu">
+            <div class="user-avatar">
+              {{ getUserInitials() }}
+            </div>
+            <div class="user-info" *ngIf="!sidebarCollapsed">
+              <span class="user-name">{{ auth.user?.name }}</span>
+              <span class="user-role">{{ auth.user?.role }}</span>
+            </div>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </button>
+
+          <!-- User Dropdown -->
+          <div class="dropdown user-dropdown" *ngIf="showUserMenu">
+            <div class="dropdown-user-info">
+              <div class="user-avatar large">{{ getUserInitials() }}</div>
+              <div>
+                <p class="dropdown-user-name">{{ auth.user?.name }}</p>
+                <p class="dropdown-user-email">{{ auth.user?.email || 'user@example.com' }}</p>
+              </div>
+            </div>
+            <hr />
+            <a class="dropdown-item" (click)="navigateTo('/profile')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
+              </svg>
+              Profile
+            </a>
+            <a class="dropdown-item" (click)="navigateTo('/settings')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 1v6m0 6v6M3.93 3.93l4.24 4.24m8.48 8.48 4.24 4.24M1 12h6m6 0h6M3.93 20.07l4.24-4.24m8.48-8.48 4.24-4.24" />
+              </svg>
+              Settings
+            </a>
+            <a class="dropdown-item" (click)="navigateTo('/help')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3m.08 4h.01" />
+              </svg>
+              Help & Support
+            </a>
+            <hr />
+            <a class="dropdown-item danger" (click)="auth.logout()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9" />
+              </svg>
+              Sign Out
+            </a>
+          </div>
+        </div>
+      </div>
     </header>
     <div class="content">
       <router-outlet />
