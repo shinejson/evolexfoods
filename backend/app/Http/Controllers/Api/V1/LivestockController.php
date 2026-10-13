@@ -121,9 +121,30 @@ class LivestockController extends Controller
         ]);
     }
 
-    public function pregnancies(): JsonResponse
+    /**
+     * Active pregnancies by default; the breeding workspace asks for
+     * `status=all` so it can chart conception rates across closed records too.
+     *
+     * Optional: status=active|completed|failed|all, date_field=expected_birth_date|confirmed_date,
+     * from / to (inclusive, Y-m-d).
+     */
+    public function pregnancies(Request $request): JsonResponse
     {
-        $active = Pregnancy::active()->with('animal.location')->get();
+        $status = (string) $request->query('status', 'active');
+        $field = (string) $request->query('date_field', 'expected_birth_date');
+        $field = in_array($field, ['expected_birth_date', 'confirmed_date'], true) ? $field : 'expected_birth_date';
+
+        $query = Pregnancy::query()->with(['animal.location', 'breeding.male']);
+
+        if ($status !== 'all') {
+            $query->where('status', $status);
+        }
+        if ($request->filled('from')) {
+            $query->whereDate($field, '>=', $request->query('from'));
+        }
+        if ($request->filled('to')) {
+            $query->whereDate($field, '<=', $request->query('to'));
+        }
 
         $expected = [
             'next_7' => Pregnancy::active()->whereBetween('expected_birth_date', [now(), now()->addDays(7)])->count(),
@@ -134,9 +155,11 @@ class LivestockController extends Controller
 
         return response()->json([
             'question' => 5,
-            'count' => $active->count(),
+            // "How many are pregnant?" always answers with the active count.
+            'count' => Pregnancy::active()->count(),
             'expected_births' => $expected,
-            'records' => $active,
+            'filters' => ['status' => $status, 'date_field' => $field],
+            'records' => $query->orderBy('expected_birth_date')->get(),
             'source' => 'pregnancies',
         ]);
     }
