@@ -4,6 +4,7 @@ import { ShellComponent } from './layout/shell.component';
 import { LoginComponent } from './features/login/login.component';
 import { HubComponent } from './features/hub/hub.component';
 import { CeoComponent } from './features/ceo/ceo.component';
+import { HealthComponent } from './features/health/health.component';
 import { BreedingComponent } from './features/breeding/breeding.component';
 import { FeedComponent } from './features/feed/feed.component';
 import { CrudPageComponent } from './features/records/crud-page.component';
@@ -19,7 +20,7 @@ export const routes: Routes = [
       { path: 'hub', component: HubComponent },
       { path: 'ceo', component: CeoComponent },
       { path: 'livestock', component: CrudPageComponent, data: { resource: 'livestock' } },
-      { path: 'health', component: CrudPageComponent, data: { resource: 'health' } },
+      { path: 'health', component: HealthComponent },
       { path: 'treatments', component: CrudPageComponent, data: { resource: 'treatments' } },
       { path: 'breeding', component: BreedingComponent },
       { path: 'feed', component: FeedComponent },

@@ -1,48 +1,495 @@
-<section class="page" *ngIf="data">
-  <div class="page-head">
-    <div>
+<main class="ceo-page">
+  <!-- ── Command bar ───────────────────────────────────────────────── -->
+  <header class="command-bar">
+    <div class="command-identity">
+      <p class="eyebrow">
+        <span class="eyebrow-dot" aria-hidden="true"></span>
+        Evolex Hub · Executive
+      </p>
       <h1>CEO Command Center</h1>
-      <p>All 30 management questions, answered from structured records. {{ data.from }} to {{ data.to }}.</p>
+      <p class="subtitle">
+        Every management question, answered from structured records.
+        @if (view(); as vm) {
+          <span class="period">{{ vm.periodLabel }}</span>
+        }
+      </p>
     </div>
-  </div>
 
-  <div class="kpis">
-    <div class="kpi" *ngFor="let card of cards()" [class]="card.cls">
-      <div class="label">{{ card.label }}</div>
-      <div class="value">{{ card.money ? (card.value | number:'1.0-0') : card.value }}</div>
-      <div class="meta">{{ card.meta }}</div>
-    </div>
-  </div>
+    <div class="command-controls">
+      <div class="range-switch" role="group" aria-label="Reporting period">
+        @for (option of rangeOptions; track option.id) {
+          <button
+            type="button"
+            class="range-chip"
+            [class.is-active]="rangeId() === option.id"
+            [attr.aria-pressed]="rangeId() === option.id"
+            [attr.title]="option.hint"
+            (click)="setRange(option.id)">
+            {{ option.label }}
+          </button>
+        }
+      </div>
 
-  <div class="grid-2">
-    <div class="panel">
-      <h2>Answerability contract</h2>
-      <table>
-        <thead><tr><th>#</th><th>Question</th><th>Answer</th><th>Source</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let item of answers()">
-            <td>{{ item.num }}</td>
-            <td>{{ item.question }}</td>
-            <td>{{ item.display }}</td>
-            <td class="muted">{{ item.source }}</td>
-          </tr>
-        </tbody>
-      </table>
+      @if (hasCustomRange()) {
+        <div class="custom-range">
+          <label>
+            <span>From</span>
+            <input type="date" [value]="customFrom()" (change)="onCustomFrom($any($event.target).value)" />
+          </label>
+          <label>
+            <span>To</span>
+            <input type="date" [value]="customTo()" (change)="onCustomTo($any($event.target).value)" />
+          </label>
+          <button type="button" class="btn btn--solid btn--sm" [disabled]="!customRangeValid()" (click)="applyCustomRange()">Apply</button>
+        </div>
+      }
+
+      <div class="utility-row">
+        <button type="button" class="btn btn--quiet btn--sm" (click)="refresh()" [disabled]="refreshing()">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" />
+          </svg>
+          {{ refreshing() ? 'Refreshing…' : 'Refresh' }}
+        </button>
+        <button
+          type="button"
+          class="btn btn--quiet btn--sm"
+          [class.is-on]="autoRefresh()"
+          [attr.aria-pressed]="autoRefresh()"
+          (click)="toggleAutoRefresh()">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 7v5l3 2M21 12a9 9 0 1 1-9-9" /></svg>
+          Auto {{ autoRefresh() ? 'on' : 'off' }}
+        </button>
+        <button type="button" class="btn btn--quiet btn--sm" (click)="exportCsv()" [disabled]="state() !== 'ready'">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14" /></svg>
+          Export
+        </button>
+        <button type="button" class="btn btn--quiet btn--sm" (click)="print()">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V3h10v6M7 19H5v-8h14v8h-2M8 15h8v6H8z" /></svg>
+          Print
+        </button>
+      </div>
+
+      <p class="freshness" role="status">
+        <span class="live-dot" [class.is-live]="autoRefresh()" aria-hidden="true"></span>
+        Last updated {{ updatedLabel() }}
+      </p>
     </div>
-    <div class="panel">
-      <h2>Live alerts</h2>
-      <table>
-        <thead><tr><th>Alert</th><th>Module</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let alert of data.alerts">
-            <td>
-              <strong>{{ alert.title }}</strong>
-              <div class="muted">{{ alert.message }}</div>
-            </td>
-            <td><span class="badge" [class]="alert.severity">{{ alert.severity }}</span></td>
-          </tr>
-        </tbody>
-      </table>
+  </header>
+
+  @if (errorMessage() && state() === 'ready') {
+    <div class="notice notice--warn" role="alert">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 10 18H2L12 3Zm0 6v5m0 3h.01" /></svg>
+      <span>{{ errorMessage() }}</span>
+      <button type="button" class="text-button" (click)="refresh()">Retry</button>
     </div>
-  </div>
-</section>
+  }
+
+  <!-- ── Loading ───────────────────────────────────────────────────── -->
+  @if (state() === 'loading' && !view()) {
+    <div class="ceo-skeleton" aria-live="polite" aria-busy="true">
+      <div class="skeleton-hero"></div>
+      <div class="skeleton-grid">
+        @for (tile of [1, 2, 3, 4, 5, 6, 7, 8]; track tile) {
+          <div class="skeleton-tile"></div>
+        }
+      </div>
+      <p class="sr-only">Loading the executive dashboard…</p>
+    </div>
+  }
+
+  <!-- ── Error ─────────────────────────────────────────────────────── -->
+  @if (state() === 'error' && !view()) {
+    <section class="state-panel" role="alert">
+      <span class="state-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="m12 3 10 18H2L12 3Zm0 6v5m0 3h.01" /></svg>
+      </span>
+      <h2>Command center unavailable</h2>
+      <p>{{ errorMessage() }}</p>
+      <button type="button" class="btn btn--solid" (click)="load()">Try again</button>
+    </section>
+  }
+
+  <!-- ── Content ───────────────────────────────────────────────────── -->
+  @if (view(); as vm) {
+    <section class="status-banner" [class]="'is-' + vm.status.level" aria-labelledby="status-headline">
+      <div class="status-copy">
+        <span class="status-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24">
+            @switch (vm.status.level) {
+              @case ('action') { <path d="m12 3 10 18H2L12 3Zm0 6v5m0 3h.01" /> }
+              @case ('watch') { <path d="M12 21a9 9 0 1 0-9-9M12 8v5l3 2M3 3v6h6" /> }
+              @default { <path d="M20 6 9 17l-5-5" /> }
+            }
+          </svg>
+        </span>
+        <div>
+          <h2 id="status-headline">{{ vm.status.headline }}</h2>
+          <p>{{ vm.status.detail }}</p>
+        </div>
+      </div>
+
+      <div class="status-counters">
+        <div class="counter is-critical">
+          <span class="counter-value">{{ vm.attentionCounts.critical }}</span>
+          <span class="counter-label">Action</span>
+        </div>
+        <div class="counter is-warning">
+          <span class="counter-value">{{ vm.attentionCounts.warning }}</span>
+          <span class="counter-label">Watch</span>
+        </div>
+        <div class="counter is-info">
+          <span class="counter-value">{{ vm.attentionCounts.info }}</span>
+          <span class="counter-label">Info</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="vitals" aria-label="Headline numbers">
+      @for (vital of vm.vitals; track vital.key) {
+        <a class="vital" [routerLink]="vital.route" [class]="'is-' + vital.level">
+          <span class="vital-label">{{ vital.label }}</span>
+          <span class="vital-value">{{ vital.display }}</span>
+          <span class="vital-caption">{{ vital.caption }}</span>
+        </a>
+      }
+    </section>
+
+    <nav class="section-nav" aria-label="Jump to section">
+      <a href="#attention">Needs attention</a>
+      @for (group of vm.groups; track group.id) {
+        <a [href]="'#group-' + group.id">
+          {{ group.title }}
+          @if (group.actionCount > 0) {
+            <span class="nav-badge is-critical">{{ group.actionCount }}</span>
+          } @else if (group.watchCount > 0) {
+            <span class="nav-badge is-warning">{{ group.watchCount }}</span>
+          }
+        </a>
+      }
+      <a href="#contract">Answerability contract</a>
+    </nav>
+
+    <!-- Needs attention -->
+    <section class="panel attention-panel" id="attention" aria-labelledby="attention-title">
+      <div class="panel-head">
+        <div>
+          <p class="panel-kicker">Signal, not noise</p>
+          <h2 id="attention-title">Needs attention</h2>
+          <p class="panel-sub">Threshold breaches and unread alerts, most severe first.</p>
+        </div>
+        <span class="panel-count">{{ vm.attention.length }} open</span>
+      </div>
+
+      @if (vm.attention.length) {
+        <ul class="attention-list">
+          @for (item of vm.attention; track item.id) {
+            <li class="attention-item" [class]="'is-' + item.level">
+              <span class="severity-rail" aria-hidden="true"></span>
+              <div class="attention-body">
+                <div class="attention-top">
+                  <span class="severity-pill">{{ item.level }}</span>
+                  <strong>{{ item.title }}</strong>
+                  @if (item.value) {
+                    <span class="value-chip">{{ item.value }}</span>
+                  }
+                </div>
+                <p>{{ item.detail }}</p>
+                <div class="attention-meta">
+                  <span class="module-pill">{{ item.module }}</span>
+                  <span>{{ item.occurredLabel }}</span>
+                </div>
+              </div>
+              @if (item.route) {
+                <a class="attention-link" [routerLink]="item.route">
+                  Open
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-6 6 6-6 6" /></svg>
+                </a>
+              }
+            </li>
+          }
+        </ul>
+      } @else {
+        <div class="empty-state">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+          <div>
+            <strong>Nothing needs you right now.</strong>
+            <p>No unread alerts and every monitored KPI is inside its tolerance band.</p>
+          </div>
+        </div>
+      }
+    </section>
+
+    <!-- KPI groups -->
+    @for (group of vm.groups; track group.id) {
+      <section class="kpi-group" [id]="'group-' + group.id" [attr.aria-labelledby]="'group-title-' + group.id">
+        <div class="group-head">
+          <span class="group-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+              @switch (group.icon) {
+                @case ('herd') { <path d="M7 8c0-1.7 1.8-3 4-3s4 1.3 4 3c2.2 0 4 1.6 4 3.5S17.2 15 15 15H8c-2.2 0-4-1.6-4-3.5S5.8 8 8 8H7Zm1 9v3m8-3v3M9 8V5m6 3V5" /> }
+                @case ('health') { <path d="M12 20s-6.5-4-8.8-7.6C1.2 9.7 2.9 5.5 6.9 5.5c2.3 0 3.7 1.3 5.1 3 1.4-1.7 2.8-3 5.1-3 4 0 5.7 4.2 3.7 6.9C18.5 16 12 20 12 20Z" /> }
+                @case ('stock') { <path d="m3 7 9-4 9 4-9 4-9-4Zm0 5 9 4 9-4M3 17l9 4 9-4" /> }
+                @case ('ops') { <path d="M9 6h11M9 12h11M9 18h11M4 6l1.2 1.2L7.5 5M4 12l1.2 1.2L7.5 11M4 18l1.2 1.2L7.5 17" /> }
+                @case ('finance') { <path d="M12 3v18m4-14.5c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 3 4 3 4 1.2 4 3-1.8 3-4 3-4-1.3-4-3" /> }
+                @case ('growth') { <path d="M4 19V5m0 14h17M8 15l4-4 3 2 5-6" /> }
+                @default { <path d="M12 3 2 20h20L12 3zm0 6v6m0 3h.01" /> }
+              }
+            </svg>
+          </span>
+          <div class="group-copy">
+            <h2 [id]="'group-title-' + group.id">{{ group.title }}</h2>
+            <p>{{ group.summary }}</p>
+          </div>
+          <div class="group-status">
+            @if (group.actionCount) {
+              <span class="status-pill is-action">{{ group.actionCount }} need action</span>
+            }
+            @if (group.watchCount) {
+              <span class="status-pill is-watch">{{ group.watchCount }} on watch</span>
+            }
+            @if (!group.actionCount && !group.watchCount) {
+              <span class="status-pill is-ok">Inside tolerance</span>
+            }
+          </div>
+        </div>
+
+        <div class="metric-grid">
+          @for (metric of group.metrics; track metric.key) {
+            <a class="metric" [routerLink]="metric.route" [class]="'is-' + metric.level" [attr.title]="metric.hint">
+              <span class="metric-top">
+                <span class="metric-label">{{ metric.label }}</span>
+                <span class="metric-flag">
+                  <span class="flag-dot" aria-hidden="true"></span>
+                  @switch (metric.level) {
+                    @case ('action') { Action }
+                    @case ('watch') { Watch }
+                    @case ('unknown') { No data }
+                    @default { On track }
+                  }
+                </span>
+              </span>
+
+              <span class="metric-value">{{ metric.display }}</span>
+
+              @if (metric.meterValue !== null) {
+                <span class="metric-meter" [attr.title]="metric.meterLabel">
+                  <span class="meter-fill" [style.width.%]="metric.meterValue * 100"></span>
+                </span>
+              }
+
+              <span class="metric-note">{{ metric.note }}</span>
+
+              <span class="metric-foot">
+                <span>{{ metric.module }}</span>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13m-5-6 6 6-6 6" /></svg>
+              </span>
+            </a>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Insight panels -->
+    <div class="insight-grid">
+      <section class="panel" aria-labelledby="herd-location-title">
+        <div class="panel-head panel-head--tight">
+          <div>
+            <p class="panel-kicker">Question 2</p>
+            <h2 id="herd-location-title">Where the herd is</h2>
+          </div>
+          <span class="panel-count">{{ vm.insights.herdByLocationTotal }} animals</span>
+        </div>
+
+        @if (vm.insights.herdByLocation.length) {
+          <ul class="bar-list">
+            @for (row of vm.insights.herdByLocation; track row.label) {
+              <li>
+                <div class="bar-meta">
+                  <span>{{ row.label }}</span>
+                  <strong>{{ row.display }}</strong>
+                </div>
+                <div class="bar-track">
+                  <span class="bar-fill" [style.width.%]="row.share * 100"></span>
+                </div>
+                <span class="bar-share">{{ row.shareDisplay }} of herd</span>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="empty-line">No animals are assigned to a location yet.</p>
+        }
+      </section>
+
+      <section class="panel" aria-labelledby="composition-title">
+        <div class="panel-head panel-head--tight">
+          <div>
+            <p class="panel-kicker">Breeding capacity</p>
+            <h2 id="composition-title">Composition</h2>
+          </div>
+        </div>
+
+        <div class="composition">
+          <div
+            class="donut"
+            role="img"
+            [attr.aria-label]="'Females ' + vm.insights.mix.female + ', males ' + vm.insights.mix.male"
+            [style.background]="'conic-gradient(var(--ceo-female) 0 ' + vm.insights.mix.femaleShare * 100 + '%, var(--ceo-male) 0 100%)'">
+            <span class="donut-hole">
+              <strong>{{ vm.insights.mix.female + vm.insights.mix.male }}</strong>
+              <small>sexed</small>
+            </span>
+          </div>
+          <ul class="legend">
+            <li><span class="legend-dot is-female"></span> Females <strong>{{ vm.insights.mix.female }}</strong></li>
+            <li><span class="legend-dot is-male"></span> Males <strong>{{ vm.insights.mix.male }}</strong></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="digital-title">
+        <div class="panel-head panel-head--tight">
+          <div>
+            <p class="panel-kicker">Question 28 · 30 days</p>
+            <h2 id="digital-title">Digital performance</h2>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat">
+            <span class="stat-label">Reach</span>
+            <strong>{{ vm.insights.digitalDisplay.reach }}</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Views</span>
+            <strong>{{ vm.insights.digitalDisplay.views }}</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Leads</span>
+            <strong>{{ vm.insights.digitalDisplay.leads }}</strong>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="spend-title">
+        <div class="panel-head panel-head--tight">
+          <div>
+            <p class="panel-kicker">Question 23</p>
+            <h2 id="spend-title">Spend</h2>
+          </div>
+        </div>
+
+        <ul class="bar-list bar-list--compact">
+          @for (row of vm.insights.spend; track row.label) {
+            <li>
+              <div class="bar-meta">
+                <span>{{ row.label }}</span>
+                <strong>{{ row.display }}</strong>
+              </div>
+              <div class="bar-track">
+                <span class="bar-fill is-gold" [style.width.%]="row.share * 100"></span>
+              </div>
+            </li>
+          }
+        </ul>
+        <p class="panel-foot">Expenses + purchase orders + invoices in the selected period.</p>
+      </section>
+    </div>
+
+    <!-- Answerability contract -->
+    <section class="panel contract" id="contract" aria-labelledby="contract-title">
+      <div class="panel-head">
+        <div>
+          <p class="panel-kicker">Acceptance criteria</p>
+          <h2 id="contract-title">Answerability contract</h2>
+          <p class="panel-sub">
+            Each of the 30 management questions must be answerable from structured records.
+            <strong>{{ vm.ledgerSummary.answered }} of {{ vm.ledgerSummary.total }}</strong> are answered
+            @if (vm.ledgerSummary.gaps) {
+              · <span class="gap-flag">{{ vm.ledgerSummary.gaps }} data gap{{ vm.ledgerSummary.gaps === 1 ? '' : 's' }}</span>
+            }
+          </p>
+        </div>
+        <div class="contract-tools">
+          <label class="search">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 5 5" /></svg>
+            <input
+              type="search"
+              placeholder="Search questions, sources…"
+              [value]="ledgerSearch()"
+              (input)="onLedgerSearch($any($event.target).value)"
+              aria-label="Search the answerability contract" />
+          </label>
+          <button type="button" class="btn btn--quiet btn--sm" [class.is-on]="gapsOnly()" [attr.aria-pressed]="gapsOnly()" (click)="toggleGapsOnly()">
+            Gaps only
+          </button>
+          <button type="button" class="btn btn--quiet btn--sm" (click)="exportCsv()">Export CSV</button>
+        </div>
+      </div>
+
+      <div class="completeness">
+        <div class="completeness-track">
+          <span class="completeness-fill" [style.width.%]="vm.ledgerSummary.completeness"></span>
+        </div>
+        <span class="completeness-label">{{ vm.ledgerSummary.completeness }}% complete</span>
+      </div>
+
+      <p class="ledger-note">{{ ledgerFilterNote() }}</p>
+
+      @if (filteredLedger().length) {
+        <div class="table-wrap">
+          <table>
+            <caption class="sr-only">The 30 management questions and where their answers come from</caption>
+            <thead>
+              <tr>
+                <th scope="col" class="col-num">#</th>
+                <th scope="col">Question</th>
+                <th scope="col">Answer</th>
+                <th scope="col">System of record</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of filteredLedger(); track row.number) {
+                <tr [class.is-gap]="!row.hasData">
+                  <td class="col-num" data-label="#">{{ row.number }}</td>
+                  <td data-label="Question">{{ row.question }}</td>
+                  <td data-label="Answer" class="strong">{{ row.answer }}</td>
+                  <td data-label="System of record">
+                    @if (row.sourceRoute) {
+                      <a class="source-chip" [routerLink]="row.sourceRoute">{{ row.source }}</a>
+                    } @else {
+                      <span class="source-chip is-static">{{ row.source }}</span>
+                    }
+                  </td>
+                  <td data-label="Status">
+                    @if (row.hasData) {
+                      <span class="status-pill is-ok">Answered</span>
+                    } @else {
+                      <span class="status-pill is-action">Data gap</span>
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 5 5" /></svg>
+          <div>
+            <strong>No questions match this filter.</strong>
+            <p>Adjust the search term or show every question again.</p>
+            <button type="button" class="text-button" (click)="clearLedgerFilters()">Clear filters</button>
+          </div>
+        </div>
+      }
+    </section>
+
+    <footer class="page-foot">
+      <span>Source · GET /api/v1/dashboard/ceo</span>
+      <span>Snapshot generated {{ vm.generatedAt }}</span>
+      <span>Period {{ vm.from }} → {{ vm.to }}</span>
+    </footer>
+  }
+</main>

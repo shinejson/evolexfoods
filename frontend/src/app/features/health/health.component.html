@@ -1,40 +1,650 @@
-<section class="page">
-  <div class="page-head">
-    <div>
-      <h1>Health Dashboard</h1>
-      <p>Sick animals, open cases and active treatments.</p>
+<main class="health-page">
+  <!-- ── Header ────────────────────────────────────────────────────── -->
+  <header class="page-head">
+    <div class="page-title">
+      <p class="eyebrow">
+        <span class="eyebrow-dot" aria-hidden="true"></span>
+        Evolex Hub · Livestock
+      </p>
+      <h1>{{ currentTabDef().title }}</h1>
+      <p class="subtitle">
+        {{ currentTabDef().subtitle }}
+        @if (openSummary().open > 0) {
+          <span class="head-flag">
+            {{ openSummary().open }} open
+            @if (openSummary().ageing > 0) {
+              · {{ openSummary().ageing }} beyond {{ ageingDays }} days
+            }
+          </span>
+        }
+      </p>
+    </div>
+
+    <div class="page-actions">
+      <button type="button" class="btn btn--solid" (click)="openCreate()">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+        {{ currentTabDef().createLabel }}
+      </button>
+
+      <div class="tool-group" role="group" aria-label="Record tools">
+        <button type="button" class="icon-btn" title="Refresh records" aria-label="Refresh records" (click)="refresh()">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 5v6h-6" /></svg>
+        </button>
+        <button type="button" class="icon-btn" title="Export the filtered rows as CSV" aria-label="Export CSV" (click)="exportCsv()">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 19h14" /></svg>
+        </button>
+        <button type="button" class="icon-btn" title="Print this view" aria-label="Print" (click)="print()">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V3h10v6M7 19H5v-8h14v8h-2M8 15h8v6H8z" /></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Tabs ──────────────────────────────────────────────────────── -->
+  <nav class="tab-bar" aria-label="Health record type">
+    @for (item of tabs; track item.id) {
+      <button
+        type="button"
+        class="tab"
+        [class.is-active]="tab() === item.id"
+        [attr.aria-current]="tab() === item.id ? 'page' : null"
+        (click)="setTab(item.id)">
+        {{ item.label }}
+        <span class="tab-count">{{ tabCounts()[item.id] }}</span>
+      </button>
+    }
+  </nav>
+
+  @if (message()) {
+    <p class="notice" role="status">
+      <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5" /></svg>
+      {{ message() }}
+      <button type="button" class="text-button" (click)="dismissMessage()">Dismiss</button>
+    </p>
+  }
+
+  <!-- ── Loading ───────────────────────────────────────────────────── -->
+  @if (state() === 'loading') {
+    <div class="health-skeleton" aria-busy="true" aria-live="polite">
+      <div class="skeleton-row">
+        @for (tile of [1, 2, 3, 4]; track tile) {
+          <div class="skeleton-tile"></div>
+        }
+      </div>
+      <div class="skeleton-table"></div>
+      <p class="sr-only">Loading health records…</p>
+    </div>
+  }
+
+  <!-- ── Error ─────────────────────────────────────────────────────── -->
+  @if (state() === 'error') {
+    <section class="state-panel" role="alert">
+      <span class="state-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="m12 3 10 18H2L12 3Zm0 6v5m0 3h.01" /></svg>
+      </span>
+      <h2>Health records unavailable</h2>
+      <p>{{ errorMessage() }}</p>
+      <button type="button" class="btn btn--solid" (click)="load()">Try again</button>
+    </section>
+  }
+
+  @if (state() === 'ready') {
+    <!-- ── KPI tiles: each one is a saved filter ───────────────────── -->
+    <section class="kpi-strip" aria-label="Health summary">
+      @for (kpi of kpis(); track kpi.key) {
+        <button
+          type="button"
+          class="kpi"
+          [class]="'is-' + kpi.tone"
+          [class.is-active]="kpi.active"
+          [attr.aria-pressed]="kpi.active"
+          [attr.title]="kpi.active ? 'Clear this filter' : 'Filter the table by this figure'"
+          (click)="applyKpi(kpi.key)">
+          <span class="kpi-label">{{ kpi.label }}</span>
+          <span class="kpi-value">{{ kpi.value }}</span>
+          <span class="kpi-caption">{{ kpi.caption }}</span>
+        </button>
+      }
+    </section>
+
+    <!-- ── Filters ────────────────────────────────────────────────── -->
+    <section class="filter-bar" aria-label="Filters">
+      <div class="filter-main">
+        <label class="search">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m16 16 5 5" /></svg>
+          <input
+            #searchInput
+            type="search"
+            [value]="activeFilters().search"
+            (input)="onSearch($any($event.target).value)"
+            placeholder="Search animal, condition, medicine, notes… (press /)"
+            aria-label="Search health records" />
+        </label>
+
+        @for (facet of facets(); track facet.key) {
+          <div class="facet" [attr.data-kind]="facet.kind">
+            <span class="facet-label" [attr.title]="facet.hint">{{ facet.label }}</span>
+
+            @switch (facet.kind) {
+              @case ('segmented') {
+                <div class="segment" role="group" [attr.aria-label]="facet.label">
+                  @for (option of facet.options; track option.value) {
+                    <button
+                      type="button"
+                      class="segment-btn"
+                      [class.is-active]="isOptionActive(facet, option)"
+                      [attr.aria-pressed]="isOptionActive(facet, option)"
+                      (click)="onFacetOption(facet, option)">
+                      {{ option.label }}
+                      <span class="segment-count">{{ option.count }}</span>
+                    </button>
+                  }
+                </div>
+              }
+
+              @case ('chips') {
+                <div class="chip-set" role="group" [attr.aria-label]="facet.label">
+                  @for (option of facet.options; track option.value) {
+                    <button
+                      type="button"
+                      class="filter-chip"
+                      [class]="'is-' + severityTone($any(option.value))"
+                      [class.is-active]="isOptionActive(facet, option)"
+                      [attr.aria-pressed]="isOptionActive(facet, option)"
+                      (click)="onFacetOption(facet, option)">
+                      {{ option.label }}
+                      <span class="chip-count">{{ option.count }}</span>
+                    </button>
+                  }
+                </div>
+              }
+
+              @case ('select') {
+                <select
+                  class="facet-select"
+                  [value]="facetValue(facet)"
+                  [attr.aria-label]="facet.label"
+                  (change)="setFacetValue(facet, $any($event.target).value)">
+                  <option value="">All {{ facet.label.toLowerCase() }}s</option>
+                  @for (option of facet.options; track option.value) {
+                    <option [value]="option.value">{{ option.label }} ({{ option.count }})</option>
+                  }
+                </select>
+              }
+
+              @case ('date-range') {
+                <div class="range-set">
+                  @for (option of facet.options; track option.value) {
+                    <button
+                      type="button"
+                      class="range-btn"
+                      [class.is-active]="isRangeActive($any(option.value))"
+                      (click)="applyPreset($any(option.value))">
+                      {{ option.label }}
+                    </button>
+                  }
+                  <div class="date-inputs">
+                    <input
+                      type="date"
+                      [value]="activeFilters().from"
+                      (change)="setFrom($any($event.target).value)"
+                      [attr.aria-label]="facet.label + ' from'" />
+                    <span aria-hidden="true">→</span>
+                    <input
+                      type="date"
+                      [value]="activeFilters().to"
+                      (change)="setTo($any($event.target).value)"
+                      [attr.aria-label]="facet.label + ' to'" />
+                  </div>
+                </div>
+              }
+
+              @case ('toggle') {
+                @for (option of facet.options; track option.value) {
+                  <button
+                    type="button"
+                    class="toggle-btn"
+                    [class.is-active]="isOptionActive(facet, option)"
+                    [attr.aria-pressed]="isOptionActive(facet, option)"
+                    (click)="onFacetOption(facet, option)">
+                    <span class="toggle-dot" aria-hidden="true"></span>
+                    {{ facet.label }}
+                    <span class="chip-count">{{ option.count }}</span>
+                  </button>
+                }
+              }
+            }
+          </div>
+        }
+      </div>
+
+      <div class="filter-foot">
+        <span class="filter-status">
+          Showing <strong>{{ paged().pagination.total }}</strong> of {{ tabRows().length }}
+          {{ tab() === 'cases' ? 'cases' : 'treatments' }}
+          @if (filterCount() > 0) {
+            · <strong>{{ filterCount() }}</strong> filter{{ filterCount() === 1 ? '' : 's' }} active
+          }
+        </span>
+
+        @if (chips().length) {
+          <div class="chip-row">
+            @for (chip of chips(); track chip.key) {
+              <button type="button" class="applied-chip" (click)="removeChip(chip.key)" [attr.aria-label]="'Remove ' + chip.label + ' filter'">
+                <span class="applied-label">{{ chip.label }}</span>
+                {{ chip.value }}
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+              </button>
+            }
+            <button type="button" class="text-button" (click)="clearFilters()">Clear all</button>
+          </div>
+        }
+      </div>
+    </section>
+
+    <!-- ── Table ──────────────────────────────────────────────────── -->
+    <section class="panel" aria-labelledby="records-title">
+      <h2 id="records-title" class="sr-only">{{ currentTabDef().label }}</h2>
+
+      @if (paged().pagination.total > 0) {
+        <div class="table-wrap">
+          <table>
+            <caption class="sr-only">
+              {{ currentTabDef().label }}, sorted by {{ activeSort().key }} {{ activeSort().direction }}
+            </caption>
+            <thead>
+              <tr>
+                @for (column of currentTabDef().columns; track column.key) {
+                  <th
+                    scope="col"
+                    [class.is-right]="column.align === 'right'"
+                    [attr.aria-sort]="sortIndicator(column.key) === 'asc' ? 'ascending' : sortIndicator(column.key) === 'desc' ? 'descending' : 'none'">
+                    @if (column.sortable) {
+                      <button type="button" class="th-sort" (click)="sortBy(column.key)">
+                        {{ column.label }}
+                        <svg class="sort-icon" [class.is-active]="sortIndicator(column.key)" viewBox="0 0 24 24" aria-hidden="true">
+                          @if (sortIndicator(column.key) === 'asc') {
+                            <path d="M12 19V5m0 0-6 6m6-6 6 6" />
+                          } @else {
+                            <path d="M12 5v14m0 0 6-6m-6 6-6-6" />
+                          }
+                        </svg>
+                      </button>
+                    } @else {
+                      {{ column.label }}
+                    }
+                  </th>
+                }
+                <th scope="col" class="col-actions"><span class="sr-only">Row actions</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of paged().rows; track row.id) {
+                <tr [class.is-open]="row.isOpen">
+                  @for (column of currentTabDef().columns; track column.key) {
+                    <td [class.is-right]="column.align === 'right'" [attr.data-label]="column.label">
+                      @switch (column.cell) {
+                        @case ('animal') {
+                          <span class="animal">
+                            <strong>{{ row.animalCode }}</strong>
+                            <small>{{ row.species || '—' }} · {{ row.locationName }}</small>
+                          </span>
+                        }
+                        @case ('severity') {
+                          @if (row.severity) {
+                            <span class="badge-pill" [class]="'is-' + severityTone(row.severity)">{{ titleCase(row.severity) }}</span>
+                          } @else {
+                            <span class="muted">—</span>
+                          }
+                        }
+                        @case ('status') {
+                          <span class="badge-pill" [class]="'is-' + statusTone(row.status, row.tab)">{{ titleCase(row.status) }}</span>
+                        }
+                        @case ('date') {
+                          <span [attr.title]="row.date">{{ formatDate(row.date) }}</span>
+                        }
+                        @case ('age') {
+                          <span [class.is-ageing]="row.isOpen && row.ageDays >= ageingDays">{{ formatAge(row.ageDays) }}</span>
+                        }
+                        @case ('medicine') {
+                          @if (row.subtitle) {
+                            {{ row.subtitle }}
+                          } @else {
+                            <span class="muted">—</span>
+                          }
+                        }
+                        @default {
+                          {{ row.title }}
+                        }
+                      }
+                    </td>
+                  }
+                  <td class="col-actions" data-label="Actions">
+                    <div class="icon-actions">
+                      <button
+                        type="button"
+                        class="icon-btn"
+                        title="View details"
+                        [attr.aria-label]="'View ' + row.title + ' for ' + row.animalCode"
+                        (click)="openView(row)">
+                        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6-10-6-10-6Z" /><circle cx="12" cy="12" r="2.6" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="icon-btn"
+                        title="Edit record"
+                        [attr.aria-label]="'Edit ' + row.title + ' for ' + row.animalCode"
+                        (click)="openEdit(row)">
+                        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M4 20h4L20 8l-4-4L4 16v4Zm10-14 4 4" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        class="icon-btn is-danger"
+                        title="Delete record"
+                        [attr.aria-label]="'Delete ' + row.title + ' for ' + row.animalCode"
+                        (click)="askDelete(row)">
+                        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M5 7h14M10 7V4h4v3m-7 0 1 13h8l1-13M10 11v6m4-6v6" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-foot">
+          <label class="page-size">
+            <span>Rows</span>
+            <select [value]="pageSize()" (change)="setPageSize($any($event.target).value)" aria-label="Rows per page">
+              @for (size of pageSizes; track size) {
+                <option [value]="size">{{ size }}</option>
+              }
+            </select>
+          </label>
+
+          <span class="range-label">
+            {{ paged().pagination.from }}–{{ paged().pagination.to }} of {{ paged().pagination.total }}
+          </span>
+
+          <nav class="pager" aria-label="Pagination">
+            <button
+              type="button"
+              class="icon-btn"
+              title="Previous page"
+              aria-label="Previous page"
+              [disabled]="paged().pagination.page === 1"
+              (click)="setPage(paged().pagination.page - 1)">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+            </button>
+            @for (page of pageWindow(); track page) {
+              <button
+                type="button"
+                class="page-btn"
+                [class.is-active]="page === paged().pagination.page"
+                [attr.aria-current]="page === paged().pagination.page ? 'page' : null"
+                (click)="setPage(page)">
+                {{ page }}
+              </button>
+            }
+            <button
+              type="button"
+              class="icon-btn"
+              title="Next page"
+              aria-label="Next page"
+              [disabled]="paged().pagination.page >= paged().pagination.pages"
+              (click)="setPage(paged().pagination.page + 1)">
+              <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6" /></svg>
+            </button>
+          </nav>
+        </div>
+      } @else {
+        <div class="empty-state">
+          <span class="empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 20s-6.5-4-8.8-7.6C1.2 9.7 2.9 5.5 6.9 5.5c2.3 0 3.7 1.3 5.1 3 1.4-1.7 2.8-3 5.1-3 4 0 5.7 4.2 3.7 6.9C18.5 16 12 20 12 20Z" /></svg>
+          </span>
+          <div>
+            <strong>{{ emptyState().title }}</strong>
+            <p>{{ emptyState().detail }}</p>
+            <div class="empty-actions">
+              @if (filterCount() > 0) {
+                <button type="button" class="btn btn--quiet" (click)="clearFilters()">Clear filters</button>
+              } @else {
+                <button type="button" class="btn btn--solid" (click)="openCreate()">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+                  {{ currentTabDef().createLabel }}
+                </button>
+              }
+            </div>
+          </div>
+        </div>
+      }
+    </section>
+
+    <footer class="page-foot">
+      <span>Sources · GET /api/v1/records/health · /records/treatments · /lookups</span>
+      <span>{{ tabRows().length }} records loaded</span>
+    </footer>
+  }
+</main>
+
+<!-- ── Dialog: create / edit / view / delete ───────────────────────── -->
+@if (dialogMode(); as mode) {
+  <div class="overlay" (click)="closeDialog()">
+    <div
+      class="dialog"
+      [class]="'dialog--' + mode"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="dialog-title"
+      (click)="$event.stopPropagation()">
+      <header class="dialog-head">
+        <div>
+          <p class="dialog-kicker">{{ dialogTab() === 'cases' ? 'Health case' : 'Treatment' }}</p>
+          <h2 id="dialog-title">
+            @switch (mode) {
+              @case ('create') { New {{ dialogTab() === 'cases' ? 'case' : 'treatment' }} }
+              @case ('edit') { Edit {{ dialogTab() === 'cases' ? 'case' : 'treatment' }} }
+              @case ('view') { Case detail }
+              @default { Delete record }
+            }
+          </h2>
+        </div>
+        <button type="button" class="icon-btn" title="Close" aria-label="Close dialog" (click)="closeDialog()">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" /></svg>
+        </button>
+      </header>
+
+      @if (serverError()) {
+        <p class="dialog-error" role="alert">{{ serverError() }}</p>
+      }
+
+      <!-- View -->
+      @if (mode === 'view' && selectedRow(); as row) {
+        <div class="dialog-body">
+          <dl class="detail-grid">
+            <div><dt>Animal</dt><dd>{{ row.animalCode }} <small>{{ row.species }}</small></dd></div>
+            <div><dt>Location</dt><dd>{{ row.locationName }}</dd></div>
+            <div><dt>{{ row.tab === 'cases' ? 'Condition' : 'Treatment' }}</dt><dd>{{ row.title }}</dd></div>
+            @if (row.tab === 'cases') {
+              <div><dt>Severity</dt><dd>
+                @if (row.severity) {
+                  <span class="badge-pill" [class]="'is-' + severityTone(row.severity)">{{ titleCase(row.severity) }}</span>
+                } @else {
+                  —
+                }
+              </dd></div>
+            } @else {
+              <div><dt>Medicine</dt><dd>{{ row.subtitle || '—' }}</dd></div>
+            }
+            <div><dt>{{ row.tab === 'cases' ? 'Recorded' : 'Started' }}</dt><dd>{{ formatDate(row.date) }}</dd></div>
+            <div><dt>Age</dt><dd>{{ formatAge(row.ageDays) }}</dd></div>
+            <div><dt>Status</dt><dd>
+              <span class="badge-pill" [class]="'is-' + statusTone(row.status, row.tab)">{{ titleCase(row.status) }}</span>
+            </dd></div>
+          </dl>
+
+          <div class="detail-notes">
+            <h3>Notes</h3>
+            <p>{{ row.notes || 'No notes recorded for this record.' }}</p>
+          </div>
+
+          @if (row.tab === 'cases') {
+            <div class="detail-notes">
+              <h3>Treatments for {{ row.animalCode }}</h3>
+              @if (relatedTreatments().length) {
+                <ul class="related-list">
+                  @for (treatment of relatedTreatments(); track treatment.id) {
+                    <li>
+                      <strong>{{ treatment.title }}</strong>
+                      <span>{{ treatment.subtitle || 'No medicine recorded' }}</span>
+                      <span class="related-meta">{{ formatDate(treatment.date) }} · {{ titleCase(treatment.status) }}</span>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <p>No treatment has been logged for this animal yet.</p>
+              }
+            </div>
+          }
+        </div>
+        <footer class="dialog-foot">
+          <button type="button" class="btn btn--quiet" (click)="closeDialog()">Close</button>
+          <button type="button" class="btn btn--solid" (click)="openEdit(row)">Edit record</button>
+        </footer>
+      }
+
+      <!-- Delete -->
+      @if (mode === 'delete' && selectedRow(); as row) {
+        <div class="dialog-body">
+          <p class="confirm-text">
+            Delete <strong>{{ row.title }}</strong> for <strong>{{ row.animalCode }}</strong>
+            ({{ formatDate(row.date) }})? This cannot be undone and removes the record from the health history.
+          </p>
+        </div>
+        <footer class="dialog-foot">
+          <button type="button" class="btn btn--quiet" (click)="closeDialog()">Keep record</button>
+          <button type="button" class="btn btn--danger" [disabled]="saving()" (click)="confirmDelete()">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 7h14M10 7V4h4v3m-7 0 1 13h8l1-13" /></svg>
+            {{ saving() ? 'Deleting…' : 'Delete record' }}
+          </button>
+        </footer>
+      }
+
+      <!-- Create / edit -->
+      @if (mode === 'create' || mode === 'edit') {
+        <form class="dialog-body" [formGroup]="dialogTab() === 'cases' ? caseForm : treatmentForm" (ngSubmit)="save()">
+          @if (dialogTab() === 'cases') {
+            <div class="field-grid">
+              <label class="field">
+                <span>Animal <em>*</em></span>
+                <select formControlName="animal_id" #dialogFirstField>
+                  <option [ngValue]="null">Select an animal</option>
+                  @for (animal of animalOptions(); track animal.id) {
+                    <option [ngValue]="animal.id">{{ animalLabel(animal) }}</option>
+                  }
+                </select>
+                @if (caseForm.controls.animal_id.touched && caseForm.controls.animal_id.invalid) {
+                  <small class="field-error">Choose the animal this case belongs to.</small>
+                }
+              </label>
+              <label class="field">
+                <span>Recorded date <em>*</em></span>
+                <input type="date" formControlName="recorded_date" />
+              </label>
+              <label class="field field--wide">
+                <span>Condition <em>*</em></span>
+                <input type="text" formControlName="condition" placeholder="e.g. mastitis, lameness, respiratory" />
+                @if (caseForm.controls.condition.touched && caseForm.controls.condition.invalid) {
+                  <small class="field-error">Describe the condition in a few words.</small>
+                }
+              </label>
+              <label class="field">
+                <span>Severity</span>
+                <select formControlName="severity">
+                  <option value="low">Low</option>
+                  <option value="moderate">Moderate</option>
+                  <option value="high">High</option>
+                  <option value="critical">Critical</option>
+                </select>
+              </label>
+              <label class="field">
+                <span>Status</span>
+                <select formControlName="status">
+                  <option value="open">Open</option>
+                  <option value="closed">Closed</option>
+                </select>
+              </label>
+              <label class="field field--wide">
+                <span>Notes</span>
+                <textarea formControlName="notes" rows="3" placeholder="Symptoms, observations, follow-up plan…"></textarea>
+              </label>
+            </div>
+          } @else {
+            <div class="field-grid">
+              <label class="field">
+                <span>Animal <em>*</em></span>
+                <select formControlName="animal_id" #dialogFirstField>
+                  <option [ngValue]="null">Select an animal</option>
+                  @for (animal of animalOptions(); track animal.id) {
+                    <option [ngValue]="animal.id">{{ animalLabel(animal) }}</option>
+                  }
+                </select>
+                @if (treatmentForm.controls.animal_id.touched && treatmentForm.controls.animal_id.invalid) {
+                  <small class="field-error">Choose the animal being treated.</small>
+                }
+              </label>
+              <label class="field field--wide">
+                <span>Treatment type <em>*</em></span>
+                <input type="text" formControlName="treatment_type" placeholder="e.g. medication, vaccination, wound care" />
+                @if (treatmentForm.controls.treatment_type.touched && treatmentForm.controls.treatment_type.invalid) {
+                  <small class="field-error">Name the treatment.</small>
+                }
+              </label>
+              <label class="field">
+                <span>Start date <em>*</em></span>
+                <input type="date" formControlName="start_date" />
+              </label>
+              <label class="field">
+                <span>End date</span>
+                <input type="date" formControlName="end_date" />
+              </label>
+              <label class="field">
+                <span>Medicine</span>
+                <input type="text" formControlName="medicine" placeholder="e.g. Oxytetracycline" />
+              </label>
+              <label class="field">
+                <span>Dosage</span>
+                <input type="text" formControlName="dosage" placeholder="e.g. 10ml IM daily" />
+              </label>
+              <label class="field">
+                <span>Status</span>
+                <select formControlName="status">
+                  <option value="active">Active</option>
+                  <option value="completed">Completed</option>
+                </select>
+              </label>
+              <label class="field field--wide">
+                <span>Notes</span>
+                <textarea formControlName="notes" rows="3" placeholder="Observation, response to treatment, withdrawal period…"></textarea>
+              </label>
+            </div>
+          }
+
+          <footer class="dialog-foot">
+            <button type="button" class="btn btn--quiet" (click)="closeDialog()">Cancel</button>
+            <button type="submit" class="btn btn--solid" [disabled]="saving()">
+              {{ saving() ? 'Saving…' : mode === 'edit' ? 'Save changes' : 'Save record' }}
+            </button>
+          </footer>
+        </form>
+      }
     </div>
   </div>
-  <div class="kpis">
-    <div class="kpi alert"><div class="label">Sick animals</div><div class="value">{{ sick.count }}</div></div>
-    <div class="kpi"><div class="label">Under treatment</div><div class="value">{{ treatments.count }}</div></div>
-  </div>
-  <div class="grid-2">
-    <div class="panel">
-      <h2>Open health records</h2>
-      <table>
-        <thead><tr><th>Animal</th><th>Condition</th><th>Severity</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let row of sick.records">
-            <td>{{ row.animal?.animal_id }}<div class="muted">{{ row.animal?.location?.name }}</div></td>
-            <td>{{ row.condition }}</td>
-            <td><span class="badge" [class]="row.severity">{{ row.severity }}</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="panel">
-      <h2>Active treatments</h2>
-      <table>
-        <thead><tr><th>Animal</th><th>Medicine</th><th>Started</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let row of treatments.records">
-            <td>{{ row.animal?.animal_id }}</td>
-            <td>{{ row.medicine }} · {{ row.dosage }}</td>
-            <td>{{ row.start_date }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
+}
