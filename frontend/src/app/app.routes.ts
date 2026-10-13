@@ -4,6 +4,7 @@ import { ShellComponent } from './layout/shell.component';
 import { LoginComponent } from './features/login/login.component';
 import { HubComponent } from './features/hub/hub.component';
 import { CeoComponent } from './features/ceo/ceo.component';
+import { HealthComponent } from './features/health/health.component';
 import { BreedingComponent } from './features/breeding/breeding.component';
 import { FeedComponent } from './features/feed/feed.component';
 import { LivestockComponent } from './features/livestock/livestock.component';
@@ -19,8 +20,13 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'ceo' },
       { path: 'hub', component: HubComponent },
       { path: 'ceo', component: CeoComponent },
+<<<<<<< HEAD
       { path: 'livestock', component: LivestockComponent },
       { path: 'health', component: CrudPageComponent, data: { resource: 'health' } },
+=======
+      { path: 'livestock', component: CrudPageComponent, data: { resource: 'livestock' } },
+      { path: 'health', component: HealthComponent },
+>>>>>>> 17d1701f100de1a88a78e14e5b3300379627a09d
       { path: 'treatments', component: CrudPageComponent, data: { resource: 'treatments' } },
       { path: 'breeding', component: BreedingComponent },
       { path: 'feed', component: FeedComponent },

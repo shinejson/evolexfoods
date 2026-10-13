@@ -32,15 +32,11 @@
   grid-column: 1 / -1;
 }
 
-.row-actions {
-  display: flex;
-  gap: 6px;
-  white-space: nowrap;
-}
-
-.btn.danger {
-  background: var(--danger);
-  color: #fff;
+/* Row-action button styles live in styles.scss: DataTables injects that markup
+   outside this component's view, so scoped rules would never match it. */
+td.col-actions {
+  width: 110px;
+  text-align: right;
 }
 
 .err { color: var(--danger); font-weight: 600; }
