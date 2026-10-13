@@ -265,3 +265,12 @@ table.dataTable tbody tr:hover {
   .grid-2, .grid-3 { grid-template-columns: 1fr; }
   .page-head { flex-direction: column; align-items: flex-start; }
 }
+
+/* Executive pages are printed for board packs — drop the application chrome. */
+@media print {
+  aside { display: none !important; }
+  .main { margin-left: 0 !important; }
+  .main header { display: none !important; }
+  .content { padding-top: 0 !important; }
+  body { background: #fff; }
+}
