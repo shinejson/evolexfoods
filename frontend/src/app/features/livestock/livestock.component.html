@@ -216,16 +216,16 @@
               <input 
                 type="checkbox" 
                 (change)="toggleSelectAll($event)"
-                [checked]="selectedAnimals.size > 0 && selectedAnimals.size === paginatedAnimals.length"
+                [checked]="isAllSelected()"
               />
             </th>
-            <th>Animal ID</th>
-            <th>Species / Breed</th>
-            <th>Sex</th>
-            <th>Age</th>
-            <th>Location</th>
-            <th>Health</th>
-            <th>Status</th>
+            <th class="id-col">Animal ID</th>
+            <th class="species-col">Species / Breed</th>
+            <th class="sex-col">Sex</th>
+            <th class="age-col">Age</th>
+            <th class="loc-col">Location</th>
+            <th class="health-col">Health</th>
+            <th class="status-col">Status</th>
             <th class="actions-col">Actions</th>
           </tr>
         </thead>
@@ -238,24 +238,24 @@
                 (change)="toggleSelect(animal.id)"
               />
             </td>
-            <td>
+            <td class="id-col">
               <strong>{{ animal.animal_id }}</strong>
               <span class="tag-number" *ngIf="animal.tag_id || animal.tag_number">{{ animal.tag_id || animal.tag_number }}</span>
             </td>
-            <td>{{ animal.species }} / {{ animal.breed || 'Standard' }}</td>
-            <td>
+            <td class="species-col">{{ animal.species }} / {{ animal.breed || 'Standard' }}</td>
+            <td class="sex-col">
               <span class="badge" [ngClass]="animal.sex ? animal.sex.toLowerCase() : ''">
                 {{ animal.sex }}
               </span>
             </td>
-            <td>{{ animal.age || calculateAge(animal.dob) }}</td>
-            <td>{{ animal.location?.name || 'N/A' }}</td>
-            <td>
+            <td class="age-col">{{ animal.age || calculateAge(animal.dob) }}</td>
+            <td class="loc-col">{{ animal.location?.name || 'N/A' }}</td>
+            <td class="health-col">
               <span class="badge" [ngClass]="getHealthBadgeClass(animal.health_status)">
                 {{ animal.health_status }}
               </span>
             </td>
-            <td>
+            <td class="status-col">
               <span class="badge" [ngClass]="getStatusBadgeClass(animal.status || animal.current_status)">
                 {{ animal.status || animal.current_status }}
               </span>
@@ -281,7 +281,7 @@
               </div>
             </td>
           </tr>
-          <tr *ngIf="!animals || animals.length === 0">
+          <tr *ngIf="!paginatedAnimals || paginatedAnimals.length === 0">
             <td colspan="9" class="empty">
               <div class="empty-state">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -295,6 +295,75 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- Table Pagination -->
+    <div class="pagination-bar" *ngIf="totalRecords > 0">
+      <div class="pagination-info">
+        <span>Showing <strong>{{ fromRecord }}</strong> to <strong>{{ toRecord }}</strong> of <strong>{{ totalRecords }}</strong> animals</span>
+        <div class="per-page-selector">
+          <label for="pageSizeSelect">Show</label>
+          <select id="pageSizeSelect" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="25">25</option>
+            <option [ngValue]="50">50</option>
+          </select>
+          <span>per page</span>
+        </div>
+      </div>
+
+      <div class="pagination-controls" *ngIf="totalPages > 1">
+        <button class="btn-page nav-btn" 
+                [disabled]="currentPage === 1" 
+                (click)="goToPage(1)" 
+                title="First Page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="11 17 6 12 11 7" />
+            <polyline points="18 17 13 12 18 7" />
+          </svg>
+        </button>
+
+        <button class="btn-page nav-btn" 
+                [disabled]="currentPage === 1" 
+                (click)="prevPage()" 
+                title="Previous Page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+
+        <div class="page-numbers">
+          <ng-container *ngFor="let page of getPageNumbers()">
+            <span class="pagination-ellipsis" *ngIf="page === '...'">…</span>
+            <button class="btn-page page-number" 
+                    *ngIf="page !== '...'"
+                    [class.active]="currentPage === page" 
+                    (click)="goToPage(+page)">
+              {{ page }}
+            </button>
+          </ng-container>
+        </div>
+
+        <button class="btn-page nav-btn" 
+                [disabled]="currentPage === totalPages" 
+                (click)="nextPage()" 
+                title="Next Page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+
+        <button class="btn-page nav-btn" 
+                [disabled]="currentPage === totalPages" 
+                (click)="goToPage(totalPages)" 
+                title="Last Page">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="13 17 18 12 13 7" />
+            <polyline points="6 17 11 12 6 7" />
+          </svg>
+        </button>
+      </div>
     </div>
   </div>
 

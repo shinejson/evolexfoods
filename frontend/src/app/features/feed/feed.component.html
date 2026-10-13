@@ -1,28 +1,921 @@
 <section class="page">
+  <!-- Notification Toast -->
+  <div class="notification-toast" *ngIf="notification" [ngClass]="'toast-' + notification.type">
+    <div class="toast-content">
+      <svg *ngIf="notification.type === 'success'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M20 6 9 17l-5-5" />
+      </svg>
+      <svg *ngIf="notification.type === 'error'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10" />
+        <path d="m15 9-6 6m0-6 6 6" />
+      </svg>
+      <span>{{ notification.message }}</span>
+    </div>
+    <button class="toast-close" (click)="closeNotification()">&times;</button>
+  </div>
+
+  <!-- Page Header -->
   <div class="page-head">
     <div>
-      <h1>Feed Dashboard</h1>
-      <p>On-hand feed, daily usage and days of cover.</p>
+      <h1>Animal Feed Dashboard</h1>
+      <p>On-hand feed inventory, daily rations, cover forecasts, and consumption tracking.</p>
+    </div>
+    <div class="page-head-actions">
+      <button class="btn btn-secondary" (click)="openLogUsage()" title="Log Feeding or Stock Intake">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+        Log Feeding / Restock
+      </button>
+      <button class="btn btn-primary" (click)="openCreate()" title="Add Feed Item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14m-7-7h14" />
+        </svg>
+        Add Feed Item
+      </button>
+      <button class="btn btn-secondary" (click)="exportData()" title="Export Feed Catalog">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-5 5 5 5-5m-5 5V3" />
+        </svg>
+        Export
+      </button>
     </div>
   </div>
+
+  <!-- KPI Cards -->
   <div class="kpis">
-    <div class="kpi"><div class="label">Feed on hand</div><div class="value">{{ summary.feed_on_hand }}</div></div>
-    <div class="kpi"><div class="label">Daily use</div><div class="value">{{ days.average_daily_consumption }}</div></div>
-    <div class="kpi" [class.alert]="days.alert"><div class="label">Days remaining</div><div class="value">{{ days.days_remaining }}</div></div>
-    <div class="kpi"><div class="label">Feed cost / animal</div><div class="value">{{ summary.feed_cost_per_animal }}</div></div>
+    <div class="kpi ok">
+      <div class="label">Feed on hand</div>
+      <div class="value">{{ summary.feed_on_hand | number:'1.0-2' }} <span class="unit">kg / units</span></div>
+      <div class="meta">{{ summary.total_items || feedItems.length }} catalog items</div>
+    </div>
+
+    <div class="kpi">
+      <div class="label">Daily use</div>
+      <div class="value">{{ summary.average_daily_consumption | number:'1.0-2' }} <span class="unit">kg / day</span></div>
+      <div class="meta">Ration burn rate</div>
+    </div>
+
+    <div class="kpi" [class.alert]="summary.alert || (summary.days_remaining !== null && summary.days_remaining <= 7)">
+      <div class="label">Days remaining</div>
+      <div class="value">
+        {{ summary.days_remaining !== null ? summary.days_remaining : 'N/A' }}
+        <span class="unit" *ngIf="summary.days_remaining !== null">days</span>
+      </div>
+      <div class="meta" *ngIf="summary.days_remaining !== null && summary.days_remaining <= 7">
+        ⚠️ Low cover warning
+      </div>
+      <div class="meta" *ngIf="summary.days_remaining === null || summary.days_remaining > 7">
+        Adequate herd cover
+      </div>
+    </div>
+
+    <div class="kpi">
+      <div class="label">Feed cost / animal</div>
+      <div class="value">${{ summary.feed_cost_per_animal | number:'1.2-2' }}</div>
+      <div class="meta">Per alive animal / day</div>
+    </div>
+
+    <div class="kpi" [class.alert]="summary.low_stock_count > 0">
+      <div class="label">Low stock items</div>
+      <div class="value">{{ summary.low_stock_count || 0 }}</div>
+      <div class="meta">Below reorder level</div>
+    </div>
+
+    <div class="kpi ok">
+      <div class="label">Total feed valuation</div>
+      <div class="value">${{ (summary.total_inventory_value || 0) | number:'1.2-2' }}</div>
+      <div class="meta">Asset inventory value</div>
+    </div>
   </div>
-  <div class="panel">
-    <h2>Feed items</h2>
-    <table>
-      <thead><tr><th>Item</th><th>On hand</th><th>Daily</th><th>Reorder</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let item of summary.items">
-          <td>{{ item.inventory_item?.name }}</td>
-          <td>{{ item.inventory_item?.quantity_on_hand }} {{ item.inventory_item?.unit }}</td>
-          <td>{{ item.daily_consumption }}</td>
-          <td>{{ item.inventory_item?.reorder_level }}</td>
-        </tr>
-      </tbody>
-    </table>
+
+  <!-- View Mode Switcher -->
+  <div class="tab-nav">
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'catalog'"
+      (click)="activeTab = 'catalog'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1-2.5-2.5Z" />
+        <path d="M6 6h10m-10 4h10m-10 4h6" />
+      </svg>
+      Feed Inventory & Rations
+      <span class="tab-badge">{{ filteredFeedItems.length }}</span>
+    </button>
+    <button 
+      class="tab-btn" 
+      [class.active]="activeTab === 'transactions'"
+      (click)="activeTab = 'transactions'">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+      </svg>
+      Usage & Restock Log
+      <span class="tab-badge">{{ transactions.length }}</span>
+    </button>
+  </div>
+
+  <!-- TAB 1: FEED INVENTORY CATALOG -->
+  <div *ngIf="activeTab === 'catalog'" class="panel">
+    <div class="panel-header">
+      <div class="panel-header-title">
+        <h2>Feed Master Register</h2>
+        <span class="badge badge-subtle">{{ filteredFeedItems.length }} items</span>
+      </div>
+
+      <div class="panel-actions">
+        <span class="selection-count" *ngIf="selectedItems.size > 0">
+          {{ selectedItems.size }} selected
+        </span>
+        <button 
+          class="btn-icon danger" 
+          *ngIf="selectedItems.size > 0"
+          (click)="bulkDelete()" 
+          title="Delete Selected Items">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick Filter Chips -->
+    <div class="quick-filters">
+      <button 
+        class="chip-btn" 
+        [class.active]="filters.quick_filter === 'all'"
+        (click)="setQuickFilter('all')">
+        All Feed Items ({{ feedItems.length }})
+      </button>
+      <button 
+        class="chip-btn warning" 
+        [class.active]="filters.quick_filter === 'low_stock'"
+        (click)="setQuickFilter('low_stock')">
+        ⚠️ Low Stock Warning
+      </button>
+      <button 
+        class="chip-btn danger" 
+        [class.active]="filters.quick_filter === 'critical'"
+        (click)="setQuickFilter('critical')">
+        🚨 Critical Cover (&le; 5 Days)
+      </button>
+      <button 
+        class="chip-btn info" 
+        [class.active]="filters.quick_filter === 'high_usage'"
+        (click)="setQuickFilter('high_usage')">
+        ⚡ High Daily Usage
+      </button>
+      <button 
+        class="chip-btn success" 
+        [class.active]="filters.quick_filter === 'adequate'"
+        (click)="setQuickFilter('adequate')">
+        ✅ Adequate Cover
+      </button>
+    </div>
+
+    <!-- Toolbar: Search + Advanced Filters Toggle -->
+    <div class="toolbar">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+        <input 
+          [(ngModel)]="filters.search" 
+          placeholder="Search by feed name, code, type, location or supplier..." 
+          (input)="applyFilters()"
+          (keyup.enter)="applyFilters()"
+        />
+        <button class="clear-search" *ngIf="filters.search" (click)="filters.search = ''; applyFilters()">
+          &times;
+        </button>
+      </div>
+
+      <button 
+        class="btn btn-filter" 
+        [class.active]="showFilters || hasActiveFilters()"
+        (click)="toggleFilters()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+        </svg>
+        Filters
+        <span class="filter-badge" *ngIf="hasActiveFilters()">●</span>
+      </button>
+
+      <button class="btn btn-secondary" (click)="applyFilters()">
+        Search
+      </button>
+
+      <button class="btn btn-secondary" *ngIf="hasActiveFilters()" (click)="clearFilters()">
+        Clear Filters
+      </button>
+    </div>
+
+    <!-- Collapsible Advanced Filters Drawer -->
+    <div class="filters-panel" *ngIf="showFilters">
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label>Feed Type</label>
+          <select [(ngModel)]="filters.feed_type" (change)="applyFilters()">
+            <option value="">All Feed Types</option>
+            <option *ngFor="let opt of feedTypeOptions" [value]="opt">{{ opt }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Stock Cover Status</label>
+          <select [(ngModel)]="filters.stock_status" (change)="applyFilters()">
+            <option value="">All Statuses</option>
+            <option value="adequate">Adequate Stock</option>
+            <option value="low_stock">Low Stock (Needs Reorder)</option>
+            <option value="critical">Critical (&le; 5 Days)</option>
+            <option value="out_of_stock">Out of Stock</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Storage Location</label>
+          <select [(ngModel)]="filters.storage_location" (change)="applyFilters()">
+            <option value="">All Storage Locations</option>
+            <option *ngFor="let loc of storageLocationOptions" [value]="loc">{{ loc }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Item Status</label>
+          <select [(ngModel)]="filters.status" (change)="applyFilters()">
+            <option value="">All Statuses</option>
+            <option value="active">Active Only</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+        <div class="filter-actions">
+          <button class="btn btn-secondary btn-sm" (click)="clearFilters()">
+            Reset All
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="checkbox-col">
+              <input 
+                type="checkbox" 
+                (change)="toggleSelectAll($event)"
+                [checked]="isAllSelected()"
+                title="Select All"
+              />
+            </th>
+            <th class="item-col">Feed Item</th>
+            <th class="type-col">Type</th>
+            <th class="location-col">Location</th>
+            <th class="stock-col">Stock on Hand</th>
+            <th class="daily-col">Daily Use</th>
+            <th class="days-col">Days of Cover</th>
+            <th class="reorder-col">Reorder Level</th>
+            <th class="cost-col">Unit / Total Value</th>
+            <th class="status-col">Stock Status</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of paginatedFeedItems" [class.selected]="isSelected(item.id)">
+            <!-- Checkbox -->
+            <td class="checkbox-col">
+              <input 
+                type="checkbox" 
+                [checked]="isSelected(item.id)"
+                (change)="toggleSelect(item.id)"
+              />
+            </td>
+
+            <!-- Feed Item -->
+            <td class="item-col">
+              <div class="item-title">
+                <strong>{{ item.name }}</strong>
+                <span class="item-code">{{ item.item_id }}</span>
+              </div>
+              <div class="item-supplier" *ngIf="item.supplier">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                </svg>
+                {{ item.supplier.name }}
+              </div>
+            </td>
+
+            <!-- Type -->
+            <td class="type-col">
+              <span class="type-badge">{{ item.feed_type }}</span>
+            </td>
+
+            <!-- Location -->
+            <td class="location-col">
+              <span class="location-tag">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+                  <circle cx="12" cy="10" r="3" />
+                </svg>
+                {{ item.storage_location || 'Feed Store' }}
+              </span>
+            </td>
+
+            <!-- Stock On Hand -->
+            <td class="stock-col">
+              <div class="stock-amount" [class.low]="item.quantity_on_hand <= item.reorder_level">
+                {{ item.quantity_on_hand | number:'1.0-2' }} <span class="unit">{{ item.unit }}</span>
+              </div>
+              <div class="stock-min" *ngIf="item.minimum_stock > 0">
+                Min: {{ item.minimum_stock }} {{ item.unit }}
+              </div>
+            </td>
+
+            <!-- Daily Consumption -->
+            <td class="daily-col">
+              <div class="daily-amount">
+                {{ item.daily_consumption | number:'1.0-2' }} <span class="unit">{{ item.unit }}/day</span>
+              </div>
+            </td>
+
+            <!-- Days of Cover -->
+            <td class="days-col">
+              <div class="cover-chip" [ngClass]="getDaysCoverClass(item.days_remaining)">
+                <span class="days-num" *ngIf="item.days_remaining !== null">{{ item.days_remaining }} days</span>
+                <span class="days-num" *ngIf="item.days_remaining === null">&infin; No burn</span>
+              </div>
+            </td>
+
+            <!-- Reorder Level -->
+            <td class="reorder-col">
+              <span class="reorder-num">{{ item.reorder_level | number:'1.0-2' }} {{ item.unit }}</span>
+            </td>
+
+            <!-- Cost & Valuation -->
+            <td class="cost-col">
+              <div class="unit-price">${{ item.average_cost | number:'1.2-2' }} / {{ item.unit }}</div>
+              <div class="total-price">Total: ${{ item.total_value | number:'1.2-2' }}</div>
+            </td>
+
+            <!-- Status Badge -->
+            <td class="status-col">
+              <span class="status-badge" [ngClass]="getStockStatusClass(item.stock_status)">
+                <span class="status-dot"></span>
+                {{ getStockStatusLabel(item.stock_status) }}
+              </span>
+            </td>
+
+            <!-- Actions -->
+            <td class="actions-col">
+              <div class="action-buttons">
+                <!-- Log Feeding Action -->
+                <button 
+                  class="btn-icon action-log" 
+                  (click)="openLogUsage(item)" 
+                  title="Dispense / Restock">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                  </svg>
+                </button>
+
+                <!-- View Item Details -->
+                <button 
+                  class="btn-icon" 
+                  (click)="viewItem(item)" 
+                  title="View Item Dossier">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+
+                <!-- Edit Item -->
+                <button 
+                  class="btn-icon" 
+                  (click)="openEdit(item)" 
+                  title="Edit Feed Item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                </button>
+
+                <!-- Delete Item -->
+                <button 
+                  class="btn-icon danger" 
+                  (click)="confirmDelete(item)" 
+                  title="Delete Feed Item">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" />
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <!-- Empty State -->
+          <tr *ngIf="paginatedFeedItems.length === 0">
+            <td colspan="11" class="empty">
+              <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 8v4m0 4h.01" />
+                </svg>
+                <h3>No feed items match your criteria</h3>
+                <p>Try resetting filters or adding new feed catalog items.</p>
+                <div class="empty-actions">
+                  <button class="btn btn-secondary btn-sm" (click)="clearFilters()">Clear Filters</button>
+                  <button class="btn btn-primary btn-sm" (click)="openCreate()">Add Feed Item</button>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Table Pagination -->
+    <div class="pagination-bar" *ngIf="totalRecords > 0">
+      <div class="pagination-info">
+        <span>
+          Showing <strong>{{ fromRecord }}</strong> to <strong>{{ toRecord }}</strong> of <strong>{{ totalRecords }}</strong> items
+        </span>
+        <div class="per-page-selector">
+          <label for="feedPageSize">Show</label>
+          <select id="feedPageSize" [(ngModel)]="pageSize" (change)="onPageSizeChange()">
+            <option [ngValue]="5">5</option>
+            <option [ngValue]="10">10</option>
+            <option [ngValue]="25">25</option>
+            <option [ngValue]="50">50</option>
+          </select>
+          <span>per page</span>
+        </div>
+      </div>
+
+      <div class="pagination-controls" *ngIf="totalPages > 1">
+        <button 
+          class="btn-page nav-btn" 
+          [disabled]="currentPage === 1" 
+          (click)="goToPage(1)" 
+          title="First Page">
+          &laquo;
+        </button>
+        <button 
+          class="btn-page nav-btn" 
+          [disabled]="currentPage === 1" 
+          (click)="goToPage(currentPage - 1)" 
+          title="Previous Page">
+          &lsaquo;
+        </button>
+
+        <ng-container *ngFor="let page of getPageNumbers()">
+          <span class="page-ellipsis" *ngIf="page === '...'">...</span>
+          <button 
+            *ngIf="page !== '...'" 
+            class="btn-page" 
+            [class.active]="currentPage === page" 
+            (click)="goToPage(+page)">
+            {{ page }}
+          </button>
+        </ng-container>
+
+        <button 
+          class="btn-page nav-btn" 
+          [disabled]="currentPage === totalPages" 
+          (click)="goToPage(currentPage + 1)" 
+          title="Next Page">
+          &rsaquo;
+        </button>
+        <button 
+          class="btn-page nav-btn" 
+          [disabled]="currentPage === totalPages" 
+          (click)="goToPage(totalPages)" 
+          title="Last Page">
+          &raquo;
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: USAGE & RESTOCK ACTIVITY LOG -->
+  <div *ngIf="activeTab === 'transactions'" class="panel">
+    <div class="panel-header">
+      <div class="panel-header-title">
+        <h2>Feed Dispensing & Intake History</h2>
+        <span class="badge badge-subtle">{{ transactions.length }} entries</span>
+      </div>
+      <div class="panel-actions">
+        <button class="btn btn-primary" (click)="openLogUsage()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14m-7-7h14" />
+          </svg>
+          Record Transaction
+        </button>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Feed Item</th>
+            <th>Action Type</th>
+            <th>Quantity</th>
+            <th>Notes / Remarks</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let tx of transactions">
+            <td><strong>{{ tx.transaction_date | date:'mediumDate' }}</strong></td>
+            <td>
+              <strong>{{ tx.feed_item?.inventory_item?.name || 'Feed Item #' + tx.feed_item_id }}</strong>
+            </td>
+            <td>
+              <span class="tx-badge" [ngClass]="tx.type">
+                {{ tx.type === 'issue' ? 'Feeding Dispensed' : (tx.type === 'receive' ? 'Stock Intake' : 'Adjustment') }}
+              </span>
+            </td>
+            <td>
+              <strong [class.tx-negative]="tx.type === 'issue'" [class.tx-positive]="tx.type === 'receive'">
+                {{ tx.type === 'issue' ? '-' : '+' }}{{ tx.quantity }} {{ tx.feed_item?.inventory_item?.unit || 'kg' }}
+              </strong>
+            </td>
+            <td>
+              <span class="tx-notes">{{ tx.notes || '—' }}</span>
+            </td>
+          </tr>
+          <tr *ngIf="transactions.length === 0">
+            <td colspan="5" class="empty">
+              <div class="empty-state">
+                <p>No feed transactions logged yet.</p>
+                <button class="btn btn-secondary btn-sm" (click)="openLogUsage()">Log First Feeding</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ==================== CREATE / EDIT MODAL ==================== -->
+  <div class="modal-backdrop" *ngIf="showModal" (click)="showModal = false">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>{{ isEditing ? 'Edit Feed Item' : 'Add New Feed Item' }}</h2>
+        <button class="modal-close" (click)="showModal = false">&times;</button>
+      </div>
+
+      <form (ngSubmit)="saveItem()">
+        <div class="modal-body">
+          <div class="form-grid">
+            <!-- Feed Name -->
+            <div class="form-group full-width">
+              <label for="feedName">Feed Name *</label>
+              <input 
+                id="feedName" 
+                [(ngModel)]="modalItem.name" 
+                name="name" 
+                placeholder="e.g. Dairy Mash, Lucerne Hay, Mineral Lick" 
+                required 
+              />
+            </div>
+
+            <!-- Feed Type -->
+            <div class="form-group">
+              <label for="modalFeedType">Feed Type / Category *</label>
+              <select id="modalFeedType" [(ngModel)]="modalItem.feed_type" name="feed_type">
+                <option *ngFor="let opt of feedTypeOptions" [value]="opt">{{ opt }}</option>
+              </select>
+            </div>
+
+            <!-- Unit -->
+            <div class="form-group">
+              <label for="feedUnit">Unit of Measure *</label>
+              <select id="feedUnit" [(ngModel)]="modalItem.unit" name="unit">
+                <option value="kg">kg (Kilogram)</option>
+                <option value="bale">bale (Hay / Straw)</option>
+                <option value="bag">bag (Feed Sack)</option>
+                <option value="tonne">tonne (Bulk)</option>
+                <option value="L">L (Liquid Feed)</option>
+              </select>
+            </div>
+
+            <!-- Storage Location -->
+            <div class="form-group">
+              <label for="storageLocation">Storage Location</label>
+              <input 
+                id="storageLocation" 
+                [(ngModel)]="modalItem.storage_location" 
+                name="storage_location" 
+                placeholder="e.g. Feed Store, Silo A" 
+              />
+            </div>
+
+            <!-- Quantity On Hand -->
+            <div class="form-group">
+              <label for="stockOnHand">Stock on Hand ({{ modalItem.unit || 'kg' }}) *</label>
+              <input 
+                id="stockOnHand" 
+                type="number" 
+                step="any" 
+                [(ngModel)]="modalItem.quantity_on_hand" 
+                name="quantity_on_hand" 
+                required 
+              />
+            </div>
+
+            <!-- Daily Consumption Rate -->
+            <div class="form-group">
+              <label for="dailyConsumption">Daily Consumption Rate ({{ modalItem.unit || 'kg' }}/day) *</label>
+              <input 
+                id="dailyConsumption" 
+                type="number" 
+                step="any" 
+                [(ngModel)]="modalItem.daily_consumption" 
+                name="daily_consumption" 
+                required 
+              />
+              <span class="form-hint">Used to calculate days of cover</span>
+            </div>
+
+            <!-- Unit Cost -->
+            <div class="form-group">
+              <label for="unitCost">Average Cost per Unit ($)</label>
+              <input 
+                id="unitCost" 
+                type="number" 
+                step="0.01" 
+                [(ngModel)]="modalItem.average_cost" 
+                name="average_cost" 
+              />
+            </div>
+
+            <!-- Reorder Level -->
+            <div class="form-group">
+              <label for="reorderLevel">Reorder Level ({{ modalItem.unit || 'kg' }})</label>
+              <input 
+                id="reorderLevel" 
+                type="number" 
+                step="any" 
+                [(ngModel)]="modalItem.reorder_level" 
+                name="reorder_level" 
+              />
+              <span class="form-hint">Triggers low stock alert</span>
+            </div>
+
+            <!-- Minimum Stock -->
+            <div class="form-group">
+              <label for="minStock">Minimum Stock Safety Buffer</label>
+              <input 
+                id="minStock" 
+                type="number" 
+                step="any" 
+                [(ngModel)]="modalItem.minimum_stock" 
+                name="minimum_stock" 
+              />
+            </div>
+
+            <!-- Supplier -->
+            <div class="form-group">
+              <label for="supplierSelect">Supplier</label>
+              <select id="supplierSelect" [(ngModel)]="modalItem.supplier_id" name="supplier_id">
+                <option [ngValue]="null">None / Farm Produced</option>
+                <option *ngFor="let s of suppliersList" [ngValue]="s.id">{{ s.name }}</option>
+              </select>
+            </div>
+
+            <!-- Status -->
+            <div class="form-group">
+              <label for="itemStatus">Catalog Status</label>
+              <select id="itemStatus" [(ngModel)]="modalItem.status" name="status">
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="showModal = false">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="saving">
+            {{ saving ? 'Saving...' : (isEditing ? 'Save Changes' : 'Create Feed Item') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== LOG FEED USAGE / RESTOCK MODAL ==================== -->
+  <div class="modal-backdrop" *ngIf="showLogUsageModal" (click)="showLogUsageModal = false">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Log Feed Dispensing / Restock</h2>
+        <button class="modal-close" (click)="showLogUsageModal = false">&times;</button>
+      </div>
+
+      <form (ngSubmit)="saveLogUsage()">
+        <div class="modal-body">
+          <div class="form-grid">
+            <!-- Target Feed Item -->
+            <div class="form-group full-width">
+              <label for="txFeedItem">Feed Item *</label>
+              <select id="txFeedItem" [(ngModel)]="logUsageForm.feed_item_id" name="feed_item_id" required>
+                <option *ngFor="let item of feedItems" [ngValue]="item.id">
+                  {{ item.name }} (Current: {{ item.quantity_on_hand }} {{ item.unit }})
+                </option>
+              </select>
+            </div>
+
+            <!-- Transaction Type -->
+            <div class="form-group full-width">
+              <label>Transaction Type *</label>
+              <div class="radio-pill-group">
+                <label class="radio-pill" [class.selected]="logUsageForm.type === 'issue'">
+                  <input type="radio" [(ngModel)]="logUsageForm.type" name="type" value="issue" />
+                  <span>Feeding Dispensed (Deduct)</span>
+                </label>
+                <label class="radio-pill" [class.selected]="logUsageForm.type === 'receive'">
+                  <input type="radio" [(ngModel)]="logUsageForm.type" name="type" value="receive" />
+                  <span>Stock Intake (Add)</span>
+                </label>
+                <label class="radio-pill" [class.selected]="logUsageForm.type === 'adjustment'">
+                  <input type="radio" [(ngModel)]="logUsageForm.type" name="type" value="adjustment" />
+                  <span>Direct Adjustment</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Quantity -->
+            <div class="form-group">
+              <label for="txQty">Quantity *</label>
+              <input 
+                id="txQty" 
+                type="number" 
+                step="any" 
+                [(ngModel)]="logUsageForm.quantity" 
+                name="quantity" 
+                required 
+              />
+            </div>
+
+            <!-- Date -->
+            <div class="form-group">
+              <label for="txDate">Transaction Date *</label>
+              <input 
+                id="txDate" 
+                type="date" 
+                [(ngModel)]="logUsageForm.transaction_date" 
+                name="transaction_date" 
+                required 
+              />
+            </div>
+
+            <!-- Notes -->
+            <div class="form-group full-width">
+              <label for="txNotes">Notes / Feeding Herd</label>
+              <input 
+                id="txNotes" 
+                [(ngModel)]="logUsageForm.notes" 
+                name="notes" 
+                placeholder="e.g. Morning ration for North Paddock dairy goats, Received delivery batch #402" 
+              />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="showLogUsageModal = false">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="saving">
+            {{ saving ? 'Recording...' : 'Record Transaction' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== VIEW DOSSIER MODAL ==================== -->
+  <div class="modal-backdrop" *ngIf="showViewModal && viewingItem" (click)="showViewModal = false">
+    <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h2>{{ viewingItem.name }}</h2>
+          <span class="item-code">{{ viewingItem.item_id }} · {{ viewingItem.feed_type }}</span>
+        </div>
+        <button class="modal-close" (click)="showViewModal = false">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Highlights -->
+        <div class="dossier-kpis">
+          <div class="dossier-card">
+            <span class="label">Stock on Hand</span>
+            <span class="value">{{ viewingItem.quantity_on_hand }} {{ viewingItem.unit }}</span>
+          </div>
+          <div class="dossier-card">
+            <span class="label">Daily Consumption</span>
+            <span class="value">{{ viewingItem.daily_consumption }} {{ viewingItem.unit }}/day</span>
+          </div>
+          <div class="dossier-card" [ngClass]="getDaysCoverClass(viewingItem.days_remaining)">
+            <span class="label">Days of Cover</span>
+            <span class="value">{{ viewingItem.days_remaining ?? 'N/A' }} days</span>
+          </div>
+          <div class="dossier-card">
+            <span class="label">Total Value</span>
+            <span class="value">${{ viewingItem.total_value | number:'1.2-2' }}</span>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h3>Inventory Specifications</h3>
+          <div class="detail-grid">
+            <div class="detail-item">
+              <span class="key">Storage Location:</span>
+              <span class="val">{{ viewingItem.storage_location || 'Feed Store' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="key">Unit Cost:</span>
+              <span class="val">${{ viewingItem.average_cost }} / {{ viewingItem.unit }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="key">Reorder Level:</span>
+              <span class="val">{{ viewingItem.reorder_level }} {{ viewingItem.unit }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="key">Minimum Stock:</span>
+              <span class="val">{{ viewingItem.minimum_stock }} {{ viewingItem.unit }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="key">Supplier:</span>
+              <span class="val">{{ viewingItem.supplier?.name || 'Farm Produced' }}</span>
+            </div>
+            <div class="detail-item">
+              <span class="key">Stock Status:</span>
+              <span class="val status-badge" [ngClass]="getStockStatusClass(viewingItem.stock_status)">
+                {{ getStockStatusLabel(viewingItem.stock_status) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="detail-section" *ngIf="viewingItem.recent_transactions && viewingItem.recent_transactions.length > 0">
+          <h3>Recent Stock Movements</h3>
+          <div class="table-container compact">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Quantity</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let tx of viewingItem.recent_transactions">
+                  <td>{{ tx.transaction_date | date:'mediumDate' }}</td>
+                  <td>
+                    <span class="tx-badge" [ngClass]="tx.type">{{ tx.type }}</span>
+                  </td>
+                  <td>{{ tx.quantity }} {{ viewingItem.unit }}</td>
+                  <td>{{ tx.notes || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="showViewModal = false">Close</button>
+        <button class="btn btn-secondary" (click)="showViewModal = false; openLogUsage(viewingItem)">
+          Log Dispensing
+        </button>
+        <button class="btn btn-primary" (click)="showViewModal = false; openEdit(viewingItem)">
+          Edit Item
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== DELETE CONFIRMATION MODAL ==================== -->
+  <div class="modal-backdrop" *ngIf="showDeleteModal && deletingItem" (click)="showDeleteModal = false">
+    <div class="modal-dialog modal-sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Confirm Deletion</h2>
+        <button class="modal-close" (click)="showDeleteModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Are you sure you want to delete <strong>{{ deletingItem.name }}</strong> ({{ deletingItem.item_id }})?</p>
+        <p class="text-muted">This will remove the item from the feed catalog and inventory register. This action cannot be undone.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="showDeleteModal = false">Cancel</button>
+        <button class="btn btn-danger" [disabled]="saving" (click)="deleteItem()">
+          {{ saving ? 'Deleting...' : 'Delete Feed Item' }}
+        </button>
+      </div>
+    </div>
   </div>
 </section>

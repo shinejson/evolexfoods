@@ -20,14 +20,9 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'ceo' },
       { path: 'hub', component: HubComponent },
       { path: 'ceo', component: CeoComponent },
-<<<<<<< HEAD
       { path: 'livestock', component: LivestockComponent },
-      { path: 'health', component: CrudPageComponent, data: { resource: 'health' } },
-=======
-      { path: 'livestock', component: CrudPageComponent, data: { resource: 'livestock' } },
-      { path: 'health', component: HealthComponent },
->>>>>>> 17d1701f100de1a88a78e14e5b3300379627a09d
-      { path: 'treatments', component: CrudPageComponent, data: { resource: 'treatments' } },
+      { path: 'health', component: HealthComponent, data: { tab: 'cases' } },
+      { path: 'treatments', component: HealthComponent, data: { tab: 'treatments' } },
       { path: 'breeding', component: BreedingComponent },
       { path: 'feed', component: FeedComponent },
       { path: 'inventory', component: CrudPageComponent, data: { resource: 'inventory' } },

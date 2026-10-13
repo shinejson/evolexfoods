@@ -13,6 +13,7 @@ import {
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Title } from '@angular/platform-browser';
+import { ActivatedRoute } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
@@ -71,6 +72,7 @@ export class HealthComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly destroyRef = inject(DestroyRef);
   private readonly titleService = inject(Title);
+  private readonly route = inject(ActivatedRoute);
 
   @ViewChild('searchInput') searchInput?: ElementRef<HTMLInputElement>;
   @ViewChild('dialogFirstField') dialogFirstField?: ElementRef<HTMLElement>;
@@ -188,6 +190,12 @@ export class HealthComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.route.data.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((data) => {
+      const routeTab = data['tab'] as HealthTab;
+      if (routeTab && (routeTab === 'cases' || routeTab === 'treatments')) {
+        this.tab.set(routeTab);
+      }
+    });
     this.titleService.setTitle('Animal health · Evolex Hub');
     this.load();
   }
