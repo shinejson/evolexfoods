@@ -159,33 +159,116 @@ class DatabaseSeeder extends Seeder
         $liveFemales = $animals->where('sex', 'female')->where('status', 'alive')->values();
         $liveMales = $animals->where('sex', 'male')->where('status', 'alive')->values();
 
+        // Gestation length drives both the service date behind an active
+        // pregnancy and the due date of every new cycle.
+        $gestation = fn (string $species): int => match ($species) {
+            'cattle' => 283,
+            'sheep' => 147,
+            default => 150,
+        };
+        $methods = ['natural', 'natural', 'natural', 'artificial_insemination', 'embryo_transfer'];
+        $birthWeight = fn (string $species): float => match ($species) {
+            'cattle' => rand(180, 320) / 10,
+            'sheep' => rand(15, 45) / 10,
+            default => rand(15, 45) / 10,
+        };
+
+        // The eight animals flagged pregnant above: their service is dated back
+        // one gestation from the expected birth date so the breeding workspace,
+        // the animal record and the CEO dashboard all tell the same story.
         foreach ($liveFemales->take(8) as $idx => $female) {
             $male = $liveMales[$idx % $liveMales->count()];
+            $due = $female->expected_birth_date ?? now()->addDays(rand(8, 80));
+            $length = $gestation($female->species);
+
             $breeding = Breeding::create([
                 'female_id' => $female->id,
                 'male_id' => $male->id,
-                'breeding_date' => now()->subDays(rand(40, 120)),
+                'breeding_date' => $due->copy()->subDays($length),
                 'method' => 'natural',
                 'status' => 'completed',
             ]);
             Pregnancy::create([
                 'animal_id' => $female->id,
                 'breeding_id' => $breeding->id,
-                'confirmed_date' => now()->subDays(rand(20, 60)),
-                'expected_birth_date' => $female->expected_birth_date,
+                'confirmed_date' => $due->copy()->subDays($length - 21),
+                'expected_birth_date' => $due,
                 'status' => 'active',
             ]);
         }
 
+        // The breeding programme itself: 16 services spread across the last
+        // year. Three out of four took — still gestating services stay active
+        // (and update the dam's record), the rest close out with a calf.
+        $programmeFemales = $liveFemales->slice(8)->values();
+        $calves = $animals->slice(20)->where('status', 'alive')->values();
+
+        foreach (range(0, 15) as $i) {
+            $female = $programmeFemales[$i % $programmeFemales->count()];
+            $male = $liveMales[($i * 3) % $liveMales->count()];
+            $served = now()->subDays(60 + $i * 21);
+            $length = $gestation($female->species);
+            $conceived = $i % 4 !== 3;
+            $due = $served->copy()->addDays($length);
+            $calf = $calves->get($i);
+
+            $breeding = Breeding::create([
+                'female_id' => $female->id,
+                'male_id' => $male->id,
+                'breeding_date' => $served->copy(),
+                'method' => $methods[$i % count($methods)],
+                'status' => 'completed',
+            ]);
+
+            Pregnancy::create([
+                'animal_id' => $female->id,
+                'breeding_id' => $breeding->id,
+                'confirmed_date' => $served->copy()->addDays(21),
+                'expected_birth_date' => $due->copy(),
+                'status' => ! $conceived ? 'failed' : ($due->isFuture() ? 'active' : 'completed'),
+                'ended_at' => $conceived && ! $due->isFuture() ? $due->copy() : null,
+            ]);
+
+            if (! $conceived) {
+                continue;
+            }
+
+            if ($due->isFuture()) {
+                $female->update([
+                    'breeding_status' => 'bred',
+                    'pregnancy_status' => 'pregnant',
+                    'expected_birth_date' => $due->copy(),
+                ]);
+                continue;
+            }
+
+            if (! $calf) {
+                continue;
+            }
+
+            Birth::create([
+                'animal_id' => $calf->id,
+                'mother_animal_id' => $female->animal_id,
+                'father_animal_id' => $male->animal_id,
+                'birth_date' => $due->copy(),
+                'sex' => $calf->sex,
+                'birth_weight' => $birthWeight($female->species),
+                'location_id' => $locations[3]->id,
+                'status' => 'alive',
+            ]);
+        }
+
+        // Recent arrivals at the maternity barn, so the "last 30 days" tiles and
+        // the monthly chart always have something to show.
         foreach (range(1, 9) as $i) {
             $mother = $liveFemales[$i % $liveFemales->count()];
             $child = $animals[$i];
             Birth::create([
                 'animal_id' => $child->id,
                 'mother_animal_id' => $mother->animal_id,
-                'birth_date' => now()->subDays(rand(2, 80)),
+                'birth_date' => now()->subDays($i * 9),
                 'sex' => $child->sex,
-                'birth_weight' => rand(2, 18),
+                'birth_weight' => $birthWeight($child->species),
                 'location_id' => $locations[3]->id,
                 'status' => 'alive',
             ]);

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Animal;
 use App\Models\Asset;
+use App\Models\Breeding;
 use App\Models\AuditLog;
 use App\Models\Company;
 use App\Models\ContentItem;
@@ -17,6 +18,7 @@ use App\Models\InventoryItem;
 use App\Models\Invoice;
 use App\Models\Location;
 use App\Models\MaintenanceTicket;
+use App\Models\Pregnancy;
 use App\Models\PurchaseRequest;
 use App\Models\Risk;
 use App\Models\Sop;
@@ -229,6 +231,33 @@ class CrudController extends Controller
                     'health_status' => 'nullable|string',
                     'status' => 'nullable|string',
                     'current_status' => 'nullable|string',
+                    'notes' => 'nullable|string',
+                ],
+            ],
+            'breeding' => [
+                'model' => Breeding::class,
+                'with' => ['female', 'male'],
+                'search' => ['method', 'status', 'notes'],
+                'rules' => [
+                    'female_id' => 'required|exists:animals,id',
+                    'male_id' => 'nullable|exists:animals,id',
+                    'breeding_date' => 'required|date',
+                    'method' => 'nullable|string',
+                    'status' => 'nullable|string',
+                    'notes' => 'nullable|string',
+                ],
+            ],
+            'pregnancies' => [
+                'model' => Pregnancy::class,
+                'with' => ['animal.location', 'breeding.male'],
+                'search' => ['status', 'notes'],
+                'rules' => [
+                    'animal_id' => 'required|exists:animals,id',
+                    'breeding_id' => 'nullable|exists:breedings,id',
+                    'confirmed_date' => 'required|date',
+                    'expected_birth_date' => 'nullable|date',
+                    'status' => 'nullable|string',
+                    'ended_at' => 'nullable|date',
                     'notes' => 'nullable|string',
                 ],
             ],
