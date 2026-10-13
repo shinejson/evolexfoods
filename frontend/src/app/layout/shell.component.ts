@@ -27,6 +27,7 @@ export class ShellComponent {
   showUserMenu = false;
   searchQuery = '';
   notificationCount = 3;
+  activePopupGroup: any = null;
   
   notifications: Notification[] = [
     {
@@ -203,7 +204,26 @@ export class ShellComponent {
 
   toggleNavGroup(group: any) {
     if (!this.sidebarCollapsed) {
+      // Close all other groups
+      this.navGroups.forEach(g => {
+        if (g !== group) {
+          g.expanded = false;
+        }
+      });
+      // Toggle current group
       group.expanded = !group.expanded;
+    }
+  }
+
+  showPopup(group: any) {
+    if (this.sidebarCollapsed) {
+      this.activePopupGroup = group;
+    }
+  }
+
+  hidePopup() {
+    if (this.sidebarCollapsed) {
+      this.activePopupGroup = null;
     }
   }
 }

@@ -20,16 +20,36 @@ class LivestockController extends Controller
         $query = Animal::with('location');
 
         if ($request->filled('status')) {
-            $query->where('status', $request->query('status'));
+            $status = strtolower($request->query('status'));
+            if ($status === 'active') {
+                $query->where(function ($q) {
+                    $q->where('status', 'alive')->orWhere('current_status', 'active');
+                });
+            } elseif ($status === 'deceased' || $status === 'dead') {
+                $query->where('status', 'dead');
+            } else {
+                $query->where(function ($q) use ($status) {
+                    $q->where('status', $status)->orWhere('current_status', $status);
+                });
+            }
         }
         if ($request->filled('sex')) {
-            $query->where('sex', $request->query('sex'));
+            $query->where('sex', strtolower($request->query('sex')));
+        }
+        if ($request->filled('species')) {
+            $query->where('species', strtolower($request->query('species')));
+        }
+        if ($request->filled('health_status')) {
+            $query->where('health_status', strtolower($request->query('health_status')));
         }
         if ($request->filled('location_id')) {
             $query->where('location_id', $request->query('location_id'));
         }
-        if ($request->filled('species')) {
-            $query->where('species', $request->query('species'));
+        if ($request->filled('location')) {
+            $locName = $request->query('location');
+            $query->whereHas('location', function ($q) use ($locName) {
+                $q->where('name', $locName)->orWhere('code', $locName);
+            });
         }
         if ($request->filled('q')) {
             $q = $request->query('q');

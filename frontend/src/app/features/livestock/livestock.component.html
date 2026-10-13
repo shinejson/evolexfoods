@@ -1,28 +1,77 @@
 <section class="page">
+  <!-- Page Header -->
   <div class="page-head">
     <div>
       <h1>Livestock Dashboard</h1>
       <p>Herd register, locations, births, deaths, growth and mortality from the Livestock Master.</p>
     </div>
+    <div class="page-head-actions">
+      <button class="btn btn-primary" (click)="addNew()" title="Add New Animal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14m-7-7h14" />
+        </svg>
+        Add Animal
+      </button>
+      <button class="btn btn-secondary" (click)="exportData()" title="Export Data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-5 5 5 5-5m-5 5V3" />
+        </svg>
+        Export
+      </button>
+    </div>
   </div>
+
+  <!-- KPI Cards -->
   <div class="kpis">
-    <div class="kpi ok"><div class="label">Total animals</div><div class="value">{{ summary.total_owned }}</div></div>
-    <div class="kpi"><div class="label">Female</div><div class="value">{{ summary.female }}</div></div>
-    <div class="kpi"><div class="label">Male</div><div class="value">{{ summary.male }}</div></div>
-    <div class="kpi"><div class="label">Births</div><div class="value">{{ births.count }}</div></div>
-    <div class="kpi alert"><div class="label">Deaths</div><div class="value">{{ deaths.count }}</div></div>
-    <div class="kpi alert"><div class="label">Mortality</div><div class="value">{{ mortality.mortality_rate }}%</div></div>
-    <div class="kpi ok"><div class="label">Herd growth</div><div class="value">{{ growth.herd_growth }}</div><div class="meta">{{ growth.herd_growth_rate }}%</div></div>
+    <div class="kpi ok">
+      <div class="label">Total animals</div>
+      <div class="value">{{ summary.total_owned || 0 }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Female</div>
+      <div class="value">{{ summary.female || 0 }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Male</div>
+      <div class="value">{{ summary.male || 0 }}</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Births</div>
+      <div class="value">{{ births.count || 0 }}</div>
+    </div>
+    <div class="kpi alert">
+      <div class="label">Deaths</div>
+      <div class="value">{{ deaths.count || 0 }}</div>
+    </div>
+    <div class="kpi alert">
+      <div class="label">Mortality</div>
+      <div class="value">{{ mortality.mortality_rate || 0 }}%</div>
+    </div>
+    <div class="kpi ok">
+      <div class="label">Herd growth</div>
+      <div class="value">{{ growth.herd_growth || 0 }}</div>
+      <div class="meta">{{ growth.herd_growth_rate || 0 }}%</div>
+    </div>
   </div>
+
+  <!-- Summary Tables -->
   <div class="grid-2">
     <div class="panel">
       <h2>By location</h2>
       <table>
-        <thead><tr><th>Location</th><th>Animals</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Location</th>
+            <th>Animals</th>
+          </tr>
+        </thead>
         <tbody>
           <tr *ngFor="let row of summary.by_location">
             <td>{{ row.location }}</td>
-            <td>{{ row.total }}</td>
+            <td><strong>{{ row.total }}</strong></td>
+          </tr>
+          <tr *ngIf="!summary.by_location || summary.by_location.length === 0">
+            <td colspan="2" class="empty">No data available</td>
           </tr>
         </tbody>
       </table>
@@ -30,32 +79,361 @@
     <div class="panel">
       <h2>By species / age</h2>
       <table>
-        <thead><tr><th>Species</th><th>Total</th></tr></thead>
+        <thead>
+          <tr>
+            <th>Species</th>
+            <th>Total</th>
+          </tr>
+        </thead>
         <tbody>
-          <tr *ngFor="let row of summary.by_species"><td>{{ row.species }}</td><td>{{ row.total }}</td></tr>
+          <tr *ngFor="let row of summary.by_species">
+            <td>{{ row.species }}</td>
+            <td><strong>{{ row.total }}</strong></td>
+          </tr>
+          <tr *ngIf="!summary.by_species || summary.by_species.length === 0">
+            <td colspan="2" class="empty">No data available</td>
+          </tr>
         </tbody>
       </table>
-      <p class="muted">Juvenile {{ summary.by_age?.juvenile }} · Yearling {{ summary.by_age?.yearling }} · Adult {{ summary.by_age?.adult }}</p>
+      <p class="muted">
+        Juvenile {{ summary.by_age?.juvenile || 0 }} · 
+        Yearling {{ summary.by_age?.yearling || 0 }} · 
+        Adult {{ summary.by_age?.adult || 0 }}
+      </p>
     </div>
   </div>
+
+  <!-- Livestock Master Table -->
   <div class="panel">
-    <h2>Livestock Master</h2>
-    <div class="toolbar">
-      <input [(ngModel)]="q" placeholder="Search ID, tag, breed" (keyup.enter)="search()" />
-      <button class="btn" (click)="search()">Search</button>
+    <div class="panel-header">
+      <h2>Livestock Master</h2>
+      <div class="panel-actions">
+        <span class="selection-count" *ngIf="selectedAnimals.size > 0">
+          {{ selectedAnimals.size }} selected
+        </span>
+        <button class="btn-icon" 
+                *ngIf="selectedAnimals.size > 0"
+                (click)="bulkAction('delete')" 
+                title="Delete Selected">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" />
+          </svg>
+        </button>
+      </div>
     </div>
-    <table>
-      <thead><tr><th>Animal ID</th><th>Species</th><th>Sex</th><th>Location</th><th>Health</th><th>Status</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let animal of animals">
-          <td>{{ animal.animal_id }}</td>
-          <td>{{ animal.species }} / {{ animal.breed }}</td>
-          <td><span class="badge" [class]="animal.sex">{{ animal.sex }}</span></td>
-          <td>{{ animal.location?.name }}</td>
-          <td><span class="badge" [class]="animal.health_status">{{ animal.health_status }}</span></td>
-          <td><span class="badge" [class]="animal.status">{{ animal.status }}</span></td>
-        </tr>
-      </tbody>
-    </table>
+
+    <!-- Search & Filters -->
+    <div class="toolbar">
+      <div class="search-box">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+        <input 
+          [(ngModel)]="filters.search" 
+          placeholder="Search by ID, tag, or breed..." 
+          (keyup.enter)="search()"
+          (input)="search()"
+        />
+      </div>
+      
+      <button class="btn btn-filter" 
+              [class.active]="showFilters || hasActiveFilters()"
+              (click)="toggleFilters()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+        </svg>
+        Filters
+        <span class="filter-badge" *ngIf="hasActiveFilters()">●</span>
+      </button>
+      
+      <button class="btn btn-secondary" (click)="search()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <path d="m21 21-4.35-4.35" />
+        </svg>
+        Search
+      </button>
+    </div>
+
+    <!-- Advanced Filters -->
+    <div class="filters-panel" *ngIf="showFilters">
+      <div class="filters-grid">
+        <div class="filter-group">
+          <label>Species</label>
+          <select [(ngModel)]="filters.species" (change)="search()">
+            <option value="">All Species</option>
+            <option *ngFor="let opt of speciesOptions" [value]="opt">{{ opt }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Sex</label>
+          <select [(ngModel)]="filters.sex" (change)="search()">
+            <option value="">All</option>
+            <option *ngFor="let opt of sexOptions" [value]="opt">{{ opt }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Location</label>
+          <select [(ngModel)]="filters.location" (change)="search()">
+            <option value="">All Locations</option>
+            <option *ngFor="let opt of locationOptions" [value]="opt">{{ opt }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Health Status</label>
+          <select [(ngModel)]="filters.health_status" (change)="search()">
+            <option value="">All</option>
+            <option *ngFor="let opt of healthStatusOptions" [value]="opt">{{ opt }}</option>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label>Status</label>
+          <select [(ngModel)]="filters.status" (change)="search()">
+            <option value="">All</option>
+            <option *ngFor="let opt of statusOptions" [value]="opt">{{ opt }}</option>
+          </select>
+        </div>
+
+        <div class="filter-actions">
+          <button class="btn btn-secondary btn-sm" (click)="clearFilters()">
+            Clear Filters
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Data Table -->
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th class="checkbox-col">
+              <input 
+                type="checkbox" 
+                (change)="toggleSelectAll($event)"
+                [checked]="selectedAnimals.size > 0 && selectedAnimals.size === paginatedAnimals.length"
+              />
+            </th>
+            <th>Animal ID</th>
+            <th>Species / Breed</th>
+            <th>Sex</th>
+            <th>Age</th>
+            <th>Location</th>
+            <th>Health</th>
+            <th>Status</th>
+            <th class="actions-col">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let animal of paginatedAnimals" [class.selected]="isSelected(animal.id)">
+            <td class="checkbox-col">
+              <input 
+                type="checkbox" 
+                [checked]="isSelected(animal.id)"
+                (change)="toggleSelect(animal.id)"
+              />
+            </td>
+            <td>
+              <strong>{{ animal.animal_id }}</strong>
+              <span class="tag-number" *ngIf="animal.tag_id || animal.tag_number">{{ animal.tag_id || animal.tag_number }}</span>
+            </td>
+            <td>{{ animal.species }} / {{ animal.breed || 'Standard' }}</td>
+            <td>
+              <span class="badge" [ngClass]="animal.sex ? animal.sex.toLowerCase() : ''">
+                {{ animal.sex }}
+              </span>
+            </td>
+            <td>{{ animal.age || calculateAge(animal.dob) }}</td>
+            <td>{{ animal.location?.name || 'N/A' }}</td>
+            <td>
+              <span class="badge" [ngClass]="getHealthBadgeClass(animal.health_status)">
+                {{ animal.health_status }}
+              </span>
+            </td>
+            <td>
+              <span class="badge" [ngClass]="getStatusBadgeClass(animal.status || animal.current_status)">
+                {{ animal.status || animal.current_status }}
+              </span>
+            </td>
+            <td class="actions-col">
+              <div class="action-buttons">
+                <button class="btn-icon" (click)="viewAnimal(animal)" title="View Details">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                </button>
+                <button class="btn-icon" (click)="editAnimal(animal)" title="Edit">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                </button>
+                <button class="btn-icon danger" (click)="deleteAnimal(animal)" title="Delete">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z" />
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="!animals || animals.length === 0">
+            <td colspan="9" class="empty">
+              <div class="empty-state">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 8v4m0 4h.01" />
+                </svg>
+                <p>No animals found</p>
+                <button class="btn btn-primary btn-sm" (click)="addNew()">Add First Animal</button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add / Edit Animal Modal -->
+  <div class="modal-backdrop" *ngIf="showModal" (click)="closeModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ isEditing ? 'Edit Animal' : 'Add New Animal' }}</h3>
+        <button class="btn-close" (click)="closeModal()">&times;</button>
+      </div>
+      <form (ngSubmit)="saveAnimal()">
+        <div class="modal-body form-grid">
+          <div class="form-group">
+            <label>Animal ID</label>
+            <input [(ngModel)]="modalAnimal.animal_id" name="animal_id" placeholder="Auto-generated if empty" />
+          </div>
+          <div class="form-group">
+            <label>Tag ID</label>
+            <input [(ngModel)]="modalAnimal.tag_id" name="tag_id" placeholder="e.g. TAG-0012" />
+          </div>
+          <div class="form-group">
+            <label>Species *</label>
+            <select [(ngModel)]="modalAnimal.species" name="species" required>
+              <option value="goat">Goat</option>
+              <option value="sheep">Sheep</option>
+              <option value="cattle">Cattle</option>
+              <option value="chicken">Chicken</option>
+              <option value="pig">Pig</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Breed</label>
+            <input [(ngModel)]="modalAnimal.breed" name="breed" placeholder="e.g. Boer, Dorper, Angus" />
+          </div>
+          <div class="form-group">
+            <label>Sex *</label>
+            <select [(ngModel)]="modalAnimal.sex" name="sex" required>
+              <option value="female">Female</option>
+              <option value="male">Male</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Date of Birth</label>
+            <input type="date" [(ngModel)]="modalAnimal.dob" name="dob" />
+          </div>
+          <div class="form-group">
+            <label>Location</label>
+            <select [(ngModel)]="modalAnimal.location_id" name="location_id">
+              <option [ngValue]="undefined">Select Location</option>
+              <option *ngFor="let loc of locationsList" [ngValue]="loc.id">{{ loc.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Weight (kg)</label>
+            <input type="number" [(ngModel)]="modalAnimal.weight" name="weight" placeholder="e.g. 45.5" />
+          </div>
+          <div class="form-group">
+            <label>Health Status</label>
+            <select [(ngModel)]="modalAnimal.health_status" name="health_status">
+              <option value="healthy">Healthy</option>
+              <option value="sick">Sick</option>
+              <option value="quarantine">Quarantine</option>
+              <option value="under treatment">Under Treatment</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select [(ngModel)]="modalAnimal.status" name="status">
+              <option value="alive">Alive</option>
+              <option value="dead">Dead</option>
+              <option value="sold">Sold</option>
+              <option value="transferred">Transferred</option>
+            </select>
+          </div>
+          <div class="form-group full-width">
+            <label>Notes</label>
+            <textarea [(ngModel)]="modalAnimal.notes" name="notes" rows="2" placeholder="Additional observations..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">{{ isEditing ? 'Save Changes' : 'Create Animal' }}</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Animal Details Modal -->
+  <div class="modal-backdrop" *ngIf="showViewModal && viewingAnimal" (click)="closeViewModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 style="margin: 0;">{{ viewingAnimal.animal_id }}</h3>
+          <p class="muted" style="margin: 4px 0 0; font-size: 13px;">Tag: {{ viewingAnimal.tag_id || viewingAnimal.tag_number || 'None' }}</p>
+        </div>
+        <button class="btn-close" (click)="closeViewModal()">&times;</button>
+      </div>
+      <div class="modal-body details-grid">
+        <div class="detail-item">
+          <span class="detail-label">Species</span>
+          <span class="detail-val">{{ viewingAnimal.species | titlecase }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Breed</span>
+          <span class="detail-val">{{ viewingAnimal.breed || 'Standard' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Sex</span>
+          <span class="detail-val"><span class="badge" [ngClass]="(viewingAnimal.sex || '').toLowerCase()">{{ viewingAnimal.sex }}</span></span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Age</span>
+          <span class="detail-val">{{ viewingAnimal.age || calculateAge(viewingAnimal.dob) }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Location</span>
+          <span class="detail-val">{{ viewingAnimal.location?.name || 'Unassigned' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Weight</span>
+          <span class="detail-val">{{ viewingAnimal.weight ? viewingAnimal.weight + ' kg' : 'N/A' }}</span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Health</span>
+          <span class="detail-val"><span class="badge" [ngClass]="getHealthBadgeClass(viewingAnimal.health_status)">{{ viewingAnimal.health_status }}</span></span>
+        </div>
+        <div class="detail-item">
+          <span class="detail-label">Status</span>
+          <span class="detail-val"><span class="badge" [ngClass]="getStatusBadgeClass(viewingAnimal.status || viewingAnimal.current_status)">{{ viewingAnimal.status || viewingAnimal.current_status }}</span></span>
+        </div>
+        <div class="detail-item full-width" *ngIf="viewingAnimal.notes">
+          <span class="detail-label">Notes</span>
+          <span class="detail-val">{{ viewingAnimal.notes }}</span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeViewModal()">Close</button>
+        <button type="button" class="btn btn-primary" (click)="editAnimal(viewingAnimal); closeViewModal()">Edit Record</button>
+      </div>
+    </div>
   </div>
 </section>

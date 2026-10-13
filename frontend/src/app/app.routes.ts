@@ -6,6 +6,7 @@ import { HubComponent } from './features/hub/hub.component';
 import { CeoComponent } from './features/ceo/ceo.component';
 import { BreedingComponent } from './features/breeding/breeding.component';
 import { FeedComponent } from './features/feed/feed.component';
+import { LivestockComponent } from './features/livestock/livestock.component';
 import { CrudPageComponent } from './features/records/crud-page.component';
 
 export const routes: Routes = [
@@ -18,7 +19,7 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'ceo' },
       { path: 'hub', component: HubComponent },
       { path: 'ceo', component: CeoComponent },
-      { path: 'livestock', component: CrudPageComponent, data: { resource: 'livestock' } },
+      { path: 'livestock', component: LivestockComponent },
       { path: 'health', component: CrudPageComponent, data: { resource: 'health' } },
       { path: 'treatments', component: CrudPageComponent, data: { resource: 'treatments' } },
       { path: 'breeding', component: BreedingComponent },

@@ -30,6 +30,7 @@ Route::prefix('v1')->group(function () {
         Route::get('/livestock/births', [LivestockController::class, 'births']);
         Route::get('/livestock/deaths', [LivestockController::class, 'deaths']);
         Route::get('/livestock/mortality-rate', [LivestockController::class, 'mortalityRate']);
+        Route::get('/livestock/mortality', [LivestockController::class, 'mortalityRate']);
         Route::get('/livestock/growth', [LivestockController::class, 'growth']);
         Route::get('/livestock/health/sick', [LivestockController::class, 'sick']);
         Route::get('/livestock/health/treatments', [LivestockController::class, 'treatments']);
@@ -41,7 +42,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/procurement/requests', [EventController::class, 'purchaseRequest']);
 
         Route::get('/livestock', [LivestockController::class, 'index']);
+        Route::post('/livestock', fn (\Illuminate\Http\Request $req) => app(CrudController::class)->store($req, 'livestock'));
         Route::get('/livestock/{id}', [LivestockController::class, 'show']);
+        Route::put('/livestock/{id}', fn (\Illuminate\Http\Request $req, int $id) => app(CrudController::class)->update($req, 'livestock', $id));
+        Route::delete('/livestock/{id}', fn (int $id) => app(CrudController::class)->destroy('livestock', $id));
 
         Route::get('/feed/summary', [FeedInventoryController::class, 'feedSummary']);
         Route::get('/feed/days-remaining', [FeedInventoryController::class, 'daysRemaining']);
