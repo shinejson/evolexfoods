@@ -66,6 +66,16 @@
           },
           "configurations": {
             "production": {
+              "optimization": {
+                "scripts": true,
+                "styles": {
+                  "minify": true,
+                  "inlineCritical": true
+                },
+                "fonts": {
+                  "inline": false
+                }
+              },
               "budgets": [
                 {
                   "type": "initial",
@@ -74,8 +84,8 @@
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "2kb",
-                  "maximumError": "4kb"
+                  "maximumWarning": "30kb",
+                  "maximumError": "32kb"
                 }
               ],
               "outputHashing": "all"
@@ -94,7 +104,7 @@
             "proxyConfig": "proxy.conf.json",
             "host": "0.0.0.0",
             "port": 4200,
-            "allowedHosts": [".monkeycode-ai.live"]
+            "allowedHosts": [".monkeycode-ai.live", ".e2b.app"]
           },
           "configurations": {
             "production": {
