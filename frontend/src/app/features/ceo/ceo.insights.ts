@@ -468,8 +468,8 @@ export const KPI_GROUPS: KpiGroupDefinition[] = [
         hint: 'Sum of channel reach over the last 30 days',
         format: 'count',
         read: (k) => k.digital_performance?.reach_30d ?? null,
-        route: '/marketing',
-        module: 'Marketing',
+        route: '/marketing/performance',
+        module: 'Channel performance',
         emptyHint: 'Sync channel metrics to see reach',
         evaluate: (value, kpis) => {
           const leads = kpis.digital_performance?.leads_30d ?? 0;
@@ -564,7 +564,7 @@ const SOURCE_ROUTES: Array<{ match: string; route: string }> = [
   { match: 'deals', route: '/deals' },
   { match: 'content_items', route: '/marketing' },
   { match: 'media_assets', route: '/marketing' },
-  { match: 'channel_metrics', route: '/marketing' },
+  { match: 'channel_metrics', route: '/marketing/performance' },
   { match: 'risks', route: '/risks' },
   { match: 'decisions', route: '/decisions' },
   { match: 'animals', route: '/livestock' },

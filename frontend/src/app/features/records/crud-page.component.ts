@@ -90,6 +90,27 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   get searchPlaceholder(): string {
+    if (this.resource === 'companies') {
+      return 'Search by company, buyer type, city, lifecycle, email...';
+    }
+    if (this.resource === 'contacts') {
+      return 'Search by contact, company, role, email, phone...';
+    }
+    if (this.resource === 'deals') {
+      return 'Search by deal, company, contact, stage, next action...';
+    }
+    if (this.resource === 'sales') {
+      return 'Search by animal ID, buyer, event type, date...';
+    }
+    if (this.resource === 'campaigns') {
+      return 'Search by campaign name, channel, status...';
+    }
+    if (this.resource === 'marketing') {
+      return 'Search by content title, channel, format, status...';
+    }
+    if (this.resource === 'channel_metrics') {
+      return 'Search by channel and metric date...';
+    }
     if (this.resource === 'inventory') {
       return 'Search by item name, ID, category, supplier, storage location...';
     }
@@ -130,8 +151,14 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   hasActiveAdvancedFilters(): boolean {
-    if (!this.def?.advancedFilters) return false;
-    return Object.values(this.filterValues).some(v => v !== undefined && v !== null && v !== '');
+    return this.activeAdvancedFilterCount > 0;
+  }
+
+  get activeAdvancedFilterCount(): number {
+    return (this.def?.advancedFilters || []).filter((filter) => {
+      const value = this.filterValues[filter.key];
+      return value !== undefined && value !== null && value !== '';
+    }).length;
   }
 
   hasActiveFilters(): boolean {
@@ -253,7 +280,7 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
       const source = this.lookups[filter.lookup] || [];
       return source.map((item: any) => ({
         value: item.id,
-        label: item.name || item.animal_id || item.code || String(item.id)
+        label: item.name || item.title || item.animal_id || item.code || String(item.id)
       }));
     }
     return [];
@@ -351,7 +378,13 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
     if (lookup === 'assets') {
       return `${item.asset_id} ${item.name}`;
     }
-    if (lookup === 'users' || lookup === 'employees' || lookup === 'suppliers' || lookup === 'companies' || lookup === 'locations') {
+    if (lookup === 'contacts') {
+      return item.company?.name ? `${item.name} · ${item.company.name}` : item.name;
+    }
+    if (lookup === 'media_assets') {
+      return item.title;
+    }
+    if (lookup === 'users' || lookup === 'employees' || lookup === 'suppliers' || lookup === 'companies' || lookup === 'locations' || lookup === 'pipeline_stages') {
       return item.name;
     }
     return item.name || item.title || String(item.id);
