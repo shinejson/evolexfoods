@@ -6,8 +6,8 @@
  *   npm start                         # ng serve proxies /api -> 127.0.0.1:8000
  *
  * It implements the sign-in, CEO dashboard, operations preview routes and the
- * finance overview + expense, invoice and payment registers. Finance writes
- * remain in memory and payment changes recalculate invoice statuses.
+ * finance overview + expense, invoice and payment registers, and the
+ * Commercial CRUD workspaces. Writes remain in memory for preview sessions.
  *
  * Operations figures mirror backend/database/seeders/DatabaseSeeder.php;
  * finance includes a longer sample history to exercise the charts. This file is
@@ -514,6 +514,104 @@ let financePayments = [
   { id: 7, invoice_id: 9, amount: 1760, paid_at: dayOffset(153), method: 'bank_transfer', reference: 'PAY-329' }
 ];
 
+
+let commercialCompanies = [
+  { id: 1, name: 'Harborview Hotel', category: 'hotels', lifecycle_stage: 'prospect', city: 'Accra', phone: '+233 30 555 0121', email: 'purchasing@harborview.example', status: 'active' },
+  { id: 2, name: 'City Supermarket', category: 'supermarkets', lifecycle_stage: 'lead', city: 'Tema', phone: '+233 30 555 0132', email: 'buying@citymarket.example', status: 'active' },
+  { id: 3, name: 'Golden Fork Restaurants', category: 'restaurants', lifecycle_stage: 'customer', city: 'Accra', phone: '+233 24 555 0143', email: 'procurement@goldenfork.example', status: 'active' },
+  { id: 4, name: 'Northside Butchers', category: 'butchers', lifecycle_stage: 'prospect', city: 'Kumasi', phone: '+233 50 555 0154', email: 'orders@northside.example', status: 'active' },
+  { id: 5, name: 'Savanna Distributors', category: 'distributors', lifecycle_stage: 'lead', city: 'Accra', phone: '+233 20 555 0165', email: 'sales@savanna.example', status: 'inactive' }
+];
+
+let commercialContacts = [
+  { id: 1, company_id: 1, name: 'Ama Mensah', role: 'Procurement Manager', email: 'ama@harborview.example', phone: '+233 20 555 1121', lifecycle_stage: 'prospect' },
+  { id: 2, company_id: 2, name: 'Kofi Owusu', role: 'Category Buyer', email: 'kofi@citymarket.example', phone: '+233 24 555 1122', lifecycle_stage: 'lead' },
+  { id: 3, company_id: 3, name: 'Esi Boateng', role: 'Owner', email: 'esi@goldenfork.example', phone: '+233 50 555 1123', lifecycle_stage: 'customer' },
+  { id: 4, company_id: 4, name: 'Yaw Asare', role: 'Buyer', email: 'yaw@northside.example', phone: '+233 30 555 1124', lifecycle_stage: 'prospect' }
+];
+
+const commercialStages = [
+  { id: 1, name: 'Prospect Identified', sort_order: 1 },
+  { id: 2, name: 'Contacted', sort_order: 2 },
+  { id: 3, name: 'Qualified', sort_order: 3 },
+  { id: 4, name: 'Meeting', sort_order: 4 },
+  { id: 5, name: 'Sample', sort_order: 5 },
+  { id: 6, name: 'Quote', sort_order: 6 },
+  { id: 7, name: 'Negotiation', sort_order: 7 },
+  { id: 8, name: 'Won', sort_order: 8 }
+];
+
+let commercialDeals = [
+  { id: 1, name: 'Weekly goat supply - Harborview', company_id: 1, contact_id: 1, pipeline_stage_id: 4, amount: 4800, close_date: daysFromNow(18), next_action: 'Send sample pack', next_action_date: daysFromNow(2), status: 'open' },
+  { id: 2, name: 'Cattle carcass trial - City Super', company_id: 2, contact_id: 2, pipeline_stage_id: 6, amount: 9200, close_date: daysFromNow(30), next_action: 'Issue quote', next_action_date: daysFromNow(4), status: 'open' },
+  { id: 3, name: 'Repeat order - Golden Fork', company_id: 3, contact_id: 3, pipeline_stage_id: 8, amount: 3600, close_date: dayOffset(4), next_action: 'Schedule delivery', next_action_date: null, status: 'won' },
+  { id: 4, name: 'Wholesale order - Northside', company_id: 4, contact_id: 4, pipeline_stage_id: 2, amount: 2150, close_date: dayOffset(2), next_action: 'Confirm buyer specs', next_action_date: dayOffset(1), status: 'open' }
+];
+
+let commercialSales = [
+  { id: 1, animal_id: 22, type: 'sale', event_date: dayOffset(8), amount: 1750, buyer: 'Golden Fork Restaurants', notes: 'Market-weight goat' },
+  { id: 2, animal_id: 19, type: 'cull', event_date: dayOffset(17), amount: 820, buyer: 'Northside Butchers', notes: 'Retired breeding stock' },
+  { id: 3, animal_id: 16, type: 'sale', event_date: dayOffset(31), amount: 2430, buyer: 'Harborview Hotel', notes: 'Quarterly supply' }
+];
+
+let commercialMedia = [
+  { id: 1, title: 'New kid in Maternity Barn', type: 'photo', location: 'Maternity Barn', subject: 'goat birth', url: 'https://drive.evolex.local/media/birth-01.jpg', captured_at: dayOffset(3), rights: 'internal' },
+  { id: 2, title: 'Traceable protein product image', type: 'photo', location: 'Packing area', subject: 'product', url: 'https://drive.evolex.local/media/traceable-protein.jpg', captured_at: dayOffset(12), rights: 'approved' }
+];
+
+let commercialContent = [
+  { id: 1, title: 'Life on the farm: first kid of September', channel: 'Instagram', content_type: 'carousel', status: 'published', scheduled_for: null, published_at: dayOffset(2), media_asset_id: 1, body: 'A new arrival at Evolex Farm.' },
+  { id: 2, title: 'Why traceable livestock matters', channel: 'Website', content_type: 'article', status: 'scheduled', scheduled_for: daysFromNow(2), published_at: null, media_asset_id: null, body: 'A draft article about responsible sourcing.' },
+  { id: 3, title: 'Buyer sample day recap', channel: 'LinkedIn', content_type: 'post', status: 'draft', scheduled_for: daysFromNow(5), published_at: null, media_asset_id: null, body: 'Share highlights from the buyer tasting.' },
+  { id: 4, title: 'Farm-to-table supply update', channel: 'Facebook', content_type: 'post', status: 'review', scheduled_for: daysFromNow(3), published_at: null, media_asset_id: 2, body: 'Review copy before publishing.' }
+];
+
+let commercialCampaigns = [
+  { id: 1, name: 'Traceable Protein Q3', channel: 'multi', start_date: dayOffset(20), end_date: daysFromNow(40), status: 'active', budget: 1200 },
+  { id: 2, name: 'Buyer Sample Day', channel: 'LinkedIn', start_date: daysFromNow(10), end_date: daysFromNow(14), status: 'draft', budget: 450 },
+  { id: 3, name: 'September Farm Stories', channel: 'Instagram', start_date: dayOffset(45), end_date: dayOffset(15), status: 'completed', budget: 320 }
+];
+
+let commercialMetrics = [
+  { id: 1, channel: 'Instagram', metric_date: dayOffset(1), reach: 8420, views: 5120, followers: 1830, website_visits: 86, leads: 4, engagement_rate: 4.8 },
+  { id: 2, channel: 'Facebook', metric_date: dayOffset(1), reach: 4620, views: 3210, followers: 2140, website_visits: 43, leads: 2, engagement_rate: 3.1 },
+  { id: 3, channel: 'Website', metric_date: dayOffset(1), reach: 2680, views: 1840, followers: 0, website_visits: 690, leads: 6, engagement_rate: 5.2 },
+  { id: 4, channel: 'WhatsApp', metric_date: dayOffset(2), reach: 940, views: 680, followers: 520, website_visits: 0, leads: 3, engagement_rate: 8.6 },
+  { id: 5, channel: 'LinkedIn', metric_date: dayOffset(4), reach: 3290, views: 1760, followers: 740, website_visits: 52, leads: 2, engagement_rate: 2.7 }
+];
+
+
+const commercialStores = {
+  companies: { get: () => commercialCompanies, set: (rows) => { commercialCompanies = rows; } },
+  contacts: { get: () => commercialContacts, set: (rows) => { commercialContacts = rows; } },
+  deals: { get: () => commercialDeals, set: (rows) => { commercialDeals = rows; } },
+  sales: { get: () => commercialSales, set: (rows) => { commercialSales = rows; } },
+  marketing: { get: () => commercialContent, set: (rows) => { commercialContent = rows; } },
+  campaigns: { get: () => commercialCampaigns, set: (rows) => { commercialCampaigns = rows; } },
+  channel_metrics: { get: () => commercialMetrics, set: (rows) => { commercialMetrics = rows; } }
+};
+
+function attachCommercial(resource, record) {
+  if (resource === 'contacts') {
+    return { ...record, company: commercialCompanies.find((row) => row.id === Number(record.company_id)) ?? null };
+  }
+  if (resource === 'deals') {
+    return {
+      ...record,
+      company: commercialCompanies.find((row) => row.id === Number(record.company_id)) ?? null,
+      contact: commercialContacts.find((row) => row.id === Number(record.contact_id)) ?? null,
+      stage: commercialStages.find((row) => row.id === Number(record.pipeline_stage_id)) ?? null
+    };
+  }
+  if (resource === 'sales') {
+    return attachAnimal(record, ANIMALS);
+  }
+  if (resource === 'marketing') {
+    return { ...record, media: commercialMedia.find((row) => row.id === Number(record.media_asset_id)) ?? null };
+  }
+  return { ...record };
+}
+
 function financeInvoiceBalance(invoice) {
   if (invoice.status === 'paid' && !financePayments.some((payment) => payment.invoice_id === invoice.id)) {
     return 0;
@@ -705,7 +803,15 @@ const server = createServer((req, res) => {
       users: [],
       employees: [],
       assets: [],
-      companies: [],
+      companies: commercialCompanies.map(({ id, name }) => ({ id, name })),
+      contacts: commercialContacts.map((contact) => ({
+        id: contact.id,
+        name: contact.name,
+        company_id: contact.company_id,
+        company: commercialCompanies.find((company) => company.id === contact.company_id) ?? null
+      })),
+      pipeline_stages: commercialStages,
+      media_assets: commercialMedia.map(({ id, title, type, captured_at }) => ({ id, title, type, captured_at })),
       invoices: financeInvoices.map(({ id, invoice_number }) => ({ id, invoice_number }))
     });
     return;
@@ -869,6 +975,115 @@ const server = createServer((req, res) => {
           syncFinanceInvoice(id);
         }
         json(res, 200, attach(updated));
+      });
+      return;
+    }
+
+    json(res, 405, { message: `Method ${req.method} not allowed` });
+    return;
+  }
+
+  const commercialRecordMatch = path.match(/^\/api\/v1\/records\/(companies|contacts|deals|sales|marketing|campaigns|channel_metrics)(?:\/(\d+))?$/);
+  if (commercialRecordMatch) {
+    const resource = commercialRecordMatch[1];
+    const store = commercialStores[resource];
+    const id = commercialRecordMatch[2] ? Number(commercialRecordMatch[2]) : null;
+
+    if (req.method === 'GET') {
+      if (id) {
+        const record = store.get().find((row) => row.id === id);
+        record ? json(res, 200, attachCommercial(resource, record)) : json(res, 404, { message: 'Not found' });
+        return;
+      }
+      const records = [...store.get()].sort((a, b) => b.id - a.id).map((row) => attachCommercial(resource, row));
+      json(res, 200, { data: records });
+      return;
+    }
+
+    if (req.method === 'DELETE' && id) {
+      const records = store.get();
+      if (!records.some((row) => row.id === id)) {
+        json(res, 404, { message: 'Not found' });
+        return;
+      }
+      store.set(records.filter((row) => row.id !== id));
+      json(res, 200, { deleted: true });
+      return;
+    }
+
+    if (req.method === 'POST' || (req.method === 'PUT' && id)) {
+      let raw = '';
+      req.on('data', (chunk) => (raw += chunk));
+      req.on('end', () => {
+        let body = {};
+        try {
+          body = JSON.parse(raw || '{}');
+        } catch {
+          json(res, 422, { message: 'Invalid JSON body' });
+          return;
+        }
+
+        const records = store.get();
+        const existing = id ? records.find((row) => row.id === id) : null;
+        if (id && !existing) {
+          json(res, 404, { message: 'Not found' });
+          return;
+        }
+
+        const requiredFields = {
+          companies: ['name'],
+          contacts: ['name'],
+          deals: ['name'],
+          sales: ['animal_id', 'type', 'event_date'],
+          marketing: ['title'],
+          campaigns: ['name'],
+          channel_metrics: ['channel', 'metric_date']
+        }[resource];
+        const missing = requiredFields.find((field) => body[field] === undefined || body[field] === null || body[field] === '');
+        if (missing) {
+          json(res, 422, { message: `${missing.replaceAll('_', ' ')} is required.` });
+          return;
+        }
+
+        if (resource === 'deals' && body.company_id && !commercialCompanies.some((row) => row.id === Number(body.company_id))) {
+          json(res, 422, { message: 'Choose an existing company.' });
+          return;
+        }
+        if (resource === 'deals' && body.contact_id && !commercialContacts.some((row) => row.id === Number(body.contact_id))) {
+          json(res, 422, { message: 'Choose an existing contact.' });
+          return;
+        }
+        if (resource === 'deals' && body.pipeline_stage_id && !commercialStages.some((row) => row.id === Number(body.pipeline_stage_id))) {
+          json(res, 422, { message: 'Choose an existing pipeline stage.' });
+          return;
+        }
+        if (resource === 'sales' && !ANIMALS.some((row) => row.id === Number(body.animal_id))) {
+          json(res, 422, { message: 'Choose an existing animal.' });
+          return;
+        }
+        if (resource === 'marketing' && body.media_asset_id && !commercialMedia.some((row) => row.id === Number(body.media_asset_id))) {
+          json(res, 422, { message: 'Choose an existing media asset.' });
+          return;
+        }
+
+        const defaults = {
+          companies: { lifecycle_stage: 'lead', status: 'active' },
+          contacts: { lifecycle_stage: 'lead' },
+          deals: { status: 'open' },
+          sales: { type: 'sale' },
+          marketing: { status: 'draft' },
+          campaigns: { status: 'draft' },
+          channel_metrics: { reach: 0, views: 0, followers: 0, website_visits: 0, leads: 0, engagement_rate: 0 }
+        }[resource];
+        let saved;
+        if (req.method === 'POST') {
+          saved = { id: nextId(records), ...defaults, ...body };
+          store.set([saved, ...records]);
+        } else {
+          saved = { ...existing, ...body, id };
+          store.set(records.map((row) => row.id === id ? saved : row));
+        }
+        json(res, req.method === 'POST' ? 201 : 200, attachCommercial(resource, saved));
       });
       return;
     }

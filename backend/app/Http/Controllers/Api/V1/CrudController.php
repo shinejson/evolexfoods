@@ -7,7 +7,10 @@ use App\Models\Animal;
 use App\Models\Asset;
 use App\Models\Breeding;
 use App\Models\AuditLog;
+use App\Models\Campaign;
+use App\Models\ChannelMetric;
 use App\Models\Company;
+use App\Models\Contact;
 use App\Models\ContentItem;
 use App\Models\Deal;
 use App\Models\Decision;
@@ -18,10 +21,13 @@ use App\Models\InventoryItem;
 use App\Models\Invoice;
 use App\Models\Location;
 use App\Models\MaintenanceTicket;
+use App\Models\MediaAsset;
 use App\Models\Payment;
+use App\Models\PipelineStage;
 use App\Models\Pregnancy;
 use App\Models\PurchaseRequest;
 use App\Models\Risk;
+use App\Models\SalesCull;
 use App\Models\Sop;
 use App\Models\Supplier;
 use App\Models\Task;
@@ -151,6 +157,9 @@ class CrudController extends Controller
             'animals' => Animal::orderBy('animal_id')->get(['id', 'animal_id', 'species', 'sex', 'status']),
             'assets' => Asset::orderBy('asset_id')->get(['id', 'asset_id', 'name']),
             'companies' => Company::orderBy('name')->get(['id', 'name']),
+            'contacts' => Contact::with('company:id,name')->orderBy('name')->get(['id', 'name', 'company_id']),
+            'pipeline_stages' => PipelineStage::orderBy('sort_order')->get(['id', 'name']),
+            'media_assets' => MediaAsset::orderByDesc('captured_at')->get(['id', 'title', 'type', 'captured_at']),
             'invoices' => Invoice::orderByDesc('invoice_date')->get(['id', 'invoice_number']),
         ]);
     }
@@ -172,6 +181,12 @@ class CrudController extends Controller
             $data['reported_by'] = $data['reported_by'] ?? $request->user()?->id;
             $data['status'] = $data['status'] ?? 'open';
             $data['type'] = $data['type'] ?? 'corrective';
+        }
+
+        if ($resource === 'channel_metrics') {
+            foreach (['reach', 'views', 'followers', 'website_visits', 'leads', 'engagement_rate'] as $metric) {
+                $data[$metric] = $data[$metric] ?? 0;
+            }
         }
 
         if ($resource === 'livestock' && empty($data['animal_id'])) {
@@ -539,16 +554,31 @@ class CrudController extends Controller
             ],
             'deals' => [
                 'model' => Deal::class,
-                'with' => ['company', 'stage'],
+                'with' => ['company', 'contact', 'stage'],
                 'search' => ['name', 'status', 'next_action'],
                 'rules' => [
                     'name' => 'required|string',
                     'company_id' => 'nullable|exists:companies,id',
-                    'amount' => 'nullable|numeric',
+                    'contact_id' => 'nullable|exists:contacts,id',
+                    'pipeline_stage_id' => 'nullable|exists:pipeline_stages,id',
+                    'amount' => 'nullable|numeric|min:0',
                     'close_date' => 'nullable|date',
                     'next_action' => 'nullable|string',
                     'next_action_date' => 'nullable|date',
-                    'status' => 'nullable|string',
+                    'status' => 'nullable|in:open,won,lost',
+                ],
+            ],
+            'sales' => [
+                'model' => SalesCull::class,
+                'with' => ['animal'],
+                'search' => ['type', 'buyer'],
+                'rules' => [
+                    'animal_id' => 'required|exists:animals,id',
+                    'type' => 'required|in:sale,cull',
+                    'event_date' => 'required|date',
+                    'amount' => 'nullable|numeric|min:0',
+                    'buyer' => 'nullable|string',
+                    'notes' => 'nullable|string',
                 ],
             ],
             'marketing' => [
@@ -562,7 +592,36 @@ class CrudController extends Controller
                     'status' => 'nullable|string',
                     'scheduled_for' => 'nullable|date',
                     'published_at' => 'nullable|date',
+                    'media_asset_id' => 'nullable|exists:media_assets,id',
                     'body' => 'nullable|string',
+                ],
+            ],
+            'campaigns' => [
+                'model' => Campaign::class,
+                'with' => [],
+                'search' => ['name', 'channel', 'status'],
+                'rules' => [
+                    'name' => 'required|string',
+                    'channel' => 'nullable|string',
+                    'start_date' => 'nullable|date',
+                    'end_date' => 'nullable|date',
+                    'status' => 'nullable|in:draft,active,paused,completed',
+                    'budget' => 'nullable|numeric|min:0',
+                ],
+            ],
+            'channel_metrics' => [
+                'model' => ChannelMetric::class,
+                'with' => [],
+                'search' => ['channel'],
+                'rules' => [
+                    'channel' => 'required|string',
+                    'metric_date' => 'required|date',
+                    'reach' => 'nullable|integer|min:0',
+                    'views' => 'nullable|integer|min:0',
+                    'followers' => 'nullable|integer|min:0',
+                    'website_visits' => 'nullable|integer|min:0',
+                    'leads' => 'nullable|integer|min:0',
+                    'engagement_rate' => 'nullable|numeric|min:0|max:100',
                 ],
             ],
             'risks' => [
