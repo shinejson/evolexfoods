@@ -787,20 +787,28 @@ class DatabaseSeeder extends Seeder
         ]);
 
         foreach ([
-            ['Low feed cover', 'warning', 'feed', 'Dairy mash cover is under 14 days.'],
-            ['Low stock: Ivermectin', 'warning', 'inventory', 'Quantity on hand is below reorder level.'],
-            ['Open disease cases', 'critical', 'health', '3 animals currently sick and under treatment.'],
-            ['Overdue maintenance', 'warning', 'maintenance', 'Water pump seal inspection is overdue.'],
-            ['Owner decision required', 'info', 'governance', '2 decisions waiting for ownership approval.'],
+            // [title, severity, module, message, type, read, hours ago]
+            ['Low feed cover', 'critical', 'feed', 'Dairy mash cover is under 14 days at current consumption.', 'low_feed_cover', false, 2],
+            ['Open disease cases', 'critical', 'health', '3 animals currently sick and under treatment.', 'open_disease_cases', false, 5],
+            ['Low stock: Ivermectin', 'warning', 'inventory', 'Quantity on hand is below reorder level.', 'low_stock', false, 9],
+            ['Overdue maintenance', 'warning', 'maintenance', 'Water pump seal inspection is overdue.', 'overdue_maintenance', false, 14],
+            ['Owner decision required', 'info', 'governance', '2 decisions waiting for ownership approval.', 'owner_decision_required', false, 20],
+            ['Purchase order approved', 'success', 'procurement', 'PO #1234 has been approved and released to the supplier.', 'purchase_order_approved', false, 26],
+            ['Vaccination campaign due', 'warning', 'health', 'Annual clostridial vaccination is due for 12 animals next week.', 'vaccination_due', false, 30],
+            ['New employee onboarding', 'info', 'hr', 'A new farm assistant starts Monday — complete onboarding tasks.', 'employee_onboarding', false, 36],
+            ['Invoice payment received', 'success', 'finance', 'Payment for invoice INV-2026-041 has been received.', 'payment_received', true, 44],
+            ['Heat detection window', 'info', 'breeding', '6 cows are entering the optimal insemination window.', 'heat_detection', true, 52],
+            ['Feed delivery scheduled', 'info', 'feed', 'Savanna Feeds delivery of 2.5T layers mash arrives Thursday.', 'feed_delivery', true, 60],
+            ['Sales cull approved', 'success', 'sales', 'Cull request for animal AX-0419 has been approved by the owner.', 'sales_cull_approved', true, 72],
         ] as $row) {
             Alert::create([
-                'type' => strtolower(str_replace(' ', '_', $row[0])),
+                'type' => $row[4],
                 'severity' => $row[1],
                 'title' => $row[0],
                 'message' => $row[3],
                 'module' => $row[2],
-                'is_read' => false,
-                'triggered_at' => now()->subHours(rand(1, 20)),
+                'is_read' => $row[5],
+                'triggered_at' => now()->subHours($row[6]),
             ]);
         }
 

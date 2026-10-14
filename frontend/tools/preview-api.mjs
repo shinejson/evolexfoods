@@ -45,7 +45,7 @@ const ALERTS = [
     message: 'Dairy mash cover is under 14 days at current consumption.',
     module: 'feed',
     is_read: false,
-    triggered_at: new Date(Date.now() - 3 * 3600_000).toISOString()
+    triggered_at: new Date(Date.now() - 2 * 3600_000).toISOString()
   },
   {
     id: 2,
@@ -55,25 +55,25 @@ const ALERTS = [
     message: '3 animals currently sick and under treatment.',
     module: 'health',
     is_read: false,
-    triggered_at: new Date(Date.now() - 6 * 3600_000).toISOString()
+    triggered_at: new Date(Date.now() - 5 * 3600_000).toISOString()
   },
   {
     id: 3,
-    type: 'overdue_maintenance',
-    severity: 'warning',
-    title: 'Overdue maintenance',
-    message: 'Water pump seal inspection is overdue.',
-    module: 'maintenance',
-    is_read: false,
-    triggered_at: new Date(Date.now() - 9 * 3600_000).toISOString()
-  },
-  {
-    id: 4,
     type: 'low_stock',
     severity: 'warning',
     title: 'Low stock: Ivermectin',
     message: 'Quantity on hand is below reorder level.',
     module: 'inventory',
+    is_read: false,
+    triggered_at: new Date(Date.now() - 9 * 3600_000).toISOString()
+  },
+  {
+    id: 4,
+    type: 'overdue_maintenance',
+    severity: 'warning',
+    title: 'Overdue maintenance',
+    message: 'Water pump seal inspection is overdue.',
+    module: 'maintenance',
     is_read: false,
     triggered_at: new Date(Date.now() - 14 * 3600_000).toISOString()
   },
@@ -86,8 +86,80 @@ const ALERTS = [
     module: 'governance',
     is_read: false,
     triggered_at: new Date(Date.now() - 20 * 3600_000).toISOString()
+  },
+  {
+    id: 6,
+    type: 'purchase_order_approved',
+    severity: 'success',
+    title: 'Purchase order approved',
+    message: 'PO #1234 has been approved and released to the supplier.',
+    module: 'procurement',
+    is_read: false,
+    triggered_at: new Date(Date.now() - 26 * 3600_000).toISOString()
+  },
+  {
+    id: 7,
+    type: 'vaccination_due',
+    severity: 'warning',
+    title: 'Vaccination campaign due',
+    message: 'Annual clostridial vaccination is due for 12 animals next week.',
+    module: 'health',
+    is_read: false,
+    triggered_at: new Date(Date.now() - 30 * 3600_000).toISOString()
+  },
+  {
+    id: 8,
+    type: 'employee_onboarding',
+    severity: 'info',
+    title: 'New employee onboarding',
+    message: 'A new farm assistant starts Monday — complete onboarding tasks.',
+    module: 'hr',
+    is_read: false,
+    triggered_at: new Date(Date.now() - 36 * 3600_000).toISOString()
+  },
+  {
+    id: 9,
+    type: 'payment_received',
+    severity: 'success',
+    title: 'Invoice payment received',
+    message: 'Payment for invoice INV-2026-041 has been received.',
+    module: 'finance',
+    is_read: true,
+    triggered_at: new Date(Date.now() - 44 * 3600_000).toISOString()
+  },
+  {
+    id: 10,
+    type: 'heat_detection',
+    severity: 'info',
+    title: 'Heat detection window',
+    message: '6 cows are entering the optimal insemination window.',
+    module: 'breeding',
+    is_read: true,
+    triggered_at: new Date(Date.now() - 52 * 3600_000).toISOString()
+  },
+  {
+    id: 11,
+    type: 'feed_delivery',
+    severity: 'info',
+    title: 'Feed delivery scheduled',
+    message: 'Savanna Feeds delivery of 2.5T layers mash arrives Thursday.',
+    module: 'feed',
+    is_read: true,
+    triggered_at: new Date(Date.now() - 60 * 3600_000).toISOString()
+  },
+  {
+    id: 12,
+    type: 'sales_cull_approved',
+    severity: 'success',
+    title: 'Sales cull approved',
+    message: 'Cull request for animal AX-0419 has been approved by the owner.',
+    module: 'sales',
+    is_read: true,
+    triggered_at: new Date(Date.now() - 72 * 3600_000).toISOString()
   }
 ];
+
+let nextAlertId = ALERTS.reduce((max, alert) => Math.max(max, alert.id), 0) + 1;
 
 function isoDay(date) {
   return date.toISOString().slice(0, 10);
@@ -1151,6 +1223,156 @@ const server = createServer((req, res) => {
 
       json(res, 405, { message: `Method ${req.method} not allowed` });
     });
+    return;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Notification centre (mirrors NotificationController)              */
+  /* ---------------------------------------------------------------- */
+  const notificationSummary = () => {
+    const bySeverity = {};
+    const byModule = {};
+    for (const alert of ALERTS) {
+      bySeverity[alert.severity] = (bySeverity[alert.severity] ?? 0) + 1;
+      const key = alert.module ?? 'general';
+      byModule[key] = (byModule[key] ?? 0) + 1;
+    }
+    return {
+      total: ALERTS.length,
+      unread: ALERTS.filter((alert) => !alert.is_read).length,
+      read: ALERTS.filter((alert) => alert.is_read).length,
+      by_severity: bySeverity,
+      by_module: byModule,
+      last_24h: ALERTS.filter((alert) => Date.now() - new Date(alert.triggered_at).getTime() < 24 * 3600_000).length
+    };
+  };
+
+  const notificationMatch = path.match(/^\/api\/v1\/notifications(?:\/(\d+)(?:\/(read|unread))?)?$/);
+  if (path === '/api/v1/notifications/stats' && req.method === 'GET') {
+    json(res, 200, notificationSummary());
+    return;
+  }
+  if (path === '/api/v1/notifications/unread-count' && req.method === 'GET') {
+    json(res, 200, { count: ALERTS.filter((alert) => !alert.is_read).length });
+    return;
+  }
+  if (path === '/api/v1/notifications/read-all' && req.method === 'POST') {
+    for (const alert of ALERTS) alert.is_read = true;
+    json(res, 200, { updated: ALERTS.length, count: 0 });
+    return;
+  }
+  if (path === '/api/v1/notifications' && req.method === 'DELETE') {
+    const status = url.searchParams.get('status') ?? 'read';
+    const before = ALERTS.length;
+    const kept = ALERTS.filter((alert) => {
+      if (status === 'all') return false;
+      if (status === 'unread') return alert.is_read;
+      return !alert.is_read;
+    });
+    ALERTS.length = 0;
+    ALERTS.push(...kept);
+    json(res, 200, { deleted: before - kept.length, count: ALERTS.filter((item) => !item.is_read).length });
+    return;
+  }
+  if (notificationMatch) {
+    const id = notificationMatch[1] ? Number(notificationMatch[1]) : null;
+    const action = notificationMatch[2] ?? null;
+
+    if (req.method === 'GET' && !id) {
+      const status = url.searchParams.get('status') ?? 'all';
+      const severity = url.searchParams.get('severity');
+      const module = url.searchParams.get('module');
+      const q = (url.searchParams.get('q') ?? '').toLowerCase();
+      const from = url.searchParams.get('from');
+      const to = url.searchParams.get('to');
+      const perPage = Math.min(Math.max(Number(url.searchParams.get('per_page') ?? 15) || 15, 1), 100);
+      const page = Math.max(Number(url.searchParams.get('page') ?? 1) || 1, 1);
+
+      const filtered = [...ALERTS]
+        .filter((alert) => status === 'all' || (status === 'unread' ? !alert.is_read : alert.is_read))
+        .filter((alert) => !severity || alert.severity === severity)
+        .filter((alert) => !module || alert.module === module)
+        .filter((alert) => {
+          if (!q) return true;
+          return [alert.title, alert.message, alert.type, alert.module]
+            .filter(Boolean)
+            .some((value) => String(value).toLowerCase().includes(q));
+        })
+        .filter((alert) => !from || alert.triggered_at.slice(0, 10) >= from)
+        .filter((alert) => !to || alert.triggered_at.slice(0, 10) <= to)
+        .sort((a, b) => (a.triggered_at === b.triggered_at ? b.id - a.id : a.triggered_at < b.triggered_at ? 1 : -1));
+
+      const lastPage = Math.max(Math.ceil(filtered.length / perPage), 1);
+      const start = (Math.min(page, lastPage) - 1) * perPage;
+      json(res, 200, {
+        data: filtered.slice(start, start + perPage),
+        meta: {
+          total: filtered.length,
+          count: Math.min(perPage, Math.max(filtered.length - start, 0)),
+          per_page: perPage,
+          current_page: Math.min(page, lastPage),
+          last_page: lastPage
+        },
+        summary: notificationSummary()
+      });
+      return;
+    }
+
+    if (req.method === 'POST' && !id) {
+      let raw = '';
+      req.on('data', (chunk) => (raw += chunk));
+      req.on('end', () => {
+        let body = {};
+        try {
+          body = JSON.parse(raw || '{}');
+        } catch {
+          json(res, 422, { message: 'Invalid JSON body' });
+          return;
+        }
+        if (!body.title || !String(body.title).trim()) {
+          json(res, 422, { message: 'The title field is required.' });
+          return;
+        }
+        const created = {
+          id: nextAlertId++,
+          type: body.type ?? 'announcement',
+          severity: body.severity ?? 'info',
+          title: String(body.title).trim(),
+          message: body.message ?? null,
+          module: body.module ?? 'general',
+          is_read: false,
+          triggered_at: body.triggered_at ?? new Date().toISOString()
+        };
+        ALERTS.unshift(created);
+        json(res, 201, created);
+      });
+      return;
+    }
+
+    const alert = id ? ALERTS.find((item) => item.id === id) : null;
+    if (id && !alert) {
+      json(res, 404, { message: 'Not found' });
+      return;
+    }
+
+    if (req.method === 'GET' && alert) {
+      json(res, 200, alert);
+      return;
+    }
+
+    if (req.method === 'PATCH' && alert && (action === 'read' || action === 'unread')) {
+      alert.is_read = action === 'read';
+      json(res, 200, alert);
+      return;
+    }
+
+    if (req.method === 'DELETE' && alert) {
+      ALERTS.splice(ALERTS.indexOf(alert), 1);
+      json(res, 200, { deleted: true, count: ALERTS.filter((item) => !item.is_read).length });
+      return;
+    }
+
+    json(res, 405, { message: `Method ${req.method} not allowed` });
     return;
   }
 

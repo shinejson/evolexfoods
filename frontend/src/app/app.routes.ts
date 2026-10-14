@@ -19,6 +19,7 @@ export const routes: Routes = [
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'ceo' },
       { path: 'hub', component: HubComponent },
+      { path: 'notifications', loadComponent: () => import('./features/notifications/notifications.component').then((module) => module.NotificationsComponent) },
       { path: 'ceo', component: CeoComponent },
       { path: 'livestock', component: LivestockComponent },
       { path: 'health', component: HealthComponent, data: { tab: 'cases' } },
