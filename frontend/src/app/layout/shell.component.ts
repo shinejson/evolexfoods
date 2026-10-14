@@ -1,8 +1,8 @@
-import { Component, HostListener } from '@angular/core';
+import { Component, HostListener, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { NgClass, NgFor, NgIf, NgSwitch, NgSwitchCase } from '@angular/common';
+import { CommonModule, NgClass, NgFor, NgIf, NgSwitch, NgSwitchCase } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { AuthService } from '../core/services/auth.service';
+import { AuthService, TwoFactorSetupResponse, TwoFaMethod } from '../core/services/auth.service';
 
 interface Notification {
   id: number;
@@ -20,7 +20,7 @@ interface Notification {
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss'
 })
-export class ShellComponent {
+export class ShellComponent implements OnInit {
   sidebarCollapsed = false;
   darkMode = false;
   showNotifications = false;
@@ -28,6 +28,24 @@ export class ShellComponent {
   searchQuery = '';
   notificationCount = 3;
   activePopupGroup: any = null;
+
+  // ─── 2FA Mandatory Modal ───────────────────────────────────────────────────
+  showTwoFactorModal = false;
+  twoFactorSetup: TwoFactorSetupResponse | null = null;
+  twoFactorActivationCode = '';
+  twoFactorActivating = false;
+  twoFactorError = '';
+  twoFactorSuccess = false;
+  copiedKey = false;
+  copiedCodes = false;
+
+  // Multi-method activation
+  shellActivationStep: 'select-method' | 'send-otp' | 'verify' = 'select-method';
+  shellSelectedMethod: TwoFaMethod = 'totp';
+  shellOtpSent = false;
+  shellOtpSending = false;
+  shellOtpSendHint = '';
+
   
   notifications: Notification[] = [
     {
@@ -132,6 +150,7 @@ export class ShellComponent {
         { path: '/risks', label: 'Risks', icon: 'risks' },
         { path: '/decisions', label: 'Decisions', icon: 'decisions' },
         { path: '/sops', label: 'SOPs', icon: 'sops' },
+        { path: '/roles', label: 'Roles & Permissions', icon: 'settings' },
         { path: '/settings', label: 'System Settings', icon: 'settings' }
       ]
     }
@@ -143,6 +162,115 @@ export class ShellComponent {
     if (savedDarkMode) {
       this.darkMode = savedDarkMode === 'true';
     }
+  }
+
+  ngOnInit(): void {
+    this.checkTwoFactorStatus();
+    this.auth.user$.subscribe(() => {
+      this.checkTwoFactorStatus();
+    });
+  }
+
+  checkTwoFactorStatus(): void {
+    if (this.auth.user && !this.auth.user.two_factor_enabled) {
+      this.showTwoFactorModal = true;
+      this.shellActivationStep = 'select-method';
+      this.shellSelectedMethod = 'totp';
+      this.shellOtpSent = false;
+      this.twoFactorActivationCode = '';
+      this.twoFactorError = '';
+      this.loadTwoFactorSetup();
+    }
+  }
+
+  loadTwoFactorSetup(): void {
+    this.auth.setup2fa().subscribe({
+      next: (data) => { this.twoFactorSetup = data; },
+      error: (err)  => { console.error('Failed to load 2FA setup in shell:', err); }
+    });
+  }
+
+  shellSelectMethod(m: TwoFaMethod): void {
+    this.shellSelectedMethod = m;
+  }
+
+  shellProceedToVerify(): void {
+    this.twoFactorActivationCode = '';
+    this.twoFactorError = '';
+    this.shellOtpSent = false;
+    this.shellOtpSendHint = '';
+    this.shellActivationStep = this.shellSelectedMethod === 'totp' ? 'verify' : 'send-otp';
+  }
+
+  shellSendOtp(): void {
+    if (this.shellOtpSending) return;
+    this.shellOtpSending = true;
+    this.twoFactorError  = '';
+    this.auth.sendOtp(this.shellSelectedMethod as 'email' | 'whatsapp').subscribe({
+      next: (res) => {
+        this.shellOtpSending    = false;
+        this.shellOtpSent       = true;
+        this.shellOtpSendHint   = res.message;
+        this.shellActivationStep = 'verify';
+      },
+      error: (err) => {
+        this.shellOtpSending = false;
+        this.twoFactorError  = err?.error?.message || 'Failed to send code. Please try again.';
+      }
+    });
+  }
+
+  shellBackToSelect(): void {
+    this.shellActivationStep = 'select-method';
+    this.twoFactorActivationCode = '';
+    this.twoFactorError = '';
+    this.shellOtpSent = false;
+  }
+
+  submitTwoFactorActivation(): void {
+    if (!this.twoFactorActivationCode || this.twoFactorActivationCode.trim().length < 6) {
+      this.twoFactorError = 'Please enter a valid 6-digit verification code.';
+      return;
+    }
+
+    this.twoFactorActivating = true;
+    this.twoFactorError = '';
+
+    this.auth.activate2fa(this.twoFactorActivationCode.trim(), this.shellSelectedMethod).subscribe({
+      next: () => {
+        this.twoFactorActivating = false;
+        this.twoFactorSuccess = true;
+        setTimeout(() => {
+          this.showTwoFactorModal = false;
+          this.twoFactorSuccess = false;
+        }, 1500);
+      },
+      error: (err) => {
+        this.twoFactorActivating = false;
+        this.twoFactorError = err?.error?.message || 'Invalid verification code. Please try again.';
+      }
+    });
+  }
+
+  copySecretKey(): void {
+    if (this.twoFactorSetup?.secret) {
+      navigator.clipboard.writeText(this.twoFactorSetup.secret);
+      this.copiedKey = true;
+      setTimeout(() => this.copiedKey = false, 2500);
+    }
+  }
+
+  copyRecoveryCodes(): void {
+    if (this.twoFactorSetup?.recovery_codes) {
+      navigator.clipboard.writeText(this.twoFactorSetup.recovery_codes.join('\n'));
+      this.copiedCodes = true;
+      setTimeout(() => this.copiedCodes = false, 2500);
+    }
+  }
+
+  get shellMethodLabel(): string {
+    const map: Record<TwoFaMethod, string> = { totp: 'Authenticator App', email: 'Email', whatsapp: 'WhatsApp' };
+    return map[this.shellSelectedMethod];
   }
 
   @HostListener('document:click', ['$event'])

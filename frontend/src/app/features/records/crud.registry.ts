@@ -2478,7 +2478,7 @@ export const CRUD_RESOURCES: Record<string, ResourceDef> = {
       {
         key: 'title',
         label: 'Risk & Mitigation Strategy',
-        render: (row) => `<strong>${row.title}</strong>${row.mitigation ? `<div class="sub-text"><span style="color:#b45309;font-weight:600;">Mitigation:</span> ${row.mitigation}</div>` : ''}`
+        render: (row) => `<strong>${row.title}</strong>${row.mitigation ? `<div class="sub-text"><span style="color:var(--warn-text);font-weight:600;">Mitigation:</span> ${row.mitigation}</div>` : ''}`
       },
       {
         key: 'category',
@@ -2506,7 +2506,7 @@ export const CRUD_RESOURCES: Record<string, ResourceDef> = {
       {
         key: 'owner',
         label: 'Risk Owner',
-        render: (row) => row.owner?.name ? `<span style="font-weight:600;color:#1e293b;">${row.owner.name}</span>${row.owner.role ? `<div class="sub-text">${row.owner.role.replace('_', ' ')}</div>` : ''}` : '<span class="sub-text">Unassigned</span>'
+        render: (row) => row.owner?.name ? `<span style="font-weight:600;color:var(--text-strong);">${row.owner.name}</span>${row.owner.role ? `<div class="sub-text">${row.owner.role.replace('_', ' ')}</div>` : ''}` : '<span class="sub-text">Unassigned</span>'
       },
       {
         key: 'identified_at',
@@ -2759,7 +2759,7 @@ export const CRUD_RESOURCES: Record<string, ResourceDef> = {
       {
         key: 'owner',
         label: 'Decision Authority',
-        render: (row) => row.owner?.name ? `<span style="font-weight:600;color:#1e293b;">${row.owner.name}</span><div class="sub-text">Ownership / Exec</div>` : '<span class="sub-text">Unassigned Owner</span>'
+        render: (row) => row.owner?.name ? `<span style="font-weight:600;color:var(--text-strong);">${row.owner.name}</span><div class="sub-text">Ownership / Exec</div>` : '<span class="sub-text">Unassigned Owner</span>'
       },
       {
         key: 'due_date',
@@ -2784,7 +2784,7 @@ export const CRUD_RESOURCES: Record<string, ResourceDef> = {
       {
         key: 'decision_notes',
         label: 'Decision Notes / Outcome',
-        render: (row) => row.decision_notes ? `<span class="sub-text" style="color:#0f172a;">${row.decision_notes}</span>` : '<span class="sub-text">Pending outcome</span>'
+        render: (row) => row.decision_notes ? `<span class="sub-text" style="color:var(--text-strong);">${row.decision_notes}</span>` : '<span class="sub-text">Pending outcome</span>'
       }
     ],
     fields: [
@@ -2955,7 +2955,7 @@ export const CRUD_RESOURCES: Record<string, ResourceDef> = {
       {
         key: 'version',
         label: 'Version',
-        render: (row) => `<span style="font-weight:600;color:#334155;">v${row.version || '1.0'}</span>`
+        render: (row) => `<span style="font-weight:600;color:var(--text-strong);">v${row.version || '1.0'}</span>`
       },
       {
         key: 'status',

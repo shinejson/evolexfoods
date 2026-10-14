@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, HostListener, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { NgClass, NgFor, NgIf } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
@@ -33,11 +33,19 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
   form: Record<string, any> = {};
   editingId: number | null = null;
   showForm = false;
+  saving = false;
   message = '';
   error = '';
   table: any;
   viewReady = false;
   private clickBound = false;
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.showForm) {
+      this.cancel();
+    }
+  }
 
   // Filter & Search states
   searchQuery = '';
@@ -332,6 +340,8 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   save(): void {
+    this.saving = true;
+    this.error = '';
     const payload: Record<string, any> = {};
     this.def.fields.forEach((field) => {
       const value = this.form[field.key];
@@ -344,12 +354,14 @@ export class CrudPageComponent implements OnInit, AfterViewInit, OnDestroy {
 
     req.subscribe({
       next: () => {
+        this.saving = false;
         this.message = this.editingId ? 'Record updated.' : 'Record created.';
         this.showForm = false;
         this.load();
         this.loadLookups();
       },
       error: (err) => {
+        this.saving = false;
         const errors = err?.error?.errors;
         this.error = errors ? Object.values(errors).flat().join(' ') : (err?.error?.message || 'Could not save this record.');
       }

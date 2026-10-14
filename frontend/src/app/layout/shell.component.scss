@@ -423,9 +423,10 @@ nav {
     width: 100%;
     height: 40px;
     padding: 0 40px 0 40px;
-    border: 1px solid #d4cfc4;
+    border: 1px solid var(--line);
     border-radius: 10px;
-    background: white;
+    background: var(--input-bg);
+    color: var(--ink);
     font-size: 14px;
     outline: none;
     transition: all 0.2s ease;
@@ -436,7 +437,7 @@ nav {
     }
     
     &::placeholder {
-      color: #999;
+      color: var(--ink-soft);
     }
   }
   
@@ -678,18 +679,18 @@ nav {
   }
   
   &.success {
-    background: #e8f5e9;
-    color: #388e3c;
+    background: var(--tint-ok-bg);
+    color: var(--ok-text);
   }
   
   &.warning {
-    background: #fff3e0;
-    color: #f57c00;
+    background: var(--tint-warn-bg);
+    color: var(--warn-text);
   }
   
   &.error {
-    background: #ffebee;
-    color: #d32f2f;
+    background: var(--tint-danger-bg);
+    color: var(--danger-text);
   }
 }
 
@@ -921,7 +922,7 @@ nav {
   
   &.active {
     background: rgba(52, 92, 64, 0.08);
-    color: var(--moss);
+    color: var(--moss-text);
     font-weight: 600;
     
     .dark-mode & {
@@ -933,4 +934,336 @@ nav {
     width: 18px;
     height: 18px;
   }
+}
+
+/* 2FA Mandatory Modal in Shell */
+.modal-backdrop-shell {
+  position: fixed;
+  inset: 0;
+  background: rgba(18, 30, 20, 0.85);
+  backdrop-filter: blur(8px);
+  z-index: 99999;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.activation-modal-shell {
+  width: min(600px, 94vw);
+  background: var(--paper-2, #fffdf8);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--line, #d9d0bf);
+  color: var(--ink, #1b2416);
+  animation: modalPopIn 0.25s ease-out;
+
+  .modal-header-shell {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--line, #d9d0bf);
+    margin-bottom: 20px;
+
+    .modal-icon-badge-shell {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: #e9f2ea;
+      color: #2f6b45;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      svg { width: 24px; height: 24px; }
+    }
+
+    .modal-eyebrow-shell {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: #b45a3c;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    h2 {
+      font-family: 'Fraunces', Georgia, serif;
+      font-size: 21px;
+      margin: 0 0 6px;
+      color: #1c2e1f;
+    }
+
+    p {
+      font-size: 13px;
+      color: #3d4a36;
+      line-height: 1.45;
+      margin: 0;
+    }
+  }
+
+  .setup-step-shell {
+    display: flex;
+    gap: 14px;
+    margin-bottom: 20px;
+
+    .step-num-shell {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #2f4a32;
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .step-content-shell {
+      flex: 1;
+
+      h4 {
+        margin: 0 0 4px;
+        font-size: 14.5px;
+        font-weight: 700;
+        color: #1c2e1f;
+      }
+
+      p {
+        margin: 0 0 8px;
+        font-size: 12.5px;
+        color: #3d4a36;
+      }
+    }
+  }
+
+  .secret-box-shell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #f4efe4;
+    border: 1px solid #d9d0bf;
+    border-radius: 8px;
+    padding: 8px 12px;
+
+    .secret-val-shell {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+    }
+
+    .btn-copy-shell {
+      padding: 5px 10px;
+      font-size: 11.5px;
+      border-radius: 6px;
+      background: #fff;
+      border: 1px solid #cbbeaa;
+      font-weight: 600;
+      cursor: pointer;
+      &:hover { background: #faf6ee; }
+    }
+  }
+
+  .input-row-shell {
+    display: flex;
+    gap: 10px;
+
+    .code-input-shell {
+      width: 140px;
+      padding: 9px 12px;
+      font-size: 17px;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: 0.15em;
+      border-radius: 8px;
+      border: 1px solid #d9d0bf;
+      background: #fff;
+    }
+
+    .btn-activate-shell {
+      flex: 1;
+      padding: 9px 14px;
+      border-radius: 8px;
+      background: #2f4a32;
+      color: #fff;
+      border: 1px solid #1c2e1f;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+
+      &:hover:not(:disabled) { background: #1c2e1f; }
+      &:disabled { opacity: 0.6; cursor: not-allowed; }
+    }
+  }
+
+  .err-text-shell {
+    color: #9b2f2f;
+    font-size: 12px;
+    font-weight: 600;
+    margin: 6px 0 0;
+  }
+
+  .hint-shell {
+    display: block;
+    font-size: 11px;
+    color: #5d7a4d;
+    margin-top: 4px;
+  }
+
+  .recovery-header-shell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+
+    h4 { margin: 0; font-size: 14px; }
+    .btn-copy-sm-shell {
+      padding: 3px 8px;
+      font-size: 11px;
+      border-radius: 4px;
+      background: #fff;
+      border: 1px solid #cbbeaa;
+      cursor: pointer;
+    }
+  }
+
+  .recovery-grid-shell {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 6px;
+    background: #f4efe4;
+    border: 1px solid #d9d0bf;
+    border-radius: 8px;
+    padding: 8px 10px;
+
+    .recovery-code-shell {
+      font-size: 11.5px;
+      font-weight: 600;
+    }
+  }
+
+  .activation-success-shell {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: #e9f2ea;
+    border: 1px solid #b7d6bb;
+    border-radius: 12px;
+    padding: 16px;
+    color: #2f6b45;
+
+    svg { width: 28px; height: 28px; flex-shrink: 0; }
+    strong { display: block; font-size: 15px; margin-bottom: 2px; }
+    p { margin: 0; font-size: 12.5px; color: #275637; }
+  }
+
+  .spinner-sm-shell {
+    width: 13px;
+    height: 13px;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+  }
+}
+
+@keyframes modalPopIn {
+  from { opacity: 0; transform: scale(0.96) translateY(12px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+
+
+// ─── Shell 2FA Method Cards (appended) ───────────────────────────────────────
+.method-cards-shell {
+  display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px;
+}
+
+.method-card-shell {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px;
+  border: 2px solid #e0d9cc; border-radius: 12px; cursor: pointer; background: white;
+  transition: all 0.18s;
+  &:hover   { border-color: var(--moss); background: #f6faf5; }
+  &.selected{ border-color: var(--forest); background: #f0f7f0; }
+}
+.mcr-shell {
+  flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%; border: 2px solid #ccc;
+  display: flex; align-items: center; justify-content: center;
+  .selected & { border-color: var(--forest); }
+}
+.mcdot-shell {
+  width: 9px; height: 9px; border-radius: 50%; background: transparent;
+  &.active { background: var(--forest); }
+}
+.mci-shell {
+  flex-shrink: 0; width: 38px; height: 38px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  svg { width: 18px; height: 18px; }
+  &.totp-icon-shell  { background: #e8f0e8; color: var(--forest); }
+  &.email-icon-shell { background: #e8eef8; color: #3366cc; }
+  &.wa-icon-shell    { background: #e6f7ec; color: #25d366; }
+}
+.mcinfo-shell {
+  flex: 1;
+  strong { display: block; font-size: 13px; font-weight: 600; color: var(--forest); margin-bottom: 2px; }
+  span   { display: block; font-size: 11px; color: #777; margin-bottom: 4px; }
+}
+.mcbadge-shell {
+  display: inline-block; font-size: 9px; font-weight: 700; font-style: normal;
+  padding: 2px 7px; border-radius: 20px; background: #f0f0f0; color: #555;
+  text-transform: uppercase; letter-spacing: 0.4px;
+  &.rec-shell { background: #fff4e0; color: #b07a00; }
+}
+
+.shell-step-title {
+  font-family: var(--font-heading, serif); font-size: 16px; color: var(--forest);
+  margin-bottom: 10px; font-weight: 600;
+}
+
+// Send OTP panel in shell
+.send-otp-panel-shell {
+  text-align: center; padding: 16px 12px;
+  h3 { font-family: var(--font-heading, serif); font-size: 16px; color: var(--forest); margin: 12px 0 8px; }
+  p  { color: #666; font-size: 13px; margin-bottom: 18px; }
+}
+.send-otp-icon-shell {
+  width: 56px; height: 56px; border-radius: 14px;
+  display: flex; align-items: center; justify-content: center; margin: 0 auto 10px;
+  svg { width: 26px; height: 26px; }
+  &.email-icon-shell { background: #e8eef8; color: #3366cc; }
+  &.wa-icon-shell    { background: #e6f7ec; color: #25d366; }
+}
+
+// OTP Sent Banner
+.otp-sent-banner-shell {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 12px; background: #f0f7f0; border: 1.5px solid #c0dfc0;
+  border-radius: 8px; font-size: 12px; color: #2d6a2d; margin-bottom: 14px;
+  svg { width: 14px; height: 14px; flex-shrink: 0; }
+}
+
+// Back link in shell
+.back-link-shell {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: none; border: none; color: var(--moss); font-size: 12px;
+  cursor: pointer; margin-bottom: 14px; padding: 0;
+  &:hover { color: var(--forest); }
+}
+
+// Resend shell link
+.resend-shell-link {
+  display: inline-block; margin-top: 8px; font-size: 11px; color: var(--moss);
+  text-decoration: underline; background: none; border: none; cursor: pointer; padding: 0;
+  &:hover   { color: var(--forest); }
+  &:disabled { opacity: 0.5; cursor: not-allowed; }
 }

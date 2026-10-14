@@ -18,6 +18,133 @@
   --warn: #b5812a;
   --shadow: 0 10px 30px rgba(28, 46, 31, 0.08);
   --radius: 18px;
+
+  /* ---- Surface tokens -------------------------------------------------
+     Cards, tables, form controls and hovers read these. Dark mode simply
+     re-declares them on `.shell.dark-mode` (see below), so every page that
+     uses var() repaints without per-component dark rules. */
+  --surface: #ffffff;
+  --surface-paper: #fffdf8;
+  --surface-soft: #fbf7ee;
+  --surface-mute: #f4f4f1;
+  --surface-sunk: #f6f2e8;
+  --table-head: #f7f1e4;
+  --table-line: #ece4d3;
+  --row-hover: #fbf7ee;
+  --input-bg: #ffffff;
+  --hover-bg: #f2ece0;
+  --hairline: #e5e3dc;
+
+  /* ---- Text shades ---- */
+  --text-strong: #1e293b;
+  --text-muted: #64748b;
+  --text-label: #475569;
+  --text-faint: #8c8f86;
+
+  /* ---- Accent text (legible on the current surface) ---- */
+  --forest-text: #2f4a32;
+  --moss-text: #5d7a4d;
+  --warn-text: #b45309;
+  --danger-text: #dc2626;
+  --info-text: #0284c7;
+  --ok-text: #16a34a;
+
+  /* ---- Semantic card tints ---- */
+  --tint-danger-bg: #fef2f2;
+  --tint-danger-fg: #991b1b;
+  --tint-danger-border: #fecaca;
+  --tint-warn-bg: #fffbeb;
+  --tint-warn-fg: #92400e;
+  --tint-warn-border: #fde68a;
+  --tint-ok-bg: #f0fdf4;
+  --tint-ok-fg: #166534;
+  --tint-ok-border: #bbf7d0;
+  --tint-info-bg: #f0f9ff;
+  --tint-info-fg: #0369a1;
+  --tint-info-border: #bae6fd;
+  --tint-accent-bg: #f3e8ff;
+  --tint-accent-fg: #6b21a8;
+  --tint-accent-border: #e9d5ff;
+}
+
+/* ---------------------------------------------------------------------------
+   Dark mode.
+   The shell toggles `.dark-mode` on its root element. Custom properties
+   inherit, so re-declaring the palette here reaches every card, table, chip
+   and form control inside the shell — including component-scoped styles
+   that resolve var().
+--------------------------------------------------------------------------- */
+.shell.dark-mode {
+  color-scheme: dark;
+
+  --ink: #ebe9e2;
+  --ink-soft: #a9ada2;
+  --paper: #161616;
+  --paper-2: #1f1f1f;
+  --line: #343434;
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+
+  --surface: #262626;
+  --surface-paper: #212121;
+  --surface-soft: #2a2a2a;
+  --surface-mute: #242424;
+  --surface-sunk: #1a1a1a;
+  --table-head: #262626;
+  --table-line: #343434;
+  --row-hover: #2c2c2c;
+  --input-bg: #1c1c1c;
+  --hover-bg: #2e2e2e;
+  --hairline: #353535;
+
+  --text-strong: #e9e9e9;
+  --text-muted: #a3a3a3;
+  --text-label: #b5b5b5;
+  --text-faint: #85877e;
+
+  --forest-text: #93c29b;
+  --moss-text: #a3c291;
+  --warn-text: #e5a54e;
+  --danger-text: #f0918a;
+  --info-text: #7cc7ee;
+  --ok-text: #7ed39b;
+
+  --tint-danger-bg: #33201f;
+  --tint-danger-fg: #f2a49d;
+  --tint-danger-border: #5c3330;
+  --tint-warn-bg: #34291a;
+  --tint-warn-fg: #ecc37a;
+  --tint-warn-border: #5e4a22;
+  --tint-ok-bg: #17281d;
+  --tint-ok-fg: #8fd6a4;
+  --tint-ok-border: #2c4a35;
+  --tint-info-bg: #16262f;
+  --tint-info-fg: #8ec7ee;
+  --tint-info-border: #2b4759;
+  --tint-accent-bg: #2b2136;
+  --tint-accent-fg: #d0aef5;
+  --tint-accent-border: #453460;
+
+  /* DataTables theme variables (dataTables.dataTables.min.css ships a
+     `:root.dark` palette — mirror it here since we toggle a subtree
+     instead of <html>). */
+  --dt-html_background: rgb(33, 37, 41);
+  --dt-row_background-stripe: 255, 255, 255;
+  --dt-row_background-hover: 255, 255, 255;
+  --dt-column-ordering_background: 255, 255, 255;
+  --dt-header_border: 1px solid rgba(255, 255, 255, 0.16);
+  --dt-body_border: 1px solid rgba(255, 255, 255, 0.1);
+  --dt-order-arrow_color: rgb(229, 233, 238);
+  --dt-order-arrow_color-current: rgb(229, 233, 238);
+  --dt-order-header_outline-hover: 2px solid rgba(255, 255, 255, 0.08);
+  --dt-input_border: 1px solid rgba(255, 255, 255, 0.22);
+  --dt-input_background: #1c1c1c;
+  --dt-control_color: #cfcfcf;
+  --dt-paging-button_color-disabled: rgba(255, 255, 255, 0.25);
+  --dt-paging-button_background-current: rgba(255, 255, 255, 0.08);
+  --dt-paging-button_border-current: 1px solid rgba(255, 255, 255, 0.18);
+  --dt-paging-button_background-current-hover: rgba(255, 255, 255, 0.14);
+  --dt-paging-button_border-current-hover: 1px solid rgba(255, 255, 255, 0.3);
+  --dt-paging-button_background-hover: rgba(255, 255, 255, 0.1);
 }
 
 * { box-sizing: border-box; }
@@ -160,7 +287,7 @@ th {
 
 td {
   padding: 10px;
-  border-bottom: 1px solid #eee6d6;
+  border-bottom: 1px solid var(--table-line);
   vertical-align: top;
 }
 
@@ -174,12 +301,12 @@ td {
   letter-spacing: 0.04em;
 }
 
-.badge.open, .badge.pending, .badge.pending_owner, .badge.warning { background: #f6e4c4; color: #7a5410; }
-.badge.alive, .badge.active, .badge.approved, .badge.present, .badge.published, .badge.ok { background: #dcecdc; color: #215534; }
-.badge.dead, .badge.critical, .badge.high, .badge.overdue, .badge.absent { background: #f3d4d0; color: #7a241c; }
-.badge.sick, .badge.in_progress { background: #f7e0c9; color: #8a4b12; }
-.badge.female { background: #eadff0; color: #5b3b6e; }
-.badge.male { background: #d7e7f0; color: #24515f; }
+.badge.open, .badge.pending, .badge.pending_owner, .badge.warning { background: var(--tint-warn-bg); color: var(--tint-warn-fg); }
+.badge.alive, .badge.active, .badge.approved, .badge.present, .badge.published, .badge.ok { background: var(--tint-ok-bg); color: var(--tint-ok-fg); }
+.badge.dead, .badge.critical, .badge.high, .badge.overdue, .badge.absent { background: var(--tint-danger-bg); color: var(--tint-danger-fg); }
+.badge.sick, .badge.in_progress { background: var(--tint-warn-bg); color: var(--tint-warn-fg); }
+.badge.female { background: var(--tint-accent-bg); color: var(--tint-accent-fg); }
+.badge.male { background: var(--tint-info-bg); color: var(--tint-info-fg); }
 
 /* Icon-only row actions. Global because DataTables renders this markup outside
    any Angular component view, so component-scoped styles cannot reach it. */
@@ -214,8 +341,8 @@ td {
 
 .icon-btn:hover {
   border-color: var(--line);
-  background: #f2ece0;
-  color: var(--forest);
+  background: var(--hover-bg);
+  color: var(--forest-text);
 }
 
 .icon-btn:focus-visible {
@@ -224,9 +351,9 @@ td {
 }
 
 .icon-btn--danger:hover {
-  border-color: #e6c3bb;
-  background: #fbeae7;
-  color: var(--danger);
+  border-color: var(--tint-danger-border);
+  background: var(--tint-danger-bg);
+  color: var(--danger-text);
 }
 
 .actions {
@@ -237,7 +364,7 @@ td {
 
 .action {
   border: 1px solid var(--line);
-  background: #fbf7ee;
+  background: var(--surface-soft);
   border-radius: 14px;
   padding: 14px;
   cursor: pointer;
@@ -261,7 +388,8 @@ td {
 
 input:not([type="checkbox"]):not([type="radio"]), select {
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--input-bg);
+  color: var(--ink);
   border-radius: 10px;
   padding: 10px 12px;
   min-width: 160px;
@@ -279,7 +407,7 @@ input:not([type="checkbox"]):not([type="radio"]), select {
 
 .btn.ghost {
   background: transparent;
-  color: var(--forest);
+  color: var(--forest-text);
   border: 1px solid var(--line);
 }
 
@@ -292,15 +420,16 @@ div.dt-container .dt-length select {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 8px 10px;
-  background: #fff;
+  background: var(--input-bg);
+  color: var(--ink);
 }
 
 table.dataTable thead th {
-  background: #f7f1e4;
+  background: var(--table-head);
 }
 
 table.dataTable tbody tr:hover {
-  background: #fbf7ee;
+  background: var(--row-hover);
 }
 
 .empty {
@@ -321,4 +450,49 @@ table.dataTable tbody tr:hover {
   .main header { display: none !important; }
   .content { padding-top: 0 !important; }
   body { background: #fff; }
+}
+
+/* ---------------------------------------------------------------------------
+   Dark-mode refinements for accents that are hard-coded elsewhere.
+--------------------------------------------------------------------------- */
+html:has(.shell.dark-mode),
+html:has(.shell.dark-mode) body {
+  background: var(--paper);
+}
+
+.shell.dark-mode input::placeholder,
+.shell.dark-mode textarea::placeholder {
+  color: var(--ink-soft);
+  opacity: 1;
+}
+
+/* Form controls: force the inset dark surface regardless of component rules
+   (components hard-code white backgrounds in many places). */
+.shell.dark-mode input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.shell.dark-mode select,
+.shell.dark-mode textarea {
+  background-color: var(--input-bg) !important;
+  color: var(--ink) !important;
+  border-color: var(--line);
+}
+
+.shell.dark-mode select option {
+  background: var(--input-bg);
+  color: var(--ink);
+}
+
+.shell.dark-mode .icon-btn--danger:hover {
+  border-color: rgba(240, 145, 138, 0.45);
+  background: rgba(155, 47, 47, 0.18);
+  color: var(--danger-text);
+}
+
+.shell.dark-mode .btn.ghost:hover,
+.shell.dark-mode .btn-secondary:hover {
+  color: var(--forest-text);
+}
+
+.shell.dark-mode .empty,
+.shell.dark-mode .muted {
+  color: var(--ink-soft);
 }

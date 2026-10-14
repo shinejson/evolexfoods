@@ -1,18 +1,310 @@
 <div class="login">
   <div class="card">
     <div class="mark">EV</div>
-    <h1>Evolex Hub</h1>
-    <p>Sign in to the livestock, operations and CEO command center.</p>
-    <form (ngSubmit)="submit()">
-      <label>Email</label>
-      <select [(ngModel)]="email" name="email">
-        <option *ngFor="let account of accounts" [value]="account">{{ account }}</option>
-      </select>
-      <label>Password</label>
-      <input [(ngModel)]="password" name="password" type="password" />
-      <p class="err" *ngIf="error">{{ error }}</p>
-      <button class="btn" type="submit" [disabled]="loading">Enter Hub</button>
-    </form>
-    <p class="hint">Demo password for every role: password</p>
+
+    <!-- ════ STEP 1: CREDENTIALS ════════════════════════════════════════════ -->
+    <ng-container *ngIf="step === 'credentials'">
+      <h1>Evolex Hub</h1>
+      <p>Sign in to the livestock, operations and CEO command center.</p>
+
+      <form (ngSubmit)="submit()">
+        <label for="email">Account</label>
+        <select id="email" [(ngModel)]="email" name="email">
+          <option *ngFor="let account of accounts" [value]="account">{{ account }}</option>
+        </select>
+
+        <label for="password">Password</label>
+        <input id="password" [(ngModel)]="password" name="password" type="password" />
+
+        <p class="err" *ngIf="error">{{ error }}</p>
+        <button class="btn" type="submit" [disabled]="loading">
+          <span *ngIf="loading" class="spinner-sm"></span>
+          <span>{{ loading ? 'Signing In...' : 'Enter Hub' }}</span>
+        </button>
+      </form>
+      <p class="hint">Demo password for every role: <strong>password</strong></p>
+    </ng-container>
+
+    <!-- ════ STEP 2: 2FA CHALLENGE ═══════════════════════════════════════════ -->
+    <ng-container *ngIf="step === '2fa'">
+      <div class="two-factor-header">
+
+        <!-- Method badge icon -->
+        <div class="shield-badge"
+             [class.email-badge]="twoFaType === 'email'"
+             [class.wa-badge]="twoFaType === 'whatsapp'">
+          <!-- TOTP Shield -->
+          <svg *ngIf="twoFaType === 'totp'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shield-icon">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>
+          </svg>
+          <!-- Email icon -->
+          <svg *ngIf="twoFaType === 'email'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shield-icon">
+            <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+          </svg>
+          <!-- WhatsApp icon -->
+          <svg *ngIf="twoFaType === 'whatsapp'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="shield-icon">
+            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+          </svg>
+        </div>
+
+        <h1>Verify Your Identity</h1>
+        <div class="method-pill">
+          <span class="method-pill-inner">via {{ challengeMethodLabel }}</span>
+        </div>
+        <p>{{ twoFaChallengeHint || 'Enter the 6-digit code to complete sign in.' }}</p>
+      </div>
+
+      <form (ngSubmit)="submit()">
+        <label for="twoFactorCode">Verification Code</label>
+        <input
+          id="twoFactorCode"
+          type="text"
+          inputmode="numeric"
+          [(ngModel)]="twoFactorCode"
+          name="twoFactorCode"
+          placeholder="000 000"
+          maxlength="8"
+          class="code-input"
+          autofocus
+          autocomplete="one-time-code" />
+
+        <!-- Remember Device checkbox -->
+        <label class="remember-device-label">
+          <input type="checkbox" [(ngModel)]="rememberDevice" name="rememberDevice" class="remember-cb" />
+          <span class="remember-text">
+            <strong>Remember this device for 30 days</strong>
+            <small>Skip 2FA on this browser for 30 days</small>
+          </span>
+        </label>
+
+        <p class="err" *ngIf="error">{{ error }}</p>
+        <p class="resend-success" *ngIf="resendSuccess">✓ {{ resendSuccess }}</p>
+
+        <button class="btn" type="submit" [disabled]="loading || !twoFactorCode">
+          <span *ngIf="loading" class="spinner-sm"></span>
+          <span>{{ loading ? 'Verifying...' : 'Verify &amp; Enter Hub' }}</span>
+        </button>
+
+        <!-- Resend for email/WhatsApp -->
+        <button
+          *ngIf="twoFaType === 'email' || twoFaType === 'whatsapp'"
+          type="button"
+          class="btn-text resend-btn"
+          [disabled]="resending"
+          (click)="resendOtp()">
+          <span *ngIf="resending" class="spinner-sm"></span>
+          {{ resending ? 'Sending...' : 'Resend Code' }}
+        </button>
+
+        <button type="button" class="btn-text" (click)="backToCredentials()">
+          ← Return to password sign in
+        </button>
+      </form>
+
+      <p class="hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="hint-icon">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+        <span>Testing hint: Use code <strong>123456</strong> or any emergency recovery code.</span>
+      </p>
+    </ng-container>
   </div>
 </div>
+
+<!-- ══════════════════════════════════════════════════════════════════════════
+     MANDATORY 2FA ACTIVATION MODAL
+══════════════════════════════════════════════════════════════════════════ -->
+<div class="modal-backdrop" *ngIf="showActivationModal">
+  <div class="activation-modal">
+
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="modal-icon-badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div>
+        <div class="modal-eyebrow">MANDATORY SECURITY ENFORCEMENT</div>
+        <h2>Activate Two-Factor Authentication</h2>
+        <p>Protect your Evolex account by choosing a 2FA method before accessing the dashboard.</p>
+      </div>
+    </div>
+
+    <!-- Success Banner -->
+    <div class="activation-success-banner" *ngIf="activationSuccess">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      <div>
+        <strong>2FA Successfully Activated!</strong>
+        <p>Your account is now protected. Redirecting to dashboard...</p>
+      </div>
+    </div>
+
+    <!-- Modal Body -->
+    <div class="modal-body" *ngIf="!activationSuccess">
+
+      <!-- ══ STEP 1: SELECT METHOD ══════════════════════════════════════════ -->
+      <ng-container *ngIf="activationStep === 'select-method'">
+        <h3 class="step-title">Choose Your Verification Method</h3>
+        <p class="step-desc">Select how you'd like to receive 2FA codes each time you log in:</p>
+
+        <div class="method-cards">
+          <!-- TOTP App -->
+          <div class="method-card" [class.selected]="selectedMethod === 'totp'" (click)="selectMethod('totp')">
+            <div class="method-card-radio"><div class="radio-dot" [class.active]="selectedMethod === 'totp'"></div></div>
+            <div class="method-card-icon totp-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>
+              </svg>
+            </div>
+            <div class="method-card-info">
+              <strong>Authenticator App</strong>
+              <span>Google Authenticator, Authy, Microsoft Authenticator</span>
+              <div class="method-badge recommended">★ Recommended</div>
+            </div>
+          </div>
+
+          <!-- Email -->
+          <div class="method-card" [class.selected]="selectedMethod === 'email'" (click)="selectMethod('email')">
+            <div class="method-card-radio"><div class="radio-dot" [class.active]="selectedMethod === 'email'"></div></div>
+            <div class="method-card-icon email-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+              </svg>
+            </div>
+            <div class="method-card-info">
+              <strong>Email OTP</strong>
+              <span>Receive a 6-digit code to your registered email address</span>
+              <div class="method-badge">Easy setup</div>
+            </div>
+          </div>
+
+          <!-- WhatsApp -->
+          <div class="method-card" [class.selected]="selectedMethod === 'whatsapp'" (click)="selectMethod('whatsapp')">
+            <div class="method-card-radio"><div class="radio-dot" [class.active]="selectedMethod === 'whatsapp'"></div></div>
+            <div class="method-card-icon wa-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+              </svg>
+            </div>
+            <div class="method-card-info">
+              <strong>WhatsApp OTP</strong>
+              <span>Receive a 6-digit code on your registered WhatsApp number</span>
+              <div class="method-badge">Requires phone</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" type="button" (click)="proceedToVerify()">
+          Continue with {{ methodLabel }} →
+        </button>
+      </ng-container>
+
+      <!-- ══ STEP 2: SEND OTP (email / whatsapp) ══════════════════════════ -->
+      <ng-container *ngIf="activationStep === 'send-otp'">
+        <button class="back-link" type="button" (click)="backToMethodSelect()">← Change Method</button>
+
+        <div class="send-otp-panel">
+          <div class="send-otp-icon" [class.email-icon]="selectedMethod === 'email'" [class.wa-icon]="selectedMethod === 'whatsapp'">
+            <svg *ngIf="selectedMethod === 'email'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+            </svg>
+            <svg *ngIf="selectedMethod === 'whatsapp'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+            </svg>
+          </div>
+          <h3>Send Code via {{ selectedMethod === 'email' ? 'Email' : 'WhatsApp' }}</h3>
+          <p *ngIf="selectedMethod === 'email'">A 6-digit verification code will be sent to your registered email to activate this method.</p>
+          <p *ngIf="selectedMethod === 'whatsapp'">A 6-digit verification code will be sent to your WhatsApp number to activate this method.</p>
+          <p class="err" *ngIf="activationError">{{ activationError }}</p>
+          <button class="btn btn-primary" type="button" (click)="sendActivationOtp()" [disabled]="otpSending">
+            <span *ngIf="otpSending" class="spinner-sm"></span>
+            {{ otpSending ? 'Sending...' : 'Send Code Now' }}
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- ══ STEP 3: VERIFY CODE ══════════════════════════════════════════ -->
+      <ng-container *ngIf="activationStep === 'verify'">
+        <button class="back-link" type="button" (click)="backToMethodSelect()">← Change Method</button>
+
+        <!-- TOTP: show secret first -->
+        <div class="setup-step" *ngIf="selectedMethod === 'totp'">
+          <span class="step-num">1</span>
+          <div class="step-content">
+            <h4>Add to Your Authenticator App</h4>
+            <p>Open Google Authenticator, Authy, or Microsoft Authenticator and add this manual key:</p>
+            <div class="secret-box">
+              <div class="secret-text">
+                <span class="secret-label">Manual Secret Key:</span>
+                <span class="secret-val font-mono">{{ setupData?.formatted_secret || 'Loading...' }}</span>
+              </div>
+              <button class="btn-copy" type="button" (click)="copySecretKey()">
+                {{ copiedKey ? '✓ Copied' : 'Copy Key' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Email/WA: OTP sent confirmation -->
+        <div class="otp-sent-banner" *ngIf="selectedMethod !== 'totp' && otpSent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          <span>{{ otpSendHint }}</span>
+        </div>
+
+        <!-- Code Entry -->
+        <div class="setup-step">
+          <span class="step-num">{{ selectedMethod === 'totp' ? '2' : '1' }}</span>
+          <div class="step-content">
+            <h4>Enter the 6-Digit Code</h4>
+            <p *ngIf="selectedMethod === 'totp'">Enter the code currently shown in your Authenticator app:</p>
+            <p *ngIf="selectedMethod !== 'totp'">Enter the verification code we just sent:</p>
+
+            <div class="activation-input-row">
+              <input
+                type="text"
+                inputmode="numeric"
+                [(ngModel)]="activationCode"
+                placeholder="123456"
+                maxlength="6"
+                class="form-control font-mono large-input" />
+              <button class="btn btn-primary" type="button" (click)="submitActivation()" [disabled]="activating || !activationCode">
+                <span *ngIf="activating" class="spinner-sm"></span>
+                <span>{{ activating ? 'Activating...' : 'Verify &amp; Activate' }}</span>
+              </button>
+            </div>
+
+            <button
+              *ngIf="selectedMethod !== 'totp'"
+              type="button" class="resend-btn-sm"
+              [disabled]="otpSending"
+              (click)="sendActivationOtp()">
+              Didn't receive it? Resend code
+            </button>
+
+            <p class="err mt-2" *ngIf="activationError">{{ activationError }}</p>
+            <span class="field-hint">Testing shortcut: Enter <strong>123456</strong> to activate immediately.</span>
+          </div>
+        </div>
+
+        <!-- Recovery Codes -->
+        <div class="setup-step" *ngIf="setupData?.recovery_codes">
+          <span class="step-num">{{ selectedMethod === 'totp' ? '3' : '2' }}</span>
+          <div class="step-content">
+            <div class="recovery-header">
+              <h4>Emergency Recovery Codes</h4>
+              <button class="btn-copy-sm" type="button" (click)="copyRecoveryCodes()">
+                {{ copiedCodes ? '✓ Copied' : 'Copy All' }}
+              </button>
+            </div>
+            <p class="recovery-desc">Save these codes in a secure place — they let you access your account if you lose your {{ methodLabel }}:</p>
+            <div class="recovery-grid">
+              <span *ngFor="let code of setupData?.recovery_codes" class="recovery-code font-mono">{{ code }}</span>
+            </div>
+          </div>
+        </div>
+      </ng-container>
+
+    </div><!-- /modal-body -->
+  </div><!-- /activation-modal -->
+</div><!-- /modal-backdrop -->

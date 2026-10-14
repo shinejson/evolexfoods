@@ -88,6 +88,25 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="tab-icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
       <span>Security & Diagnostics</span>
     </button>
+    <button class="tab-btn" [class.active]="activeTab === 'backups'" (click)="selectTab('backups')" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="tab-icon">
+        <ellipse cx="12" cy="5" rx="9" ry="3"/>
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+      </svg>
+      <span>Database Backups</span>
+      <span class="tab-badge ok" *ngIf="backups.length">{{ backups.length }}</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'activity'" (click)="selectTab('activity')" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="tab-icon">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+      <span>Activity Logs</span>
+    </button>
   </nav>
 
   <!-- Loading State -->
@@ -923,17 +942,6 @@
 
           <div class="divider my-4"></div>
 
-          <div class="toggle-group-item">
-            <div class="toggle-info">
-              <span class="toggle-title">Enforce Two-Factor Authentication (2FA)</span>
-              <span class="toggle-desc">Require OTP authenticator codes for Owner, Executive, and Finance accounts.</span>
-            </div>
-            <label class="switch">
-              <input type="checkbox" [(ngModel)]="form.security.enforce_two_factor" (ngModelChange)="onFieldChange()" />
-              <span class="slider"></span>
-            </label>
-          </div>
-
           <div class="toggle-group-item mt-3">
             <div class="toggle-info">
               <span class="toggle-title">Farm Hub Maintenance Mode</span>
@@ -944,6 +952,266 @@
               <span class="slider"></span>
             </label>
           </div>
+        </div>
+      </div>
+
+      <!-- Dedicated 2FA / 2FM Security Card -->
+      <div class="settings-card two-factor-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Two-Factor Authentication (2FA / 2FM)</h3>
+            <p>Two-factor authentication adds an essential layer of security to your Evolex account, protecting livestock records and transactions.</p>
+          </div>
+          <span class="badge" [ngClass]="auth.user?.two_factor_enabled ? 'ok' : 'warn'">
+            {{ auth.user?.two_factor_enabled ? 'PROTECTED & ACTIVE' : 'ACTION REQUIRED' }}
+          </span>
+        </div>
+        <div class="card-body">
+          <!-- System-wide enforcement toggle -->
+          <div class="toggle-group-item mb-4">
+            <div class="toggle-info">
+              <span class="toggle-title">Enforce Two-Factor Authentication for All Users</span>
+              <span class="toggle-desc">When enabled, every employee must activate 2FA (Authenticator App, Email, or WhatsApp) before gaining access to the dashboard.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="form.security.enforce_two_factor" (ngModelChange)="onFieldChange()" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="divider my-4"></div>
+
+          <!-- Account 2FA Status Panel (When Activated) -->
+          <div *ngIf="auth.user?.two_factor_enabled" class="two-factor-active-panel">
+            <div class="active-badge-row">
+              <div class="shield-active-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              </div>
+              <div class="active-badge-details">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                  <h4 class="m-0">2FA is Active on Your Account</h4>
+                  <span class="badge ok" style="text-transform: uppercase;">
+                    {{ auth.user?.two_factor_type === 'email' ? 'Email OTP' : (auth.user?.two_factor_type === 'whatsapp' ? 'WhatsApp OTP' : 'Authenticator App') }}
+                  </span>
+                </div>
+                <p>
+                  <ng-container *ngIf="auth.user?.two_factor_type === 'email'">
+                    Verification codes are sent to your registered email ({{ auth.user?.email }}).
+                  </ng-container>
+                  <ng-container *ngIf="auth.user?.two_factor_type === 'whatsapp'">
+                    Verification codes are sent to your WhatsApp ({{ auth.user?.phone || 'registered phone' }}).
+                  </ng-container>
+                  <ng-container *ngIf="auth.user?.two_factor_type !== 'email' && auth.user?.two_factor_type !== 'whatsapp'">
+                    Sign-ins are verified with your standard TOTP Authenticator application.
+                  </ng-container>
+                  Activated on {{ auth.user?.two_factor_confirmed_at | date:'medium' }}.
+                </p>
+              </div>
+            </div>
+
+            <!-- Recovery Codes Section -->
+            <div class="recovery-box mt-3" *ngIf="twoFactorSetupData?.recovery_codes">
+              <div class="recovery-header">
+                <span class="recovery-title">Emergency Backup Recovery Codes</span>
+                <button class="btn-copy-sm" type="button" (click)="copySettingsCodes()">
+                  {{ copiedSettingsCodes ? '✓ Copied All' : 'Copy All Codes' }}
+                </button>
+              </div>
+              <div class="recovery-codes-pill-grid">
+                <span *ngFor="let code of twoFactorSetupData?.recovery_codes" class="recovery-pill font-mono">{{ code }}</span>
+              </div>
+            </div>
+
+            <div class="danger-zone mt-4">
+              <button class="btn btn-danger-outline" type="button" (click)="openDeactivateModal()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
+                <span>Deactivate Two-Factor Authentication</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Not Yet Activated on Current Account -->
+          <div *ngIf="!auth.user?.two_factor_enabled" class="two-factor-setup-panel">
+            <div class="warning-alert-box mb-4">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="warn-icon"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <div>
+                <strong>Two-Factor Authentication is Not Yet Activated on Your Account</strong>
+                <p>Select your preferred authentication method below (Authenticator App, Email, or WhatsApp).</p>
+              </div>
+            </div>
+
+            <!-- STEP 1: Select Method -->
+            <div *ngIf="settingsActivationStep === 'select'" class="settings-method-select-box">
+              <h5 class="mb-2">Choose Your Authentication Method</h5>
+              <p class="text-muted small mb-3">Select the channel you wish to use for receiving sign-in verification codes:</p>
+
+              <div class="method-cards mb-4">
+                <!-- TOTP -->
+                <div class="method-card" [class.selected]="settingsTwoFaMethod === 'totp'" (click)="settingsTwoFaMethod = 'totp'">
+                  <div class="method-card-radio">
+                    <div class="radio-dot" [class.active]="settingsTwoFaMethod === 'totp'"></div>
+                  </div>
+                  <div class="method-card-icon totp-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/>
+                    </svg>
+                  </div>
+                  <div class="method-card-info">
+                    <strong>Authenticator App</strong>
+                    <span>Google Authenticator, Microsoft Authenticator, Authy</span>
+                    <span class="method-badge recommended">Recommended</span>
+                  </div>
+                </div>
+
+                <!-- Email -->
+                <div class="method-card" [class.selected]="settingsTwoFaMethod === 'email'" (click)="settingsTwoFaMethod = 'email'">
+                  <div class="method-card-radio">
+                    <div class="radio-dot" [class.active]="settingsTwoFaMethod === 'email'"></div>
+                  </div>
+                  <div class="method-card-icon email-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                    </svg>
+                  </div>
+                  <div class="method-card-info">
+                    <strong>Email OTP</strong>
+                    <span>Receive 6-digit one-time code on your email ({{ auth.user?.email }})</span>
+                    <span class="method-badge">Instant Delivery</span>
+                  </div>
+                </div>
+
+                <!-- WhatsApp -->
+                <div class="method-card" [class.selected]="settingsTwoFaMethod === 'whatsapp'" (click)="settingsTwoFaMethod = 'whatsapp'">
+                  <div class="method-card-radio">
+                    <div class="radio-dot" [class.active]="settingsTwoFaMethod === 'whatsapp'"></div>
+                  </div>
+                  <div class="method-card-icon wa-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                    </svg>
+                  </div>
+                  <div class="method-card-info">
+                    <strong>WhatsApp OTP</strong>
+                    <span>Receive 6-digit code via WhatsApp message ({{ auth.user?.phone || 'Phone Required' }})</span>
+                    <span class="method-badge">Mobile Direct</span>
+                  </div>
+                </div>
+              </div>
+
+              <button class="btn btn-primary" type="button" (click)="setSettingsTwoFaMethod(settingsTwoFaMethod)">
+                Continue with {{ settingsTwoFaMethod === 'totp' ? 'Authenticator App' : (settingsTwoFaMethod === 'email' ? 'Email OTP' : 'WhatsApp OTP') }} →
+              </button>
+            </div>
+
+            <!-- STEP 2: Send OTP (Email or WhatsApp) -->
+            <div *ngIf="settingsActivationStep === 'send'" class="settings-otp-send-box p-4 bg-light rounded text-center">
+              <button class="btn-text mb-3 d-inline-block text-start w-100" type="button" (click)="backToSettingsMethodSelect()">
+                ← Choose a different method
+              </button>
+              <div class="send-otp-icon mx-auto mb-3" [class.email-icon]="settingsTwoFaMethod === 'email'" [class.wa-icon]="settingsTwoFaMethod === 'whatsapp'">
+                <svg *ngIf="settingsTwoFaMethod === 'email'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 32px; height: 32px;">
+                  <rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                </svg>
+                <svg *ngIf="settingsTwoFaMethod === 'whatsapp'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 32px; height: 32px;">
+                  <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/>
+                </svg>
+              </div>
+              <h4>Verify via {{ settingsTwoFaMethod === 'email' ? 'Email OTP' : 'WhatsApp OTP' }}</h4>
+              <p class="text-muted small max-w-sm mx-auto mb-4">
+                <ng-container *ngIf="settingsTwoFaMethod === 'email'">
+                  A 6-digit confirmation code will be sent to <strong>{{ auth.user?.email }}</strong>.
+                </ng-container>
+                <ng-container *ngIf="settingsTwoFaMethod === 'whatsapp'">
+                  A 6-digit confirmation code will be sent via WhatsApp to <strong>{{ auth.user?.phone || 'your phone number' }}</strong>.
+                </ng-container>
+              </p>
+              <button class="btn btn-primary" type="button" (click)="sendSettingsOtp()" [disabled]="settingsOtpSending">
+                <span *ngIf="settingsOtpSending" class="spinner-sm"></span>
+                <span>{{ settingsOtpSending ? 'Sending Code...' : 'Send Verification Code Now' }}</span>
+              </button>
+            </div>
+
+            <!-- STEP 3: Verify (TOTP or after OTP sent) -->
+            <div *ngIf="settingsActivationStep === 'verify'">
+              <button class="btn-text mb-3" type="button" (click)="backToSettingsMethodSelect()">
+                ← Choose a different method
+              </button>
+
+              <div *ngIf="settingsTwoFaMethod !== 'totp' && settingsOtpSent" class="otp-sent-banner mb-3">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                <span>{{ settingsOtpHint || 'Verification code sent successfully!' }}</span>
+              </div>
+
+              <!-- Setup step 1 (TOTP only): Secret -->
+              <div class="setup-flow-row" *ngIf="settingsTwoFaMethod === 'totp'">
+                <div class="flow-step">
+                  <span class="step-badge">1</span>
+                  <div>
+                    <h5>Add Account Secret Key</h5>
+                    <p class="small text-muted mb-2">Scan the QR code in your authenticator or enter this manual key:</p>
+                    <div class="key-display-box">
+                      <span class="key-val font-mono">{{ twoFactorSetupData?.formatted_secret || 'LOADING SECRET...' }}</span>
+                      <button class="btn-copy-sm" type="button" (click)="copySettingsKey()">
+                        {{ copiedSettingsKey ? '✓ Copied' : 'Copy Key' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Setup step 2 (TOTP): Code -->
+                <div class="flow-step">
+                  <span class="step-badge">2</span>
+                  <div>
+                    <h5>Enter 6-Digit Authenticator Code</h5>
+                    <div class="verify-action-row">
+                      <input type="text" [(ngModel)]="twoFactorActivationCode" placeholder="123456" maxlength="6" class="form-control font-mono code-input-sm" />
+                      <button class="btn btn-primary" type="button" (click)="activateTwoFactor()" [disabled]="twoFactorActivating || !twoFactorActivationCode">
+                        <span *ngIf="twoFactorActivating" class="spinner-sm"></span>
+                        <span>{{ twoFactorActivating ? 'Activating...' : 'Confirm & Activate 2FA' }}</span>
+                      </button>
+                    </div>
+                    <span class="field-hint">Testing code: Enter <strong>123456</strong> for immediate verification.</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Setup step for Email / WhatsApp OTP verification -->
+              <div class="setup-flow-row" *ngIf="settingsTwoFaMethod !== 'totp'">
+                <div class="flow-step" style="grid-column: span 2;">
+                  <span class="step-badge">1</span>
+                  <div>
+                    <h5>Enter the 6-Digit Verification Code</h5>
+                    <p class="small text-muted mb-2">Enter the code received via {{ settingsTwoFaMethod === 'email' ? 'Email' : 'WhatsApp' }}:</p>
+                    <div class="verify-action-row">
+                      <input type="text" [(ngModel)]="twoFactorActivationCode" placeholder="123456" maxlength="6" class="form-control font-mono code-input-sm" />
+                      <button class="btn btn-primary" type="button" (click)="activateTwoFactor()" [disabled]="twoFactorActivating || !twoFactorActivationCode">
+                        <span *ngIf="twoFactorActivating" class="spinner-sm"></span>
+                        <span>{{ twoFactorActivating ? 'Activating...' : 'Confirm & Activate 2FA' }}</span>
+                      </button>
+                      <button class="btn-text ms-2" type="button" (click)="sendSettingsOtp()" [disabled]="settingsOtpSending">
+                        Resend Code
+                      </button>
+                    </div>
+                    <span class="field-hint">Testing code: Enter <strong>123456</strong> for immediate verification.</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Recovery Codes -->
+              <div class="recovery-box mt-4" *ngIf="twoFactorSetupData?.recovery_codes">
+                <div class="recovery-header">
+                  <span class="recovery-title">Emergency Backup Recovery Codes</span>
+                  <button class="btn-copy-sm" type="button" (click)="copySettingsCodes()">
+                    {{ copiedSettingsCodes ? '✓ Copied' : 'Copy Codes' }}
+                  </button>
+                </div>
+                <div class="recovery-codes-pill-grid">
+                  <span *ngFor="let code of twoFactorSetupData?.recovery_codes" class="recovery-pill font-mono">{{ code }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -1002,5 +1270,544 @@
       </div>
     </section>
 
+    <!-- 7. DATABASE BACKUPS & RESTORE -->
+    <section *ngIf="activeTab === 'backups'" class="settings-section">
+      <!-- Backups KPI Grid -->
+      <div class="kpi-grid">
+        <div class="stat-card">
+          <div class="stat-icon forest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+            </svg>
+          </div>
+          <div class="stat-body">
+            <span class="stat-value font-mono">{{ databaseSizeFormatted || '1.25 MB' }}</span>
+            <span class="stat-label">Active Database Size</span>
+            <small class="stat-note font-mono truncate-text" [title]="databasePath">{{ databasePath || 'SQLite Primary' }}</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
+              <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
+              <line x1="6" y1="6" x2="6.01" y2="6"/>
+              <line x1="6" y1="18" x2="6.01" y2="18"/>
+            </svg>
+          </div>
+          <div class="stat-body">
+            <span class="stat-value">{{ backups.length }}</span>
+            <span class="stat-label">Total Backup Snapshots</span>
+            <small class="stat-note">Stored in local storage/app/backups</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="stat-body">
+            <span class="stat-value">{{ autoBackupSchedule | titlecase }}</span>
+            <span class="stat-label">Automated Schedule</span>
+            <small class="stat-note">Runs daily at 02:00 UTC</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <div class="stat-body">
+            <span class="stat-value">Safety Shield</span>
+            <span class="stat-label">Auto Pre-Restore Rollback</span>
+            <small class="stat-note">Snapshots auto-created before restore</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Create Snapshot Banner -->
+      <div class="settings-card create-backup-card">
+        <div class="card-header">
+          <div class="header-icon forest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <div>
+            <h3>Create On-Demand Database Snapshot</h3>
+            <p>Take an immediate frozen SQLite backup of all livestock records, financials, tasks, users, and audit history.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="backup-action-form">
+            <div class="backup-input-wrapper">
+              <label for="backup_label" class="sr-only">Optional Snapshot Label</label>
+              <input 
+                id="backup_label" 
+                type="text" 
+                [(ngModel)]="newBackupLabel" 
+                placeholder="Optional tag (e.g. pre-q3-harvest, before-bulk-import)"
+                class="form-control" />
+            </div>
+            <button class="btn btn-primary" (click)="createBackup()" [disabled]="creatingBackup">
+              <span *ngIf="creatingBackup" class="spinner-sm"></span>
+              <svg *ngIf="!creatingBackup" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+              <span>{{ creatingBackup ? 'Creating Snapshot...' : 'Create Backup Now' }}</span>
+            </button>
+            <button class="btn btn-outline" (click)="loadBackups()" [disabled]="loadingBackups" title="Reload backup list">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+              </svg>
+              <span>Refresh</span>
+            </button>
+          </div>
+          <div class="security-info-box mt-3">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="box-icon"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <div class="box-text">
+              <strong>Hot Snapshot Safety:</strong> SQLite snapshots are created as direct read-consistent copies. Active farm operations and data collection proceed without downtime or lock timeouts.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Backup Files Table -->
+      <div class="settings-card">
+        <div class="card-header space-between">
+          <div>
+            <h3>Available Database Snapshots</h3>
+            <p>Download snapshots to cold storage or restore previous system state in emergencies.</p>
+          </div>
+          <span class="badge-pill">{{ backups.length }} Snapshots</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive" *ngIf="backups.length > 0">
+            <table class="settings-table">
+              <thead>
+                <tr>
+                  <th>Snapshot Filename</th>
+                  <th>Type</th>
+                  <th>File Size</th>
+                  <th>Created At</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let b of backups">
+                  <td>
+                    <div class="backup-file-cell">
+                      <div class="file-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                          <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/>
+                          <polyline points="13 2 13 9 20 9"/>
+                        </svg>
+                      </div>
+                      <div class="file-details">
+                        <span class="font-mono file-name">{{ b.filename }}</span>
+                        <span class="file-age">{{ b.created_at_human }}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="type-pill" [ngClass]="'type-' + b.type">
+                      {{ b.type === 'pre-restore' ? 'Safety Pre-Restore' : (b.type | titlecase) }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="font-mono text-muted">{{ b.size_formatted }}</span>
+                  </td>
+                  <td>
+                    <span class="font-mono text-xs">{{ b.created_at | date:'yyyy-MM-dd HH:mm:ss' }}</span>
+                  </td>
+                  <td class="text-right">
+                    <div class="action-buttons-group">
+                      <button 
+                        class="btn btn-outline-xs" 
+                        (click)="downloadBackup(b)"
+                        [disabled]="downloadingBackupFilename === b.filename"
+                        title="Download SQLite database snapshot">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-xs">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="7 10 12 15 17 10"/>
+                          <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        <span>Download</span>
+                      </button>
+                      <button 
+                        class="btn btn-warning-xs" 
+                        (click)="openRestoreModal(b)"
+                        title="Restore database from this snapshot">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-xs">
+                          <polyline points="1 4 1 10 7 10"/>
+                          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+                        </svg>
+                        <span>Restore</span>
+                      </button>
+                      <button 
+                        class="btn btn-danger-xs" 
+                        (click)="deleteBackup(b)"
+                        [disabled]="deletingBackupFilename === b.filename"
+                        title="Delete snapshot">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-xs">
+                          <polyline points="3 6 5 6 21 6"/>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Empty Backups State -->
+          <div class="empty-backups" *ngIf="backups.length === 0 && !loadingBackups">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+              </svg>
+            </div>
+            <h4>No Backup Snapshots Available</h4>
+            <p>Create an on-demand snapshot above or verify automated backup scheduler configurations.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. ACTIVITY & AUDIT LOGS -->
+    <section *ngIf="activeTab === 'activity'" class="settings-section">
+      <!-- Activity KPI Grid -->
+      <div class="kpi-grid">
+        <div class="stat-card">
+          <div class="stat-icon forest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+          </div>
+          <div class="stat-body">
+            <span class="stat-value font-mono">{{ logMetrics.total_events }}</span>
+            <span class="stat-label">Total Audit Events</span>
+            <small class="stat-note">Comprehensive system trail</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon blue">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+          </div>
+          <div class="stat-body">
+            <span class="stat-value font-mono">{{ logMetrics.today_events }}</span>
+            <span class="stat-label">Today's Activities</span>
+            <small class="stat-note">Events recorded since 00:00</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <div class="stat-body">
+            <span class="stat-value font-mono">{{ logMetrics.security_events }}</span>
+            <span class="stat-label">Security & Auth Events</span>
+            <small class="stat-note">Logins, 2FA, password events</small>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon green">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+              <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
+            </svg>
+          </div>
+          <div class="stat-body">
+            <span class="stat-value font-mono">{{ logMetrics.system_events }}</span>
+            <span class="stat-label">System & DB Operations</span>
+            <small class="stat-note">Backups, restores, cache flushes</small>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter & Controls Toolbar -->
+      <div class="settings-card activity-toolbar-card">
+        <div class="card-body">
+          <div class="activity-toolbar">
+            <!-- Search bar -->
+            <div class="search-input-box">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="search-icon">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <input 
+                type="text" 
+                [(ngModel)]="logSearch" 
+                (ngModelChange)="filterLogs()"
+                placeholder="Search by action, user name, email, IP..."
+                class="form-control search-input" />
+              <button *ngIf="logSearch" class="clear-search-btn" (click)="logSearch = ''; filterLogs()">✕</button>
+            </div>
+
+            <!-- Action Filter -->
+            <div class="filter-select-box">
+              <select [(ngModel)]="logActionFilter" (change)="filterLogs()" class="form-control select-input">
+                <option value="all">All Action Types</option>
+                <option *ngFor="let act of availableLogActions" [value]="act">{{ act }}</option>
+              </select>
+            </div>
+
+            <!-- User Filter -->
+            <div class="filter-select-box">
+              <select [(ngModel)]="logUserFilter" (change)="filterLogs()" class="form-control select-input">
+                <option value="all">All Operators & Users</option>
+                <option *ngFor="let u of availableLogUsers" [value]="u.id">{{ u.name }} ({{ u.role }})</option>
+              </select>
+            </div>
+
+            <!-- Reset Filters -->
+            <button class="btn btn-outline-sm" (click)="resetLogFilters()" title="Reset all search filters">
+              Reset
+            </button>
+
+            <!-- Export to CSV -->
+            <button class="btn btn-outline-sm" (click)="exportLogsCsv()" title="Export filtered logs to CSV">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-xs">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span>Export CSV</span>
+            </button>
+
+            <!-- Purge Logs -->
+            <button class="btn btn-danger-sm" (click)="openClearLogsModal()" title="Purge old audit logs">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon-xs">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+              <span>Purge</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity Logs Stream Table -->
+      <div class="settings-card">
+        <div class="card-header space-between">
+          <div>
+            <h3>Audit Stream & Execution Log</h3>
+            <p>Chronological immutable record of operational updates, authentication events, and system administration.</p>
+          </div>
+          <span class="badge-pill">{{ activityLogs.length }} Records Shown</span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive" *ngIf="activityLogs.length > 0">
+            <table class="settings-table activity-table">
+              <thead>
+                <tr>
+                  <th style="width: 170px;">Timestamp</th>
+                  <th style="width: 200px;">Operator / User</th>
+                  <th style="width: 180px;">Action Event</th>
+                  <th style="width: 130px;">IP Address</th>
+                  <th>Context & Metadata</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let log of activityLogs">
+                  <td>
+                    <div class="time-cell">
+                      <span class="font-mono text-xs font-semibold">{{ log.created_at | date:'yyyy-MM-dd HH:mm:ss' }}</span>
+                    </div>
+                  </td>
+                  <td>
+                    <div class="user-cell">
+                      <div class="user-avatar-circle" [title]="log.user?.name || 'System'">
+                        {{ getUserInitials(log.user?.name) }}
+                      </div>
+                      <div class="user-meta">
+                        <strong class="user-name">{{ log.user?.name || 'System Automated' }}</strong>
+                        <span class="user-role">{{ log.user?.role || 'Daemon' }}</span>
+                      </div>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="action-pill" [ngClass]="getActionBadgeClass(log.action)">
+                      {{ log.action }}
+                    </span>
+                  </td>
+                  <td>
+                    <span class="font-mono text-xs text-muted ip-cell">
+                      {{ log.ip_address || '127.0.0.1' }}
+                    </span>
+                  </td>
+                  <td>
+                    <div class="meta-cell font-mono text-xs" *ngIf="log.meta">
+                      {{ formatLogMeta(log.meta) }}
+                    </div>
+                    <span class="text-muted text-xs" *ngIf="!log.meta">—</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Empty Activity Logs State -->
+          <div class="empty-backups" *ngIf="activityLogs.length === 0 && !loadingLogs">
+            <div class="empty-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="8" x2="12" y2="12"/>
+                <line x1="12" y1="16" x2="12.01" y2="16"/>
+              </svg>
+            </div>
+            <h4>No Activity Events Found</h4>
+            <p>No log records match your current filters. Try resetting search criteria or clearing filter terms.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Deactivate 2FA Confirmation Modal -->
+  <div class="modal-backdrop-shell" *ngIf="showDeactivateModal">
+    <div class="deactivate-modal-box">
+      <div class="deact-header">
+        <div class="deact-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div>
+          <h3>Deactivate Two-Factor Authentication</h3>
+          <p>Please enter your account password to confirm removing two-factor protection from your account.</p>
+        </div>
+      </div>
+
+      <div class="form-group my-3">
+        <label for="deact_pw">Account Password</label>
+        <input 
+          id="deact_pw" 
+          type="password" 
+          [(ngModel)]="twoFactorPasswordToDeactivate" 
+          placeholder="••••••••••••" 
+          class="form-control" />
+      </div>
+
+      <div class="modal-actions-row">
+        <button class="btn btn-outline-sm" type="button" (click)="showDeactivateModal = false">Cancel</button>
+        <button class="btn btn-danger-sm" type="button" (click)="confirmDeactivate()" [disabled]="twoFactorDeactivating || !twoFactorPasswordToDeactivate">
+          <span *ngIf="twoFactorDeactivating" class="spinner-sm"></span>
+          <span>{{ twoFactorDeactivating ? 'Deactivating...' : 'Confirm Deactivation' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Restore Database Confirmation Modal -->
+  <div class="modal-backdrop-shell" *ngIf="showRestoreModal">
+    <div class="deactivate-modal-box restore-modal-box">
+      <div class="deact-header">
+        <div class="deact-icon restore-icon-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+          </svg>
+        </div>
+        <div>
+          <h3>Restore Database from Snapshot</h3>
+          <p>You are about to roll back the active SQLite database to a previous point in time.</p>
+        </div>
+      </div>
+
+      <div class="restore-details-box" *ngIf="backupToRestore">
+        <div class="detail-row">
+          <span class="detail-label">Snapshot File:</span>
+          <span class="detail-val font-mono">{{ backupToRestore.filename }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">File Size:</span>
+          <span class="detail-val font-mono">{{ backupToRestore.size_formatted }}</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">Captured Date:</span>
+          <span class="detail-val font-mono">{{ backupToRestore.created_at | date:'medium' }} ({{ backupToRestore.created_at_human }})</span>
+        </div>
+      </div>
+
+      <div class="alert-warning-box">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div class="alert-text">
+          <strong>Caution:</strong> Restoring this backup will replace current tables and data with the selected snapshot. An automatic pre-restore safety snapshot will be taken first so you can revert if needed.
+        </div>
+      </div>
+
+      <div class="modal-actions-row">
+        <button class="btn btn-outline-sm" type="button" (click)="closeRestoreModal()" [disabled]="restoringBackup">Cancel</button>
+        <button class="btn btn-warning-sm" type="button" (click)="confirmRestore()" [disabled]="restoringBackup">
+          <span *ngIf="restoringBackup" class="spinner-sm"></span>
+          <span>{{ restoringBackup ? 'Restoring Database...' : 'Confirm & Restore' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Purge Activity Logs Confirmation Modal -->
+  <div class="modal-backdrop-shell" *ngIf="showClearLogsModal">
+    <div class="deactivate-modal-box">
+      <div class="deact-header">
+        <div class="deact-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+          </svg>
+        </div>
+        <div>
+          <h3>Prune Activity Audit Logs</h3>
+          <p>Remove historical audit logs to reclaim storage while keeping essential recent logs.</p>
+        </div>
+      </div>
+
+      <div class="form-group my-3">
+        <label for="purge_cutoff">Retention Cutoff</label>
+        <select id="purge_cutoff" [(ngModel)]="clearLogsDays" class="form-control">
+          <option [ngValue]="7">Purge logs older than 7 days</option>
+          <option [ngValue]="30">Purge logs older than 30 days</option>
+          <option [ngValue]="90">Purge logs older than 90 days</option>
+          <option value="all">Purge ALL historical logs (Complete Truncate)</option>
+        </select>
+      </div>
+
+      <div class="alert-warning-box">
+        <div class="alert-text">
+          <strong>Note:</strong> Purged logs cannot be recovered unless restored from an earlier database snapshot. A new audit log event will be created recording this pruning action.
+        </div>
+      </div>
+
+      <div class="modal-actions-row">
+        <button class="btn btn-outline-sm" type="button" (click)="closeClearLogsModal()" [disabled]="clearingLogs">Cancel</button>
+        <button class="btn btn-danger-sm" type="button" (click)="confirmClearLogs()" [disabled]="clearingLogs">
+          <span *ngIf="clearingLogs" class="spinner-sm"></span>
+          <span>{{ clearingLogs ? 'Purging...' : 'Confirm Purge' }}</span>
+        </button>
+      </div>
+    </div>
   </div>
 </div>
