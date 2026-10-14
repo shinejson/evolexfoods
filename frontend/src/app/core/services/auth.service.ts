@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { BehaviorSubject, tap } from 'rxjs';
 import { User } from '../models/user.model';
@@ -30,9 +30,25 @@ export class AuthService {
   }
 
   logout(): void {
+    const token = this.token;
+
+    // Clear the local session immediately so an expired session cannot make
+    // further authenticated requests while the revoke request is in flight.
     localStorage.removeItem('evolex_token');
     localStorage.removeItem('evolex_user');
     this.userSubject.next(null);
+
+    // Revoke the Sanctum token as a best-effort server-side cleanup. The
+    // explicit header is needed because the token was removed above.
+    if (token) {
+      this.http.post('/api/v1/auth/logout', {}, {
+        headers: new HttpHeaders({
+          Accept: 'application/json',
+          Authorization: `Bearer ${token}`
+        })
+      }).subscribe({ error: () => undefined });
+    }
+
     this.router.navigate(['/login']);
   }
 
