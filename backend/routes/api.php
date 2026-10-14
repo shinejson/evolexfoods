@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\GovernanceController;
 use App\Http\Controllers\Api\V1\HrTaskController;
 use App\Http\Controllers\Api\V1\LivestockController;
 use App\Http\Controllers\Api\V1\MarketingController;
+use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProcurementController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SettingsController;
@@ -92,6 +93,18 @@ Route::prefix('v1')->group(function () {
         Route::get('/decisions/pending-owner', [GovernanceController::class, 'pendingOwner']);
         Route::get('/alerts', [GovernanceController::class, 'alerts']);
         Route::get('/audit-logs', [GovernanceController::class, 'auditLogs']);
+
+        // Notification centre
+        Route::get('/notifications', [NotificationController::class, 'index']);
+        Route::get('/notifications/stats', [NotificationController::class, 'stats']);
+        Route::get('/notifications/unread-count', [NotificationController::class, 'unreadCount']);
+        Route::post('/notifications', [NotificationController::class, 'store']);
+        Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead']);
+        Route::get('/notifications/{id}', [NotificationController::class, 'show'])->whereNumber('id');
+        Route::patch('/notifications/{id}/read', [NotificationController::class, 'markRead'])->whereNumber('id');
+        Route::patch('/notifications/{id}/unread', [NotificationController::class, 'markUnread'])->whereNumber('id');
+        Route::delete('/notifications', [NotificationController::class, 'clear']);
+        Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->whereNumber('id');
         Route::get('/sops', [GovernanceController::class, 'sops']);
         Route::get('/systems', [GovernanceController::class, 'systems']);
 
