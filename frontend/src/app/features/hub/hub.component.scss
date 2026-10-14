@@ -3,6 +3,10 @@
   min-width: 0;
 }
 
+:host-context(.dark-mode) .hub-page {
+  color: var(--text-strong);
+}
+
 .hub-page {
   width: min(100%, 1560px);
   margin: 0 auto;

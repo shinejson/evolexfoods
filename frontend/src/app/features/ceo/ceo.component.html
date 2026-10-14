@@ -420,6 +420,22 @@
               (input)="onLedgerSearch($any($event.target).value)"
               aria-label="Search the answerability contract" />
           </label>
+          <label class="filter-select">
+            <span class="sr-only">Filter by status</span>
+            <select [value]="ledgerStatusFilter()" (change)="onStatusFilter($any($event.target).value)">
+              <option value="all">All records</option>
+              <option value="answered">Answered only</option>
+              <option value="gaps">Data gaps only</option>
+            </select>
+          </label>
+          <label class="filter-select filter-select--compact">
+            <span class="sr-only">Rows per page</span>
+            <select [value]="pageSize()" (change)="onPageSize($any($event.target).value)">
+              <option [value]="10">10 / page</option>
+              <option [value]="20">20 / page</option>
+              <option [value]="50">50 / page</option>
+            </select>
+          </label>
           <button type="button" class="btn btn--quiet btn--sm" [class.is-on]="gapsOnly()" [attr.aria-pressed]="gapsOnly()" (click)="toggleGapsOnly()">
             Gaps only
           </button>
@@ -450,7 +466,7 @@
               </tr>
             </thead>
             <tbody>
-              @for (row of filteredLedger(); track row.number) {
+              @for (row of pagedLedger(); track row.number) {
                 <tr [class.is-gap]="!row.hasData">
                   <td class="col-num" data-label="#">{{ row.number }}</td>
                   <td data-label="Question">{{ row.question }}</td>
@@ -473,6 +489,25 @@
               }
             </tbody>
           </table>
+        </div>
+
+        <div class="table-pagination" aria-label="Answerability contract pagination">
+          <div class="table-pagination__meta">
+            Showing {{ pageStart() }}-{{ pageEnd() }} of {{ filteredLedger().length }} questions
+          </div>
+          <div class="table-pagination__controls">
+            <button type="button" class="btn btn--quiet btn--sm" [disabled]="currentPage() === 1" (click)="previousPage()">Previous</button>
+            @for (page of ledgerPageNumbers(); track page) {
+              <button
+                type="button"
+                class="btn btn--quiet btn--sm page-number"
+                [class.is-current]="page === currentPage()"
+                (click)="goToPage(page)">
+                {{ page }}
+              </button>
+            }
+            <button type="button" class="btn btn--quiet btn--sm" [disabled]="currentPage() >= totalLedgerPages()" (click)="nextPage()">Next</button>
+          </div>
         </div>
       } @else {
         <div class="empty-state">

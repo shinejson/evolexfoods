@@ -457,7 +457,8 @@ table.dataTable tbody tr:hover {
 --------------------------------------------------------------------------- */
 html:has(.shell.dark-mode),
 html:has(.shell.dark-mode) body {
-  background: var(--paper);
+  background: #1a1a1a;
+  color-scheme: dark;
 }
 
 .shell.dark-mode input::placeholder,

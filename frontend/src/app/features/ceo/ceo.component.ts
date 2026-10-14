@@ -50,6 +50,9 @@ export class CeoComponent implements OnInit {
   readonly customTo = signal('');
   readonly ledgerSearch = signal('');
   readonly gapsOnly = signal(false);
+  readonly ledgerStatusFilter = signal<'all' | 'answered' | 'gaps'>('all');
+  readonly pageSize = signal(10);
+  readonly currentPage = signal(1);
   readonly autoRefresh = signal(false);
   readonly refreshing = signal(false);
   readonly loadedAt = signal<Date | null>(null);
@@ -72,6 +75,12 @@ export class CeoComponent implements OnInit {
       if (this.gapsOnly() && row.hasData) {
         return false;
       }
+      if (this.ledgerStatusFilter() === 'answered' && !row.hasData) {
+        return false;
+      }
+      if (this.ledgerStatusFilter() === 'gaps' && row.hasData) {
+        return false;
+      }
       if (!term) {
         return true;
       }
@@ -82,6 +91,25 @@ export class CeoComponent implements OnInit {
         String(row.number) === term
       );
     });
+  });
+
+  readonly totalLedgerPages = computed(() => {
+    const total = this.filteredLedger().length;
+    return Math.max(1, Math.ceil(total / this.pageSize()));
+  });
+
+  readonly pageStart = computed(() => (this.currentPage() - 1) * this.pageSize() + 1);
+
+  readonly pageEnd = computed(() => Math.min(this.currentPage() * this.pageSize(), this.filteredLedger().length));
+
+  readonly ledgerPageNumbers = computed(() =>
+    Array.from({ length: this.totalLedgerPages() }, (_, index) => index + 1)
+  );
+
+  readonly pagedLedger = computed(() => {
+    const rows = this.filteredLedger();
+    const start = (this.currentPage() - 1) * this.pageSize();
+    return rows.slice(start, start + this.pageSize());
   });
 
   readonly ledgerFilterNote = computed(() => {
@@ -219,15 +247,43 @@ export class CeoComponent implements OnInit {
 
   onLedgerSearch(value: string): void {
     this.ledgerSearch.set(value);
+    this.currentPage.set(1);
+  }
+
+  onStatusFilter(value: string): void {
+    this.ledgerStatusFilter.set(value as 'all' | 'answered' | 'gaps');
+    this.currentPage.set(1);
+  }
+
+  onPageSize(value: string): void {
+    this.pageSize.set(Number(value) || 10);
+    this.currentPage.set(1);
   }
 
   toggleGapsOnly(): void {
     this.gapsOnly.set(!this.gapsOnly());
+    this.currentPage.set(1);
   }
 
   clearLedgerFilters(): void {
     this.ledgerSearch.set('');
     this.gapsOnly.set(false);
+    this.ledgerStatusFilter.set('all');
+    this.pageSize.set(10);
+    this.currentPage.set(1);
+  }
+
+  goToPage(page: number): void {
+    const totalPages = this.totalLedgerPages();
+    this.currentPage.set(Math.min(Math.max(1, page), totalPages));
+  }
+
+  previousPage(): void {
+    this.goToPage(this.currentPage() - 1);
+  }
+
+  nextPage(): void {
+    this.goToPage(this.currentPage() + 1);
   }
 
   exportCsv(): void {
