@@ -42,15 +42,11 @@ export const routes: Routes = [
       { path: 'crm', component: CrudPageComponent, data: { resource: 'companies' } },
       { path: 'contacts', component: CrudPageComponent, data: { resource: 'contacts' } },
       { path: 'deals', component: CrudPageComponent, data: { resource: 'deals' } },
-<<<<<<< HEAD
-      { path: 'marketing', component: CrudPageComponent, data: { resource: 'marketing' } },
-      { path: 'governance', pathMatch: 'full', redirectTo: 'risks' },
-=======
       { path: 'sales', component: CrudPageComponent, data: { resource: 'sales' } },
       { path: 'campaigns', component: CrudPageComponent, data: { resource: 'campaigns' } },
       { path: 'marketing/performance', component: CrudPageComponent, data: { resource: 'channel_metrics' } },
       { path: 'marketing', pathMatch: 'full', component: CrudPageComponent, data: { resource: 'marketing' } },
->>>>>>> 4631a15f89229bae63fd748c5a5995525d41da61
+      { path: 'governance', pathMatch: 'full', redirectTo: 'risks' },
       { path: 'risks', component: CrudPageComponent, data: { resource: 'risks' } },
       { path: 'decisions', component: CrudPageComponent, data: { resource: 'decisions' } },
       { path: 'sops', component: CrudPageComponent, data: { resource: 'sops' } }
