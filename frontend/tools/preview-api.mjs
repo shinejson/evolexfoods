@@ -841,14 +841,14 @@ const server = createServer((req, res) => {
       const role = ROLES[email] ?? 'owner';
       json(res, 200, {
         token: `mock-token-${role}`,
-        user: { name: 'Demo Owner', email, role, department: 'Executive' }
+        user: { name: 'Demo Owner', email, role, department: 'Executive', two_factor_enabled: true }
       });
     });
     return;
   }
 
   if (path === '/api/v1/auth/me') {
-    json(res, 200, { name: 'Demo Owner', email: 'owner@evolex.com', role: 'owner', department: 'Executive' });
+    json(res, 200, { name: 'Demo Owner', email: 'owner@evolex.com', role: 'owner', department: 'Executive', two_factor_enabled: true });
     return;
   }
 
