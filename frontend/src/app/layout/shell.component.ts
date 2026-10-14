@@ -50,13 +50,9 @@ export class ShellComponent implements OnInit, OnDestroy {
       expanded: true,
       items: [
         { path: '/hub', label: 'Hub', icon: 'hub' },
-<<<<<<< HEAD
+        { path: '/notifications', label: 'Notifications', icon: 'notifications' },
         { path: '/ceo', label: 'CEO Command', icon: 'ceo' },
         { path: '/reports', label: 'Reports', icon: 'report' }
-=======
-        { path: '/notifications', label: 'Notifications', icon: 'notifications' },
-        { path: '/ceo', label: 'CEO Command', icon: 'ceo' }
->>>>>>> ba0615286e7a42ae2d6c9080711835eacda385f2
       ]
     },
     {
