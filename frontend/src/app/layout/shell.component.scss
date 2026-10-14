@@ -14,44 +14,177 @@
     background: var(--bg);
     color: var(--text);
     
-    .main header {
-      background: var(--topnav-bg);
-      border-bottom: 1px solid var(--border);
+    .main header.topnav {
+      background: rgba(22, 24, 22, 0.96);
+      border-bottom-color: #333a35;
+      backdrop-filter: blur(14px);
     }
-    
+
+    .hamburger-btn {
+      color: #e2e8f0;
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--gold, #c4a35a);
+      }
+    }
+
     .search-bar {
-      background: var(--bg-elevated);
-      border-color: var(--border);
-      
+      background: #252826;
+      border-color: #363d38;
+
+      .search-icon {
+        color: #9ea89f;
+      }
+
       input {
-        color: var(--text);
-        
+        background: #252826;
+        border-color: #363d38;
+        color: #f1f5f2;
         &::placeholder {
-          color: var(--text-muted);
+          color: #7d887e;
+        }
+        &:focus {
+          border-color: var(--gold, #c4a35a);
+          box-shadow: 0 0 0 3px rgba(196, 163, 90, 0.18);
         }
       }
-      
+
       kbd {
-        background: var(--bg);
-        border-color: var(--border);
-        color: var(--text-muted);
+        background: #1c1e1d;
+        border-color: #383e3a;
+        color: #9ea89f;
       }
     }
-    
+
+    .icon-btn {
+      color: #e2e8f0;
+      svg {
+        stroke: currentColor;
+      }
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: var(--gold, #c4a35a);
+      }
+      .badge {
+        background: #ef4444;
+        color: #ffffff;
+        border-color: #161816;
+      }
+    }
+
+    .user-btn {
+      &:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .chevron {
+        color: #9ea89f;
+      }
+    }
+
+    .user-avatar {
+      background: linear-gradient(135deg, #2d4532, #1c2e20);
+      border: 1.5px solid var(--gold, #c4a35a);
+      color: var(--gold, #c4a35a);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4), 0 0 10px rgba(196, 163, 90, 0.2);
+
+      &.large {
+        background: linear-gradient(135deg, #2d4532, #1c2e20);
+        border: 2px solid var(--gold, #c4a35a);
+        color: var(--gold, #c4a35a);
+      }
+    }
+
+    .user-name {
+      color: #f4efe4;
+      font-weight: 600;
+    }
+
+    .user-role {
+      color: #9ea89f;
+    }
+
     .dropdown {
-      background: var(--bg-elevated);
-      border-color: var(--border);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      background: #202422;
+      border: 1px solid #363e38;
+      box-shadow: 0 14px 44px rgba(0, 0, 0, 0.65);
+
+      hr {
+        background: #333a35;
+      }
+      .dropdown-header h3 {
+        color: #f4efe4;
+      }
+      .text-btn {
+        color: #8fd6a4;
+        &:hover {
+          background: rgba(143, 214, 164, 0.12);
+        }
+      }
+      .dropdown-user-name {
+        color: #f4efe4;
+      }
+      .dropdown-user-email {
+        color: #9ea89f;
+      }
+
+      .dropdown-item {
+        color: #e2e8f0;
+        svg {
+          color: #9ea89f;
+        }
+        &:hover {
+          background: rgba(255, 255, 255, 0.08);
+          color: #ffffff;
+          svg {
+            color: var(--gold, #c4a35a);
+          }
+        }
+        &.danger {
+          color: #f87171;
+          svg {
+            color: #f87171;
+          }
+          &:hover {
+            background: rgba(248, 113, 113, 0.14);
+          }
+        }
+      }
+
+      .notification-item {
+        color: #e2e8f0;
+        &:hover {
+          background: rgba(255, 255, 255, 0.05);
+        }
+        &.unread {
+          background: rgba(47, 74, 50, 0.28);
+          border-left-color: var(--gold, #c4a35a);
+        }
+        .notif-title {
+          color: #f4efe4;
+        }
+        .notif-message {
+          color: #9ea89f;
+        }
+        .notif-time {
+          color: #737f74;
+        }
+      }
+
+      .dropdown-footer {
+        border-color: #333a35;
+        .view-all-btn {
+          color: #8fd6a4;
+          &:hover {
+            background: rgba(255, 255, 255, 0.08);
+          }
+        }
+      }
     }
-    
-    .dropdown-item:hover {
-      background: rgba(255, 255, 255, 0.05);
-    }
-    
+
     aside {
       background: var(--sidebar-bg);
     }
-    
+
     .content {
       background: var(--bg);
     }
