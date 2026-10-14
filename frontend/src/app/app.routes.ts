@@ -50,6 +50,7 @@ export const routes: Routes = [
       { path: 'risks', component: CrudPageComponent, data: { resource: 'risks' } },
       { path: 'decisions', component: CrudPageComponent, data: { resource: 'decisions' } },
       { path: 'sops', component: CrudPageComponent, data: { resource: 'sops' } },
+      { path: 'help', loadComponent: () => import('./features/help/help.component').then((module) => module.HelpComponent) },
       { path: 'settings', loadComponent: () => import('./features/settings/settings.component').then((module) => module.SettingsComponent) }
     ]
   },
