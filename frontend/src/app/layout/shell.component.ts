@@ -1,17 +1,10 @@
-import { Component, HostListener, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { CommonModule, NgClass, NgFor, NgIf, NgSwitch, NgSwitchCase } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuthService, TwoFactorSetupResponse, TwoFaMethod } from '../core/services/auth.service';
-
-interface Notification {
-  id: number;
-  title: string;
-  message: string;
-  time: string;
-  type: 'info' | 'success' | 'warning' | 'error';
-  read: boolean;
-}
+import { NotificationService } from '../core/services/notification.service';
+import { AppNotification } from '../core/models/notification.model';
 
 @Component({
   selector: 'app-shell',
@@ -20,14 +13,18 @@ interface Notification {
   templateUrl: './shell.component.html',
   styleUrl: './shell.component.scss'
 })
-export class ShellComponent implements OnInit {
+export class ShellComponent implements OnInit, OnDestroy {
   sidebarCollapsed = false;
   darkMode = false;
   showNotifications = false;
   showUserMenu = false;
   searchQuery = '';
-  notificationCount = 3;
   activePopupGroup: any = null;
+
+  // Notifications (live from the Notification Centre API)
+  notifications: AppNotification[] = [];
+  notificationCount = 0;
+  private notificationRefreshTimer: ReturnType<typeof setInterval> | null = null;
 
   // ─── 2FA Mandatory Modal ───────────────────────────────────────────────────
   showTwoFactorModal = false;
@@ -46,33 +43,6 @@ export class ShellComponent implements OnInit {
   shellOtpSending = false;
   shellOtpSendHint = '';
 
-  
-  notifications: Notification[] = [
-    {
-      id: 1,
-      title: 'New Health Alert',
-      message: 'Vaccination due for 5 animals',
-      time: '5 min ago',
-      type: 'warning',
-      read: false
-    },
-    {
-      id: 2,
-      title: 'Purchase Order Approved',
-      message: 'PO #1234 has been approved',
-      time: '1 hour ago',
-      type: 'success',
-      read: false
-    },
-    {
-      id: 3,
-      title: 'Feed Inventory Low',
-      message: 'Feed stock below threshold',
-      time: '2 hours ago',
-      type: 'error',
-      read: false
-    }
-  ];
   navGroups = [
     {
       label: 'Dashboard',
@@ -80,8 +50,13 @@ export class ShellComponent implements OnInit {
       expanded: true,
       items: [
         { path: '/hub', label: 'Hub', icon: 'hub' },
+<<<<<<< HEAD
         { path: '/ceo', label: 'CEO Command', icon: 'ceo' },
         { path: '/reports', label: 'Reports', icon: 'report' }
+=======
+        { path: '/notifications', label: 'Notifications', icon: 'notifications' },
+        { path: '/ceo', label: 'CEO Command', icon: 'ceo' }
+>>>>>>> ba0615286e7a42ae2d6c9080711835eacda385f2
       ]
     },
     {
@@ -157,7 +132,11 @@ export class ShellComponent implements OnInit {
     }
   ];
 
-  constructor(public auth: AuthService, private router: Router) {
+  constructor(
+    public auth: AuthService,
+    private router: Router,
+    private notificationSvc: NotificationService
+  ) {
     // Load dark mode preference from localStorage
     const savedDarkMode = localStorage.getItem('darkMode');
     if (savedDarkMode) {
@@ -170,6 +149,18 @@ export class ShellComponent implements OnInit {
     this.auth.user$.subscribe(() => {
       this.checkTwoFactorStatus();
     });
+
+    // Live notification badge + dropdown content
+    this.notificationSvc.unreadCount$.subscribe((count) => (this.notificationCount = count));
+    this.notificationSvc.recent$.subscribe((items) => (this.notifications = items));
+    this.notificationSvc.refresh();
+    this.notificationRefreshTimer = setInterval(() => this.notificationSvc.refresh(), 60_000);
+  }
+
+  ngOnDestroy(): void {
+    if (this.notificationRefreshTimer) {
+      clearInterval(this.notificationRefreshTimer);
+    }
   }
 
   checkTwoFactorStatus(): void {
@@ -307,6 +298,9 @@ export class ShellComponent implements OnInit {
   toggleNotifications() {
     this.showNotifications = !this.showNotifications;
     this.showUserMenu = false;
+    if (this.showNotifications) {
+      this.notificationSvc.refresh();
+    }
   }
 
   toggleUserMenu() {
@@ -320,8 +314,35 @@ export class ShellComponent implements OnInit {
   }
 
   markAllRead() {
-    this.notifications.forEach(n => n.read = true);
-    this.notificationCount = 0;
+    this.notificationSvc.markAllRead().subscribe({
+      next: () => this.notificationSvc.refresh(),
+      error: () => void 0
+    });
+  }
+
+  openNotification(notif: AppNotification) {
+    this.showNotifications = false;
+    this.router.navigate(['/notifications'], { queryParams: { id: notif.id } });
+  }
+
+  openAllNotifications() {
+    this.showNotifications = false;
+    this.router.navigate(['/notifications']);
+  }
+
+  notifTimeAgo(value: string | null | undefined): string {
+    if (!value) return '';
+    const then = new Date(value).getTime();
+    if (Number.isNaN(then)) return '';
+    const seconds = Math.max(0, Math.floor((Date.now() - then) / 1000));
+    if (seconds < 45) return 'just now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
+    return new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
   getUserInitials(): string {
