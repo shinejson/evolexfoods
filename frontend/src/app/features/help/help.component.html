@@ -1,0 +1,202 @@
+<main class="help-page">
+  <section class="help-hero" aria-labelledby="help-title">
+    <div class="hero-copy">
+      <div class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> EVOLEX HELP CENTRE</div>
+      <h1 id="help-title">Work confidently in Evolex Hub.</h1>
+      <p class="hero-lede">Practical guides for capturing farm work, following records through the business and turning reliable data into better decisions.</p>
+      <div class="hero-actions">
+        <a class="help-button help-button--primary" href="#getting-started" (click)="activateGuide('getting-started')">
+          Start with the five-minute guide
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-5-5 5 5-5 5" /></svg>
+        </a>
+        <button class="help-button help-button--quiet" type="button" (click)="printGuide()">
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6 7V3h8v4M5 15H3V8h14v7h-2M6 12h8v5H6v-5Z" /></svg>
+          Print guide
+        </button>
+      </div>
+    </div>
+
+    <div class="hero-visual" aria-hidden="true">
+      <div class="hero-orbit hero-orbit--one"></div>
+      <div class="hero-orbit hero-orbit--two"></div>
+      <div class="hero-sun"></div>
+      <div class="hero-card hero-card--top"><span class="hero-card-dot"></span><span>Daily signal</span><strong>Capture → review → act</strong></div>
+      <div class="hero-card hero-card--bottom"><span class="hero-card-icon">?</span><span><small>Need a route?</small><strong>Follow the guide index</strong></span></div>
+      <div class="hero-landscape hero-landscape--back"></div>
+      <div class="hero-landscape hero-landscape--front"></div>
+    </div>
+  </section>
+
+  <section class="help-stats" aria-label="Help centre overview">
+    <div class="help-stat"><strong>{{ guides.length }}</strong><span>step-by-step guides</span></div>
+    <div class="help-stat"><strong>{{ quickStart.length }}</strong><span>daily habits to remember</span></div>
+    <div class="help-stat"><strong>{{ faqs.length }}</strong><span>common questions answered</span></div>
+    <div class="help-stat help-stat--secure"><span class="status-dot" aria-hidden="true"></span><strong>10 min</strong><span>idle session timeout</span></div>
+  </section>
+
+  <section class="help-search-panel" aria-label="Search help guides">
+    <div class="search-copy">
+      <span class="section-kicker">FIND YOUR WAY</span>
+      <h2>What do you need to do?</h2>
+      <p>Search the guides for a workspace, task, status or common question.</p>
+    </div>
+    <div class="help-search-wrap">
+      <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m16.5 16.5 4 4" /></svg>
+      <input
+        type="search"
+        aria-label="Search help guides"
+        placeholder="Try “procurement”, “breeding” or “session”"
+        [(ngModel)]="searchTerm"
+        autocomplete="off" />
+      <button *ngIf="searchTerm" class="clear-search" type="button" aria-label="Clear help search" (click)="clearSearch()">×</button>
+    </div>
+    <span class="search-count" role="status">{{ searchResultLabel }}</span>
+  </section>
+
+  <section class="quick-start-section" aria-labelledby="quick-start-title">
+    <div class="section-heading">
+      <div>
+        <span class="section-kicker">THE EVOLEX RHYTHM</span>
+        <h2 id="quick-start-title">A useful day in four moves</h2>
+        <p>Use this loop whether you are on the farm, in finance or leading the operation.</p>
+      </div>
+      <a class="text-link" routerLink="/hub">Open Hub <span aria-hidden="true">↗</span></a>
+    </div>
+    <div class="quick-start-grid">
+      <a class="quick-start-card" *ngFor="let item of quickStart; let first = first" [routerLink]="item.route" [class.quick-start-card--first]="first">
+        <span class="quick-number">{{ item.number }}</span>
+        <span class="quick-card-copy"><strong>{{ item.title }}</strong><span>{{ item.text }}</span></span>
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-5-5 5 5-5 5" /></svg>
+      </a>
+    </div>
+  </section>
+
+  <div class="help-layout">
+    <aside class="help-index" aria-label="Guide index">
+      <div class="index-card">
+        <div class="index-heading">
+          <span class="section-kicker">GUIDE INDEX</span>
+          <span class="index-count">{{ filteredGuides.length }}/{{ guides.length }}</span>
+        </div>
+        <p>Choose a topic or search above. Each guide links directly to the workspace it describes.</p>
+        <nav>
+          <a
+            *ngFor="let guide of filteredGuides; let index = index"
+            [href]="'#' + guide.id"
+            [class.active]="activeGuideId === guide.id"
+            [attr.aria-current]="activeGuideId === guide.id ? 'location' : null"
+            (click)="activateGuide(guide.id)">
+            <span class="index-number">{{ (index + 1).toString().padStart(2, '0') }}</span>
+            <span><strong>{{ guide.title }}</strong><small>{{ guide.audience }}</small></span>
+          </a>
+        </nav>
+      </div>
+
+      <div class="role-card">
+        <span class="section-kicker">START BY ROLE</span>
+        <h3>Jump to the work that is yours.</h3>
+        <a *ngFor="let role of roleStartingPoints" [routerLink]="role.route">
+          <span><strong>{{ role.role }}</strong><small>{{ role.description }}</small></span>
+          <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10h11m-5-5 5 5-5 5" /></svg>
+        </a>
+      </div>
+    </aside>
+
+    <div class="help-content">
+      <div class="no-results" *ngIf="filteredGuides.length === 0">
+        <span class="no-results-icon">?</span>
+        <h2>No guide matched “{{ searchTerm }}”</h2>
+        <p>Try a broader term such as livestock, finance, settings or session.</p>
+        <button class="help-button help-button--primary" type="button" (click)="clearSearch()">Show all guides</button>
+      </div>
+
+      <section
+        class="guide-section"
+        *ngFor="let guide of filteredGuides; let guideIndex = index"
+        [id]="guide.id"
+        [class.guide-section--active]="activeGuideId === guide.id"
+        [attr.aria-labelledby]="guide.id + '-title'">
+        <header class="guide-header">
+          <div class="guide-heading">
+            <span class="guide-icon" [class]="'guide-icon--' + guide.icon" aria-hidden="true">
+              <svg [ngSwitch]="guide.icon" viewBox="0 0 24 24">
+                <path *ngSwitchCase="'start'" d="M12 3v4m0 10v4M3 12h4m10 0h4M5.6 5.6l2.8 2.8m7.2 7.2 2.8 2.8m0-12.8-2.8 2.8m-7.2 7.2-2.8 2.8M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" />
+                <path *ngSwitchCase="'navigation'" d="M4 5h16M4 12h16M4 19h10M7 3v4m5 3v4m-3 6v4" />
+                <path *ngSwitchCase="'hub'" d="M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z" />
+                <path *ngSwitchCase="'livestock'" d="M7 8c0-1.7 1.8-3 4-3s4 1.3 4 3c2.2 0 4 1.6 4 3.5S17.2 15 15 15H8c-2.2 0-4-1.6-4-3.5S5.8 8 8 8H7Zm1 9v3m8-3v3M9 8V5m6 3V5" />
+                <path *ngSwitchCase="'supply'" d="m3 7 9-4 9 4-9 4-9-4Zm0 5 9 4 9-4M3 17l9 4 9-4M12 11v5" />
+                <path *ngSwitchCase="'finance'" d="M12 3v18m4-14.5c0-1.7-1.8-3-4-3s-4 1.3-4 3 1.8 3 4 3 4 1.2 4 3-1.8 3-4 3-4-1.3-4-3" />
+                <path *ngSwitchCase="'governance'" d="M12 3 2 20h20L12 3Zm0 6v6m0 3h.01" />
+                <path *ngSwitchCase="'reporting'" d="M4 19V5m0 14h17M8 15l4-4 3 2 5-6" />
+                <path *ngSwitchCase="'settings'" d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.2 2.2m8.4 8.4 2.2 2.2m0-12.8-2.2 2.2m-8.4 8.4-2.2 2.2M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z" />
+                <path *ngSwitchDefault d="M5 4h14v16H5V4Zm4 4h6M9 12h6M9 16h4" />
+              </svg>
+            </span>
+            <div>
+              <span class="guide-eyebrow">{{ guide.eyebrow }} · {{ guide.audience }}</span>
+              <h2 [id]="guide.id + '-title'"><span class="guide-order">{{ (guideIndex + 1).toString().padStart(2, '0') }}</span>{{ guide.title }}</h2>
+              <p>{{ guide.summary }}</p>
+            </div>
+          </div>
+          <a *ngIf="guide.route" class="guide-route" [routerLink]="guide.route">{{ guide.routeLabel }} <span aria-hidden="true">↗</span></a>
+        </header>
+
+        <div class="guide-steps">
+          <article class="guide-step" *ngFor="let step of guide.steps; let stepIndex = index">
+            <div class="step-marker">{{ (stepIndex + 1).toString().padStart(2, '0') }}</div>
+            <div class="step-copy">
+              <h3>{{ step.title }}</h3>
+              <p>{{ step.body }}</p>
+              <ul *ngIf="step.bullets?.length">
+                <li *ngFor="let bullet of step.bullets">{{ bullet }}</li>
+              </ul>
+              <div class="step-links" *ngIf="step.links?.length">
+                <a *ngFor="let link of step.links" [routerLink]="link.route">{{ link.label }} <span aria-hidden="true">↗</span></a>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <aside class="guide-tips" aria-label="Guide tips">
+          <span class="tip-icon" aria-hidden="true">✦</span>
+          <div><strong>Good to know</strong><ul><li *ngFor="let tip of guide.tips">{{ tip }}</li></ul></div>
+        </aside>
+      </section>
+
+      <section class="faq-section" id="faq" aria-labelledby="faq-title">
+        <div class="faq-heading">
+          <span class="section-kicker">QUICK ANSWERS</span>
+          <h2 id="faq-title">Frequently asked questions</h2>
+          <p>Short answers for the moments when you need to get moving.</p>
+        </div>
+        <div class="faq-list">
+          <article class="faq-item" *ngFor="let faq of faqs" [class.faq-item--open]="expandedFaqId === faq.id">
+            <button type="button" class="faq-question" [attr.aria-expanded]="expandedFaqId === faq.id" [attr.aria-controls]="faq.id + '-answer'" (click)="toggleFaq(faq.id)">
+              <span>{{ faq.question }}</span>
+              <svg viewBox="0 0 20 20" aria-hidden="true"><path d="m5 7 5 5 5-5" /></svg>
+            </button>
+            <div class="faq-answer" *ngIf="expandedFaqId === faq.id" [id]="faq.id + '-answer'">
+              <p>{{ faq.answer }}</p>
+              <div class="step-links" *ngIf="faq.links?.length">
+                <a *ngFor="let link of faq.links" [routerLink]="link.route">{{ link.label }} <span aria-hidden="true">↗</span></a>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="support-panel" aria-labelledby="support-title">
+        <div class="support-mark" aria-hidden="true">EV</div>
+        <div>
+          <span class="section-kicker">STILL NEED A HAND?</span>
+          <h2 id="support-title">Bring the right context with your question.</h2>
+          <p>Tell your administrator the workspace, record ID, action, approximate time and exact error message. Never share your password, access token or integration secret.</p>
+        </div>
+        <div class="support-actions">
+          <a class="help-button help-button--light" routerLink="/hub">Return to Hub <span aria-hidden="true">↗</span></a>
+          <a class="help-button help-button--outline" routerLink="/settings">Open Settings <span aria-hidden="true">↗</span></a>
+        </div>
+      </section>
+    </div>
+  </div>
+</main>
