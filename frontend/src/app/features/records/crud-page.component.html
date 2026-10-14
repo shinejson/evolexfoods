@@ -27,30 +27,95 @@
   <p class="muted" *ngIf="message">{{ message }}</p>
   <p class="err" *ngIf="error">{{ error }}</p>
 
-  <!-- Create/Edit Form Panel -->
-  <div class="panel" *ngIf="showForm">
-    <h2>{{ editingId ? 'Edit ' + (def.recordLabel || 'record') : 'New ' + (def.recordLabel || 'record') }}</h2>
-    <form class="crud-form" (ngSubmit)="save()">
-      <label *ngFor="let field of def.fields">
-        <span>{{ field.label }}<em *ngIf="field.required"> *</em></span>
-        <textarea *ngIf="field.type === 'textarea'" [(ngModel)]="form[field.key]" [name]="field.key"></textarea>
-        <select *ngIf="field.type === 'select'" [(ngModel)]="form[field.key]" [name]="field.key" [required]="!!field.required">
-          <option [ngValue]="''">Select</option>
-          <option *ngFor="let opt of optionsFor(field)" [ngValue]="opt.value">{{ opt.label }}</option>
-        </select>
-        <input *ngIf="field.type !== 'textarea' && field.type !== 'select'"
-          [type]="field.type"
-          [(ngModel)]="form[field.key]"
-          [name]="field.key"
-          [required]="!!field.required"
-          [step]="field.type === 'number' ? 'any' : null"
-          [placeholder]="field.placeholder || ''" />
-      </label>
-      <div class="toolbar">
-        <button class="btn btn-primary" type="submit">Save</button>
-        <button class="btn btn-secondary" type="button" (click)="cancel()">Cancel</button>
+  <!-- Create/Edit Form Modal Dialog -->
+  <div class="modal-backdrop" *ngIf="showForm" (click)="cancel()">
+    <div class="modal-card modal-card-crud" role="dialog" aria-modal="true" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <div class="modal-icon-badge" [class.badge-hr]="resource === 'employees'">
+            <!-- HR / People icon -->
+            <svg *ngIf="resource === 'employees'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <!-- Generic document/edit icon -->
+            <svg *ngIf="resource !== 'employees'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </div>
+          <div>
+            <div class="modal-eyebrow">{{ def.title }}</div>
+            <h2>{{ editingId ? 'Edit ' + (def.recordLabel || 'Record') : 'Add ' + (def.recordLabel || 'Record') }}</h2>
+          </div>
+        </div>
+        <button type="button" class="btn-modal-close" (click)="cancel()" aria-label="Close dialog">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
       </div>
-    </form>
+
+      <div class="modal-body-scroll">
+        <p class="modal-intro" *ngIf="resource === 'employees'">
+          Record employee personal details, department assignment, and operational role.
+        </p>
+
+        <p class="err-box" *ngIf="error">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <span>{{ error }}</span>
+        </p>
+
+        <form id="crudModalForm" class="crud-modal-form" (ngSubmit)="save()">
+          <div class="crud-form-grid">
+            <div *ngFor="let field of def.fields" class="form-field-group" [class.form-field-group--wide]="field.type === 'textarea'">
+              <label [for]="'field_' + field.key">
+                {{ field.label }}<b *ngIf="field.required"> *</b>
+              </label>
+
+              <textarea *ngIf="field.type === 'textarea'"
+                [id]="'field_' + field.key"
+                [(ngModel)]="form[field.key]"
+                [name]="field.key"
+                [placeholder]="field.placeholder || ''"
+                class="form-control"
+                rows="3"></textarea>
+
+              <select *ngIf="field.type === 'select'"
+                [id]="'field_' + field.key"
+                [(ngModel)]="form[field.key]"
+                [name]="field.key"
+                [required]="!!field.required"
+                class="form-control form-select">
+                <option [ngValue]="''">Select {{ field.label }}</option>
+                <option *ngFor="let opt of optionsFor(field)" [ngValue]="opt.value">{{ opt.label }}</option>
+              </select>
+
+              <input *ngIf="field.type !== 'textarea' && field.type !== 'select'"
+                [id]="'field_' + field.key"
+                [type]="field.type"
+                [(ngModel)]="form[field.key]"
+                [name]="field.key"
+                [required]="!!field.required"
+                [step]="field.type === 'number' ? 'any' : null"
+                [placeholder]="field.placeholder || ''"
+                class="form-control" />
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-actions-bar">
+        <button class="btn btn-secondary" type="button" (click)="cancel()">Cancel</button>
+        <button class="btn btn-primary" type="submit" form="crudModalForm" [disabled]="saving">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+          <span>{{ saving ? 'Saving...' : (editingId ? 'Update ' + (def.recordLabel || 'Record') : 'Save ' + (def.recordLabel || 'Record')) }}</span>
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- KPI Cards -->

@@ -5,17 +5,17 @@
 
 :host {
   --br-ok: #2f6b45;
-  --br-ok-tint: #e9f2ea;
+  --br-ok-tint: var(--surface-mute);
   --br-watch: #a9772a;
-  --br-watch-tint: #fbf2df;
+  --br-watch-tint: var(--tint-warn-bg);
   --br-action: #9b2f2f;
-  --br-action-tint: #fbeae7;
+  --br-action-tint: var(--surface-soft);
   --br-neutral: #5d6b5f;
-  --br-neutral-tint: #eef0ea;
-  --br-hairline: #e3dac8;
-  --br-surface: #fffdf8;
-  --br-surface-sunk: #f7f2e7;
-  --br-track: #ece4d3;
+  --br-neutral-tint: var(--surface-mute);
+  --br-hairline: var(--hairline);
+  --br-surface: var(--surface-paper);
+  --br-surface-sunk: var(--surface-soft);
+  --br-track: var(--table-line);
   --br-gold: #c4a35a;
   --br-clay: #b45a3c;
   --br-sky: #3e6b73;
@@ -82,7 +82,7 @@ h3 {
   align-items: center;
   gap: 8px;
   margin: 0 0 7px;
-  color: var(--moss);
+  color: var(--moss-text);
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.13em;
@@ -118,16 +118,16 @@ h3 {
   border: 1px solid var(--br-hairline);
   border-radius: 999px;
   background: var(--br-surface-sunk);
-  color: var(--br-neutral);
+  color: var(--text-muted);
   font-size: 12px;
 }
 
 .head-flag strong {
-  color: var(--forest);
+  color: var(--forest-text);
 }
 
 .head-flag .is-alarm {
-  color: var(--br-action);
+  color: var(--danger-text);
   font-weight: 700;
 }
 
@@ -172,7 +172,7 @@ h3 {
 .btn--quiet {
   border-color: var(--br-hairline);
   background: var(--br-surface);
-  color: var(--forest);
+  color: var(--forest-text);
 }
 
 .btn--danger {
@@ -202,7 +202,7 @@ h3 {
 .icon-btn:hover:not(:disabled) {
   border-color: var(--br-hairline);
   background: var(--br-surface-sunk);
-  color: var(--forest);
+  color: var(--forest-text);
 }
 
 .icon-btn:disabled {
@@ -213,13 +213,13 @@ h3 {
 .icon-btn.is-danger:hover {
   border-color: #e6c3bb;
   background: var(--br-action-tint);
-  color: var(--br-action);
+  color: var(--danger-text);
 }
 
 .text-button {
   border: 0;
   background: none;
-  color: var(--forest);
+  color: var(--forest-text);
   font-size: 12px;
   font-weight: 700;
   text-decoration: underline;
@@ -286,10 +286,10 @@ h3 {
   gap: 10px;
   margin: 0 0 16px;
   padding: 11px 15px;
-  border: 1px solid #cfe0d2;
+  border: 1px solid var(--hairline);
   border-radius: 12px;
   background: var(--br-ok-tint);
-  color: #24512f;
+  color: var(--tint-ok-fg);
   font-size: 13px;
 }
 
@@ -613,7 +613,7 @@ h3 {
 
 .chart-foot {
   margin: 0;
-  color: #8d9186;
+  color: var(--text-muted);
   font-size: 11px;
 }
 
@@ -719,7 +719,7 @@ h3 {
 }
 
 .legend-share {
-  color: #8d9186;
+  color: var(--text-muted);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
@@ -800,7 +800,7 @@ h3 {
 }
 
 .bar-foot {
-  color: #8d9186;
+  color: var(--text-muted);
   font-size: 11px;
 }
 
@@ -833,7 +833,7 @@ h3 {
   padding: 0 12px;
   border: 1px solid var(--br-hairline);
   border-radius: 11px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink-soft);
 }
 
@@ -891,7 +891,7 @@ h3 {
 }
 
 .segment-btn:hover {
-  color: var(--forest);
+  color: var(--forest-text);
 }
 
 .segment-btn.is-active {
@@ -912,7 +912,7 @@ h3 {
   border: 1px solid var(--br-hairline);
   border-radius: 999px;
   padding: 7px 12px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink-soft);
   font-size: 12px;
   font-weight: 600;
@@ -942,7 +942,7 @@ h3 {
   border: 1px solid var(--br-hairline);
   border-radius: 10px;
   padding: 9px 11px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   font-size: 12px;
 }
@@ -959,7 +959,7 @@ h3 {
   border: 1px solid var(--br-hairline);
   border-radius: 9px;
   padding: 8px 11px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink-soft);
   font-size: 12px;
   font-weight: 600;
@@ -973,7 +973,7 @@ h3 {
 .range-btn.is-active {
   border-color: var(--forest);
   background: var(--br-ok-tint);
-  color: var(--forest);
+  color: var(--forest-text);
 }
 
 .date-inputs {
@@ -988,7 +988,7 @@ h3 {
   border: 1px solid var(--br-hairline);
   border-radius: 9px;
   padding: 8px 10px;
-  background: #fff;
+  background: var(--surface);
   font-size: 12px;
 }
 
@@ -999,7 +999,7 @@ h3 {
   border: 1px solid var(--br-hairline);
   border-radius: 999px;
   padding: 8px 13px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink-soft);
   font-size: 12px;
   font-weight: 600;
@@ -1009,7 +1009,7 @@ h3 {
 .toggle-btn.is-active {
   border-color: var(--br-watch);
   background: var(--br-watch-tint);
-  color: #7a5410;
+  color: var(--tint-warn-fg);
 }
 
 .toggle-dot {
@@ -1054,11 +1054,11 @@ h3 {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  border: 1px solid #cfe0d2;
+  border: 1px solid var(--hairline);
   border-radius: 999px;
   padding: 6px 10px;
   background: var(--br-ok-tint);
-  color: #24512f;
+  color: var(--tint-ok-fg);
   font-size: 11px;
   font-weight: 600;
   cursor: pointer;
@@ -1070,7 +1070,7 @@ h3 {
 }
 
 .applied-label {
-  color: #4b6a52;
+  color: var(--ok-text);
   font-weight: 700;
 }
 
@@ -1119,7 +1119,7 @@ th {
 }
 
 .th-sort:hover {
-  color: var(--forest);
+  color: var(--forest-text);
 }
 
 .sort-icon {
@@ -1135,7 +1135,7 @@ th {
 
 .sort-icon.is-active {
   opacity: 1;
-  color: var(--forest);
+  color: var(--forest-text);
 }
 
 th.is-right .th-sort,
@@ -1146,12 +1146,12 @@ th.is-right {
 
 td {
   padding: 11px 14px;
-  border-bottom: 1px solid #f1e9d9;
+  border-bottom: 1px solid var(--hairline);
   vertical-align: middle;
 }
 
 tbody tr:hover {
-  background: #fbf7ee;
+  background: var(--surface-soft);
 }
 
 tr.is-attention td:first-child {
@@ -1159,7 +1159,7 @@ tr.is-attention td:first-child {
 }
 
 tr.is-muted {
-  color: #8d9186;
+  color: var(--text-muted);
 }
 
 .animal {
@@ -1183,18 +1183,18 @@ tr.is-muted {
 }
 
 .stacked.is-action strong {
-  color: var(--br-action);
+  color: var(--danger-text);
 }
 
 .stacked.is-watch strong {
-  color: var(--br-watch);
+  color: var(--warn-text);
 }
 
 .link-cell {
   border: 0;
   padding: 0;
   background: none;
-  color: var(--forest);
+  color: var(--forest-text);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -1211,22 +1211,22 @@ tr.is-muted {
   font-weight: 700;
   letter-spacing: 0.02em;
   background: var(--br-neutral-tint);
-  color: var(--br-neutral);
+  color: var(--text-muted);
 }
 
 .badge-pill.is-ok {
   background: var(--br-ok-tint);
-  color: var(--br-ok);
+  color: var(--tint-ok-fg);
 }
 
 .badge-pill.is-watch {
   background: var(--br-watch-tint);
-  color: #7a5410;
+  color: var(--tint-warn-fg);
 }
 
 .badge-pill.is-action {
   background: var(--br-action-tint);
-  color: var(--br-action);
+  color: var(--danger-text);
 }
 
 .badge-pill.is-plain {
@@ -1274,7 +1274,7 @@ td.is-right {
 }
 
 .is-alarm {
-  color: var(--br-action);
+  color: var(--danger-text);
   font-weight: 700;
 }
 
@@ -1326,7 +1326,7 @@ td.is-right {
   height: 32px;
   border: 1px solid var(--br-hairline);
   border-radius: 9px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink-soft);
   font-size: 12px;
   font-weight: 700;
@@ -1385,7 +1385,7 @@ td.is-right {
   justify-content: space-between;
   gap: 8px;
   padding: 4px 6px 0;
-  color: #8d9186;
+  color: var(--text-muted);
   font-size: 11px;
 }
 
@@ -1425,7 +1425,7 @@ td.is-right {
 
 .dialog-kicker {
   margin: 0 0 4px;
-  color: var(--moss);
+  color: var(--moss-text);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.12em;
@@ -1440,7 +1440,7 @@ td.is-right {
   margin: 0;
   padding: 10px 20px;
   background: var(--br-action-tint);
-  color: var(--br-action);
+  color: var(--danger-text);
   font-size: 12px;
 }
 
@@ -1495,7 +1495,7 @@ td.is-right {
 
 .detail-hint {
   margin: 0;
-  color: #8d9186;
+  color: var(--text-muted);
   font-size: 11px;
 }
 
@@ -1535,7 +1535,7 @@ td.is-right {
   border: 1px solid var(--br-hairline);
   border-radius: 10px;
   padding: 10px 11px;
-  background: #fff;
+  background: var(--surface);
   color: var(--ink);
   font-size: 13px;
 }
@@ -1553,12 +1553,12 @@ td.is-right {
 }
 
 .field-error {
-  color: var(--br-action);
+  color: var(--danger-text);
   font-size: 11px;
 }
 
 .field-hint {
-  color: #8d9186;
+  color: var(--text-muted);
   font-size: 11px;
 }
 

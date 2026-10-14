@@ -50,7 +50,8 @@ export const routes: Routes = [
       { path: 'risks', component: CrudPageComponent, data: { resource: 'risks' } },
       { path: 'decisions', component: CrudPageComponent, data: { resource: 'decisions' } },
       { path: 'sops', component: CrudPageComponent, data: { resource: 'sops' } },
-      { path: 'settings', loadComponent: () => import('./features/settings/settings.component').then((module) => module.SettingsComponent) }
+      { path: 'settings', loadComponent: () => import('./features/settings/settings.component').then((module) => module.SettingsComponent) },
+      { path: 'roles', loadComponent: () => import('./features/settings/role-management.component').then((module) => module.RoleManagementComponent) }
     ]
   },
   { path: '**', redirectTo: 'ceo' }

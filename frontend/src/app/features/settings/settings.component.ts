@@ -2,8 +2,16 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { SettingsService, SystemInfo, TestEmailResult } from '../../core/services/settings.service';
-import { AuthService } from '../../core/services/auth.service';
+import {
+  SettingsService,
+  SystemInfo,
+  TestEmailResult,
+  DatabaseBackup,
+  BackupListResponse,
+  ActivityLog,
+  ActivityLogsResponse
+} from '../../core/services/settings.service';
+import { AuthService, TwoFactorSetupResponse, TwoFaMethod } from '../../core/services/auth.service';
 
 export interface GeneralSettings {
   company_name: string;
@@ -122,7 +130,7 @@ interface Toast {
   styleUrl: './settings.component.scss'
 })
 export class SettingsComponent implements OnInit {
-  activeTab: 'general' | 'email' | 'notifications' | 'livestock' | 'integrations' | 'security' = 'general';
+  activeTab: 'general' | 'email' | 'notifications' | 'livestock' | 'integrations' | 'security' | 'backups' | 'activity' = 'general';
   
   loading = true;
   saving = false;
@@ -136,6 +144,55 @@ export class SettingsComponent implements OnInit {
 
   testRecipient = '';
   testEmailResult: TestEmailResult | null = null;
+
+  // 2FA / 2FM State in Settings
+  twoFactorSetupData: TwoFactorSetupResponse | null = null;
+  twoFactorActivationCode = '';
+  twoFactorActivating = false;
+  twoFactorDeactivating = false;
+  twoFactorPasswordToDeactivate = '';
+  showDeactivateModal = false;
+  copiedSettingsKey = false;
+  copiedSettingsCodes = false;
+
+  settingsTwoFaMethod: TwoFaMethod = 'totp';
+  settingsActivationStep: 'select' | 'send' | 'verify' = 'select';
+  settingsOtpSending = false;
+  settingsOtpSent = false;
+  settingsOtpHint = '';
+
+  // Database Backups State
+  backups: DatabaseBackup[] = [];
+  loadingBackups = false;
+  creatingBackup = false;
+  newBackupLabel = '';
+  databasePath = '';
+  databaseSizeBytes = 0;
+  databaseSizeFormatted = '';
+  autoBackupSchedule = 'daily';
+  showRestoreModal = false;
+  backupToRestore: DatabaseBackup | null = null;
+  restoringBackup = false;
+  deletingBackupFilename: string | null = null;
+  downloadingBackupFilename: string | null = null;
+
+  // Activity Logs State
+  activityLogs: ActivityLog[] = [];
+  loadingLogs = false;
+  logSearch = '';
+  logActionFilter = 'all';
+  logUserFilter: string | number = 'all';
+  availableLogActions: string[] = [];
+  availableLogUsers: Array<{ id: number; name: string; email: string; role: string }> = [];
+  logMetrics = {
+    total_events: 0,
+    today_events: 0,
+    security_events: 0,
+    system_events: 0
+  };
+  showClearLogsModal = false;
+  clearLogsDays: string | number = 30;
+  clearingLogs = false;
 
   systemInfo: SystemInfo = {
     app_name: 'Evolex Hub',
@@ -234,7 +291,7 @@ export class SettingsComponent implements OnInit {
     },
     security: {
       session_lifetime_minutes: 120,
-      enforce_two_factor: false,
+      enforce_two_factor: true,
       password_expiry_days: 90,
       max_failed_login_attempts: 5,
       maintenance_mode: false,
@@ -259,6 +316,7 @@ export class SettingsComponent implements OnInit {
   ngOnInit(): void {
     this.testRecipient = this.auth.user?.email || 'operations@evolexfood.com';
     this.loadSettings();
+    this.loadTwoFactorSetup();
   }
 
   loadSettings(): void {
@@ -290,8 +348,125 @@ export class SettingsComponent implements OnInit {
     });
   }
 
-  selectTab(tab: 'general' | 'email' | 'notifications' | 'livestock' | 'integrations' | 'security'): void {
+  selectTab(tab: 'general' | 'email' | 'notifications' | 'livestock' | 'integrations' | 'security' | 'backups' | 'activity'): void {
     this.activeTab = tab;
+    if (tab === 'security' && !this.twoFactorSetupData) {
+      this.loadTwoFactorSetup();
+    } else if (tab === 'backups') {
+      this.loadBackups();
+    } else if (tab === 'activity') {
+      this.loadActivityLogs();
+    }
+  }
+
+  loadTwoFactorSetup(): void {
+    this.auth.setup2fa().subscribe({
+      next: (data) => {
+        this.twoFactorSetupData = data;
+      },
+      error: (err) => {
+        console.error('Failed to load 2FA setup in settings:', err);
+      }
+    });
+  }
+
+  setSettingsTwoFaMethod(m: TwoFaMethod): void {
+    this.settingsTwoFaMethod = m;
+    this.twoFactorActivationCode = '';
+    this.settingsOtpSent = false;
+    this.settingsOtpHint = '';
+    this.settingsActivationStep = m === 'totp' ? 'verify' : 'send';
+  }
+
+  sendSettingsOtp(): void {
+    if (this.settingsOtpSending) return;
+    this.settingsOtpSending = true;
+    this.auth.sendOtp(this.settingsTwoFaMethod as 'email' | 'whatsapp').subscribe({
+      next: (res) => {
+        this.settingsOtpSending = false;
+        this.settingsOtpSent = true;
+        this.settingsOtpHint = res.message;
+        this.settingsActivationStep = 'verify';
+        this.showToastMsg('success', res.message);
+      },
+      error: (err) => {
+        this.settingsOtpSending = false;
+        this.showToastMsg('error', err?.error?.message || 'Failed to send verification code.');
+      }
+    });
+  }
+
+  backToSettingsMethodSelect(): void {
+    this.settingsActivationStep = 'select';
+    this.twoFactorActivationCode = '';
+    this.settingsOtpSent = false;
+  }
+
+  activateTwoFactor(): void {
+    if (!this.twoFactorActivationCode || this.twoFactorActivationCode.trim().length < 6) {
+      this.showToastMsg('error', 'Please enter a valid 6-digit code.');
+      return;
+    }
+
+    this.twoFactorActivating = true;
+    this.auth.activate2fa(this.twoFactorActivationCode.trim(), this.settingsTwoFaMethod).subscribe({
+      next: (res) => {
+        this.twoFactorActivating = false;
+        this.twoFactorActivationCode = '';
+        this.settingsActivationStep = 'select';
+        this.loadTwoFactorSetup();
+        this.showToastMsg('success', res.message || 'Two-factor authentication activated successfully!');
+      },
+      error: (err) => {
+        this.twoFactorActivating = false;
+        this.showToastMsg('error', err?.error?.message || 'Invalid code. Verification failed.');
+      }
+    });
+  }
+
+  openDeactivateModal(): void {
+    this.showDeactivateModal = true;
+    this.twoFactorPasswordToDeactivate = '';
+  }
+
+  confirmDeactivate(): void {
+    if (!this.twoFactorPasswordToDeactivate) {
+      this.showToastMsg('error', 'Password is required to deactivate 2FA.');
+      return;
+    }
+
+    this.twoFactorDeactivating = true;
+    this.auth.deactivate2fa(this.twoFactorPasswordToDeactivate).subscribe({
+      next: (res) => {
+        this.twoFactorDeactivating = false;
+        this.showDeactivateModal = false;
+        this.twoFactorPasswordToDeactivate = '';
+        this.loadTwoFactorSetup();
+        this.showToastMsg('info', res.message || '2FA has been deactivated.');
+      },
+      error: (err) => {
+        this.twoFactorDeactivating = false;
+        this.showToastMsg('error', err?.error?.message || 'Password incorrect. Could not deactivate 2FA.');
+      }
+    });
+  }
+
+  copySettingsKey(): void {
+    if (this.twoFactorSetupData?.secret) {
+      navigator.clipboard.writeText(this.twoFactorSetupData.secret);
+      this.copiedSettingsKey = true;
+      setTimeout(() => this.copiedSettingsKey = false, 2500);
+      this.showToastMsg('success', 'Secret key copied to clipboard!');
+    }
+  }
+
+  copySettingsCodes(): void {
+    if (this.twoFactorSetupData?.recovery_codes) {
+      navigator.clipboard.writeText(this.twoFactorSetupData.recovery_codes.join('\n'));
+      this.copiedSettingsCodes = true;
+      setTimeout(() => this.copiedSettingsCodes = false, 2500);
+      this.showToastMsg('success', 'Recovery codes copied to clipboard!');
+    }
   }
 
   onFieldChange(): void {
@@ -398,6 +573,244 @@ export class SettingsComponent implements OnInit {
         this.showToastMsg('info', 'Local configuration exported.');
       }
     });
+  }
+
+  // ─── Database Backups Methods ──────────────────────────────────────────
+
+  loadBackups(): void {
+    this.loadingBackups = true;
+    this.settingsService.getBackups().subscribe({
+      next: (res) => {
+        this.loadingBackups = false;
+        this.databasePath = res.database_path;
+        this.databaseSizeBytes = res.database_size_bytes;
+        this.databaseSizeFormatted = res.database_size_formatted;
+        this.autoBackupSchedule = res.auto_backup_schedule;
+        this.backups = res.backups || [];
+      },
+      error: (err) => {
+        this.loadingBackups = false;
+        console.error('Failed to load database backups:', err);
+        this.showToastMsg('error', 'Unable to load backup files list.');
+      }
+    });
+  }
+
+  createBackup(): void {
+    this.creatingBackup = true;
+    this.settingsService.createBackup(this.newBackupLabel.trim() || undefined).subscribe({
+      next: (res) => {
+        this.creatingBackup = false;
+        this.newBackupLabel = '';
+        this.showToastMsg('success', res.message || 'Database snapshot created successfully!');
+        this.loadBackups();
+      },
+      error: (err) => {
+        this.creatingBackup = false;
+        console.error('Failed to create backup:', err);
+        this.showToastMsg('error', err?.error?.message || 'Could not create database snapshot.');
+      }
+    });
+  }
+
+  downloadBackup(backup: DatabaseBackup): void {
+    this.downloadingBackupFilename = backup.filename;
+    this.settingsService.downloadBackup(backup.filename).subscribe({
+      next: (blob) => {
+        this.downloadingBackupFilename = null;
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = backup.filename;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.showToastMsg('success', `Downloaded ${backup.filename}`);
+      },
+      error: (err) => {
+        this.downloadingBackupFilename = null;
+        console.error('Download backup failed:', err);
+        this.showToastMsg('error', 'Failed to download backup file.');
+      }
+    });
+  }
+
+  openRestoreModal(backup: DatabaseBackup): void {
+    this.backupToRestore = backup;
+    this.showRestoreModal = true;
+  }
+
+  closeRestoreModal(): void {
+    this.showRestoreModal = false;
+    this.backupToRestore = null;
+  }
+
+  confirmRestore(): void {
+    if (!this.backupToRestore) return;
+    this.restoringBackup = true;
+    const target = this.backupToRestore;
+    this.settingsService.restoreBackup(target.filename).subscribe({
+      next: (res) => {
+        this.restoringBackup = false;
+        this.closeRestoreModal();
+        this.showToastMsg('success', res.message || `Database successfully restored from ${target.filename}!`);
+        this.loadBackups();
+      },
+      error: (err) => {
+        this.restoringBackup = false;
+        console.error('Failed to restore backup:', err);
+        this.showToastMsg('error', err?.error?.message || 'Failed to restore database from backup.');
+      }
+    });
+  }
+
+  deleteBackup(backup: DatabaseBackup): void {
+    if (!confirm(`Are you sure you want to permanently delete backup "${backup.filename}"? This action cannot be undone.`)) {
+      return;
+    }
+    this.deletingBackupFilename = backup.filename;
+    this.settingsService.deleteBackup(backup.filename).subscribe({
+      next: (res) => {
+        this.deletingBackupFilename = null;
+        this.showToastMsg('info', res.message || 'Backup file deleted.');
+        this.loadBackups();
+      },
+      error: (err) => {
+        this.deletingBackupFilename = null;
+        console.error('Failed to delete backup:', err);
+        this.showToastMsg('error', err?.error?.message || 'Failed to delete backup file.');
+      }
+    });
+  }
+
+  // ─── Activity Logs Methods ──────────────────────────────────────────────
+
+  loadActivityLogs(): void {
+    this.loadingLogs = true;
+    const params: { action?: string; user_id?: string | number; search?: string } = {};
+    if (this.logActionFilter && this.logActionFilter !== 'all') {
+      params.action = this.logActionFilter;
+    }
+    if (this.logUserFilter && this.logUserFilter !== 'all') {
+      params.user_id = this.logUserFilter;
+    }
+    if (this.logSearch.trim()) {
+      params.search = this.logSearch.trim();
+    }
+
+    this.settingsService.getActivityLogs(params).subscribe({
+      next: (res) => {
+        this.loadingLogs = false;
+        this.activityLogs = res.logs || [];
+        this.availableLogActions = res.available_actions || [];
+        this.availableLogUsers = res.available_users || [];
+        if (res.metrics) {
+          this.logMetrics = res.metrics;
+        }
+      },
+      error: (err) => {
+        this.loadingLogs = false;
+        console.error('Failed to load activity logs:', err);
+        this.showToastMsg('error', 'Could not load activity audit trail.');
+      }
+    });
+  }
+
+  filterLogs(): void {
+    this.loadActivityLogs();
+  }
+
+  resetLogFilters(): void {
+    this.logSearch = '';
+    this.logActionFilter = 'all';
+    this.logUserFilter = 'all';
+    this.loadActivityLogs();
+  }
+
+  openClearLogsModal(): void {
+    this.showClearLogsModal = true;
+  }
+
+  closeClearLogsModal(): void {
+    this.showClearLogsModal = false;
+  }
+
+  confirmClearLogs(): void {
+    this.clearingLogs = true;
+    this.settingsService.clearActivityLogs(this.clearLogsDays).subscribe({
+      next: (res) => {
+        this.clearingLogs = false;
+        this.closeClearLogsModal();
+        this.showToastMsg('info', res.message || 'Activity logs pruned.');
+        this.loadActivityLogs();
+      },
+      error: (err) => {
+        this.clearingLogs = false;
+        console.error('Failed to prune logs:', err);
+        this.showToastMsg('error', err?.error?.message || 'Failed to prune activity logs.');
+      }
+    });
+  }
+
+  exportLogsCsv(): void {
+    if (!this.activityLogs.length) {
+      this.showToastMsg('info', 'No logs available to export.');
+      return;
+    }
+
+    const headers = ['ID', 'Timestamp', 'User Name', 'User Email', 'Role', 'Action', 'IP Address', 'Metadata'];
+    const rows = this.activityLogs.map((log) => [
+      log.id,
+      `"${log.created_at}"`,
+      `"${log.user?.name || 'System / Guest'}"`,
+      `"${log.user?.email || 'N/A'}"`,
+      `"${log.user?.role || 'System'}"`,
+      `"${log.action}"`,
+      `"${log.ip_address || '127.0.0.1'}"`,
+      `"${log.meta ? JSON.stringify(log.meta).replace(/"/g, '""') : ''}"`
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `evolex-activity-logs-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+    this.showToastMsg('success', 'Exported activity logs to CSV!');
+  }
+
+  getActionBadgeClass(action: string): string {
+    const act = (action || '').toLowerCase();
+    if (act.includes('login') || act.includes('auth')) return 'badge-auth';
+    if (act.includes('2fa')) return 'badge-security';
+    if (act.includes('backup') || act.includes('database')) return 'badge-database';
+    if (act.includes('settings') || act.includes('cache')) return 'badge-system';
+    if (act.includes('delete') || act.includes('pruned')) return 'badge-danger';
+    return 'badge-default';
+  }
+
+  formatLogMeta(meta: any): string {
+    if (!meta) return '';
+    if (typeof meta === 'string') return meta;
+    try {
+      const parts: string[] = [];
+      Object.entries(meta).forEach(([k, v]) => {
+        parts.push(`${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`);
+      });
+      return parts.join(' | ');
+    } catch {
+      return JSON.stringify(meta);
+    }
+  }
+
+  getUserInitials(name?: string): string {
+    if (!name) return 'SY';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return name.slice(0, 2).toUpperCase();
   }
 
   showToastMsg(type: 'success' | 'error' | 'info', message: string): void {

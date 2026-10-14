@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\HrTaskController;
 use App\Http\Controllers\Api\V1\LivestockController;
 use App\Http\Controllers\Api\V1\MarketingController;
 use App\Http\Controllers\Api\V1\ProcurementController;
+use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use Illuminate\Support\Facades\Route;
 
@@ -22,6 +23,10 @@ Route::prefix('v1')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::get('/auth/me', [AuthController::class, 'me']);
         Route::post('/auth/logout', [AuthController::class, 'logout']);
+        Route::get('/auth/2fa/setup', [AuthController::class, 'setup2fa']);
+        Route::post('/auth/2fa/send-otp', [AuthController::class, 'sendOtp']);
+        Route::post('/auth/2fa/activate', [AuthController::class, 'activate2fa']);
+        Route::post('/auth/2fa/deactivate', [AuthController::class, 'deactivate2fa']);
 
         Route::get('/hub', [DashboardController::class, 'hub']);
         Route::get('/dashboard/ceo', [DashboardController::class, 'ceo']);
@@ -95,6 +100,23 @@ Route::prefix('v1')->group(function () {
         Route::post('/settings/test-email', [SettingsController::class, 'testEmail']);
         Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache']);
         Route::get('/settings/export', [SettingsController::class, 'exportConfig']);
+        Route::get('/settings/backups', [SettingsController::class, 'listBackups']);
+        Route::post('/settings/backups', [SettingsController::class, 'createBackup']);
+        Route::get('/settings/backups/download/{filename}', [SettingsController::class, 'downloadBackup']);
+        Route::post('/settings/backups/restore/{filename}', [SettingsController::class, 'restoreBackup']);
+        Route::delete('/settings/backups/{filename}', [SettingsController::class, 'deleteBackup']);
+
+        Route::get('/settings/activity-logs', [SettingsController::class, 'activityLogs']);
+        Route::post('/settings/activity-logs/clear', [SettingsController::class, 'clearActivityLogs']);
+
+        // Role & Permission Management
+        Route::get('/roles', [RoleController::class, 'index']);
+        Route::post('/roles', [RoleController::class, 'store']);
+        Route::get('/roles/{id}', [RoleController::class, 'show']);
+        Route::put('/roles/{id}', [RoleController::class, 'update']);
+        Route::delete('/roles/{id}', [RoleController::class, 'destroy']);
+        Route::get('/permissions', [RoleController::class, 'permissions']);
+        Route::post('/roles/{id}/permissions', [RoleController::class, 'syncPermissions']);
 
         Route::get('/lookups', [CrudController::class, 'lookups']);
         Route::get('/records/{resource}', [CrudController::class, 'index']);

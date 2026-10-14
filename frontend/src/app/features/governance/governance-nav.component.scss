@@ -25,7 +25,7 @@
   padding: 0 14px;
   border: 1px solid transparent;
   border-radius: 10px;
-  color: #687064;
+  color: var(--text-muted);
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
@@ -34,14 +34,14 @@
 }
 
 .governance-nav a:hover {
-  color: #2f4a32;
-  background: #f5f0e4;
+  color: var(--tint-ok-fg);
+  background: var(--surface-soft);
 }
 
 .governance-nav a.is-active {
-  border-color: #dce5d9;
-  background: #eaf0e7;
-  color: #254a32;
+  border-color: var(--hairline);
+  background: var(--surface-mute);
+  color: var(--tint-ok-fg);
   box-shadow: 0 1px 3px rgba(34, 58, 37, 0.06);
 }
 

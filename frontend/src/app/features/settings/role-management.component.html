@@ -1,0 +1,382 @@
+<div class="page">
+  <div class="page-head">
+    <div>
+      <h1>USER ROLES & PERMISSIONS</h1>
+      <p class="muted">Manage user roles and their system access permissions</p>
+    </div>
+    <button class="btn-add" (click)="openAddModal()">
+      <svg viewBox="0 0 24 24">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    </button>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrapper">
+      <svg class="search-icon" viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="text"
+        placeholder="Search roles..."
+        [(ngModel)]="searchTerm"
+        (input)="searchRoles()"
+        class="search-input"
+      />
+    </div>
+    <button class="btn-filter" [class.active]="showFilters" (click)="toggleFilters()" title="Toggle Filters">
+      <svg viewBox="0 0 24 24">
+        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+      </svg>
+      <span>Filters</span>
+    </button>
+    <button class="btn-menu" title="More Options">
+      <svg viewBox="0 0 24 24">
+        <circle cx="12" cy="12" r="1"></circle>
+        <circle cx="12" cy="5" r="1"></circle>
+        <circle cx="12" cy="19" r="1"></circle>
+      </svg>
+    </button>
+  </div>
+
+  <!-- Advanced Filters Panel -->
+  <div class="filters-panel" *ngIf="showFilters">
+    <div class="filters-grid">
+      <div class="filter-group">
+        <label>Status</label>
+        <select [(ngModel)]="statusFilter" (change)="applyFilters()" class="filter-select">
+          <option value="all">All Statuses</option>
+          <option value="active">Active Only</option>
+          <option value="inactive">Inactive Only</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Users Assigned</label>
+        <select [(ngModel)]="hasUsersFilter" (change)="applyFilters()" class="filter-select">
+          <option value="all">All Roles</option>
+          <option value="with_users">With Users</option>
+          <option value="no_users">No Users</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Min Permissions</label>
+        <input
+          type="number"
+          [(ngModel)]="minPermissionsFilter"
+          (change)="applyFilters()"
+          placeholder="e.g. 5"
+          min="0"
+          class="filter-input"
+        />
+      </div>
+
+      <div class="filter-group">
+        <label>Sort By</label>
+        <select [(ngModel)]="sortBy" (change)="applyFilters()" class="filter-select">
+          <option value="name">Name</option>
+          <option value="created_at">Date Created</option>
+          <option value="updated_at">Last Updated</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Order</label>
+        <select [(ngModel)]="sortOrder" (change)="applyFilters()" class="filter-select">
+          <option value="asc">Ascending</option>
+          <option value="desc">Descending</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>Per Page</label>
+        <select [(ngModel)]="perPage" (change)="changePerPage(perPage)" class="filter-select">
+          <option [value]="10">10</option>
+          <option [value]="15">15</option>
+          <option [value]="25">25</option>
+          <option [value]="50">50</option>
+          <option [value]="100">100</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="filters-actions">
+      <button class="btn btn-secondary btn-sm" (click)="resetFilters()">
+        Reset Filters
+      </button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <table class="role-table">
+      <thead>
+        <tr>
+          <th style="width: 40px;">
+            <input type="checkbox" />
+          </th>
+          <th (click)="changeSort('name')" class="sortable">
+            Name
+            <svg *ngIf="sortBy === 'name'" class="sort-icon" viewBox="0 0 24 24">
+              <polyline [attr.points]="sortOrder === 'asc' ? '18 15 12 9 6 15' : '6 9 12 15 18 9'"></polyline>
+            </svg>
+          </th>
+          <th>Description</th>
+          <th style="width: 100px;">Permissions</th>
+          <th style="width: 100px;">Users</th>
+          <th (click)="changeSort('created_at')" class="sortable" style="width: 120px;">
+            Created
+            <svg *ngIf="sortBy === 'created_at'" class="sort-icon" viewBox="0 0 24 24">
+              <polyline [attr.points]="sortOrder === 'asc' ? '18 15 12 9 6 15' : '6 9 12 15 18 9'"></polyline>
+            </svg>
+          </th>
+          <th style="width: 140px;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let role of roles" [class.inactive]="!role.is_active">
+          <td>
+            <input type="checkbox" />
+          </td>
+          <td>
+            <strong>{{ role.name }}</strong>
+          </td>
+          <td>{{ role.description || '-' }}</td>
+          <td>
+            <span class="badge badge-info">{{ role.permissions_count || 0 }}</span>
+          </td>
+          <td>
+            <span class="badge" [class.badge-ok]="(role.users_count || 0) > 0" [class.badge-muted]="(role.users_count || 0) === 0">
+              {{ role.users_count || 0 }}
+            </span>
+          </td>
+          <td>
+            <span class="date-text">{{ role.created_at ? (role.created_at | date: 'MMM d, y') : '-' }}</span>
+          </td>
+          <td>
+            <div class="row-actions">
+              <button
+                class="icon-btn"
+                (click)="toggleRoleStatus(role)"
+                [title]="role.is_active ? 'Deactivate' : 'Activate'"
+                *ngIf="role.is_active"
+              >
+                <svg viewBox="0 0 24 24" style="fill: var(--ok-text);">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2"></path>
+                </svg>
+              </button>
+              <button class="icon-btn" (click)="openEditModal(role)" title="Edit">
+                <svg viewBox="0 0 24 24">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+              <button class="icon-btn icon-btn--danger" (click)="deleteRole(role)" title="Delete">
+                <svg viewBox="0 0 24 24">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+              </button>
+              <button class="icon-btn" title="Copy">
+                <svg viewBox="0 0 24 24">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="roles.length === 0">
+          <td colspan="7" class="empty">No roles found</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination-wrapper">
+    <div class="pagination-info">
+      Showing {{ (currentPage - 1) * perPage + 1 }} to {{ Math.min(currentPage * perPage, totalItems) }} of {{ totalItems }} roles
+    </div>
+
+    <div class="pagination" *ngIf="totalPages > 1">
+      <button
+        class="page-btn"
+        [disabled]="currentPage === 1"
+        (click)="changePage(1)"
+        title="First Page"
+      >
+        <svg viewBox="0 0 24 24">
+          <polyline points="11 17 6 12 11 7"></polyline>
+          <polyline points="18 17 13 12 18 7"></polyline>
+        </svg>
+      </button>
+
+      <button
+        class="page-btn"
+        [disabled]="currentPage === 1"
+        (click)="changePage(currentPage - 1)"
+        title="Previous Page"
+      >
+        <svg viewBox="0 0 24 24">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+
+      <button
+        *ngFor="let page of pageNumbers"
+        class="page-btn"
+        [class.active]="page === currentPage"
+        (click)="changePage(page)"
+      >
+        {{ page }}
+      </button>
+
+      <button
+        class="page-btn"
+        [disabled]="currentPage === totalPages"
+        (click)="changePage(currentPage + 1)"
+        title="Next Page"
+      >
+        <svg viewBox="0 0 24 24">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+
+      <button
+        class="page-btn"
+        [disabled]="currentPage === totalPages"
+        (click)="changePage(totalPages)"
+        title="Last Page"
+      >
+        <svg viewBox="0 0 24 24">
+          <polyline points="13 17 18 12 13 7"></polyline>
+          <polyline points="6 17 11 12 6 7"></polyline>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h2>{{ isEditing ? 'Edit User Role' : 'Add User Role' }}</h2>
+      <button class="modal-close" (click)="closeModal()">
+        <svg viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-group">
+        <label>
+          Name <span class="required">*</span>
+        </label>
+        <input
+          type="text"
+          [(ngModel)]="currentRole.name"
+          placeholder="Name"
+          class="form-control"
+        />
+      </div>
+
+      <div class="form-group">
+        <label>Description</label>
+        <input
+          type="text"
+          [(ngModel)]="currentRole.description"
+          placeholder="Description"
+          class="form-control"
+        />
+      </div>
+
+      <div class="modal-tabs">
+        <button
+          class="tab-btn"
+          [class.active]="selectedTab === 'privilege'"
+          (click)="selectedTab = 'privilege'"
+        >
+          Privilege
+        </button>
+        <button
+          class="tab-btn"
+          [class.active]="selectedTab === 'reports'"
+          (click)="selectedTab = 'reports'"
+        >
+          Reports
+        </button>
+        <button
+          class="tab-btn"
+          [class.active]="selectedTab === 'columns'"
+          (click)="selectedTab = 'columns'"
+        >
+          Order Summary Columns
+        </button>
+      </div>
+
+      <div *ngIf="selectedTab === 'privilege'">
+        <div class="search-permissions">
+          <svg class="search-icon" viewBox="0 0 24 24">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input
+            type="text"
+            [(ngModel)]="searchPermission"
+            placeholder="Search Privilege"
+            class="form-control"
+          />
+        </div>
+
+        <div class="permission-list">
+          <div *ngFor="let module of sortedModules" class="permission-group">
+            <div class="permission-module-header">
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  [checked]="isModuleSelected(module)"
+                  [indeterminate]="isModulePartiallySelected(module)"
+                  (change)="toggleModulePermissions(module)"
+                />
+                <strong>{{ module }}</strong>
+              </label>
+            </div>
+            <div class="permission-items">
+              <label
+                *ngFor="let permission of filteredPermissionGroups[module]"
+                class="checkbox-label permission-item"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="isPermissionSelected(permission.id)"
+                  (change)="togglePermission(permission.id)"
+                />
+                {{ permission.action }}
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="selectedTab === 'reports'" class="empty-tab">
+        Reports configuration coming soon
+      </div>
+
+      <div *ngIf="selectedTab === 'columns'" class="empty-tab">
+        Column configuration coming soon
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" (click)="closeModal()">Cancel</button>
+      <button class="btn btn-primary" (click)="saveRole()">Save</button>
+    </div>
+  </div>
+</div>

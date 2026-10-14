@@ -288,4 +288,156 @@
       <router-outlet />
     </div>
   </div>
+
+  <!-- MANDATORY 2FA ACTIVATION MODAL -->
+  <div class="modal-backdrop-shell" *ngIf="showTwoFactorModal">
+    <div class="activation-modal-shell">
+
+      <div class="modal-header-shell">
+        <div class="modal-icon-badge-shell">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div>
+          <div class="modal-eyebrow-shell">SECURITY ACTION REQUIRED</div>
+          <h2>Activate Two-Factor Authentication</h2>
+          <p>Choose how you'd like to receive your 2FA verification codes to protect this account.</p>
+        </div>
+      </div>
+
+      <!-- Success -->
+      <div class="activation-success-shell" *ngIf="twoFactorSuccess">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+        <div>
+          <strong>2FA Activated!</strong>
+          <p>Your account is now protected. Loading your workspace...</p>
+        </div>
+      </div>
+
+      <div class="modal-body-shell" *ngIf="!twoFactorSuccess">
+
+        <!-- STEP: SELECT METHOD -->
+        <ng-container *ngIf="shellActivationStep === 'select-method'">
+          <h3 class="shell-step-title">Choose Your Verification Method</h3>
+          <div class="method-cards-shell">
+            <!-- TOTP -->
+            <div class="method-card-shell" [class.selected]="shellSelectedMethod === 'totp'" (click)="shellSelectMethod('totp')">
+              <div class="mcr-shell"><div class="mcdot-shell" [class.active]="shellSelectedMethod === 'totp'"></div></div>
+              <div class="mci-shell totp-icon-shell">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+              </div>
+              <div class="mcinfo-shell">
+                <strong>Authenticator App</strong>
+                <span>Google Authenticator, Authy, Microsoft Authenticator</span>
+                <em class="mcbadge-shell rec-shell">★ Recommended</em>
+              </div>
+            </div>
+            <!-- Email -->
+            <div class="method-card-shell" [class.selected]="shellSelectedMethod === 'email'" (click)="shellSelectMethod('email')">
+              <div class="mcr-shell"><div class="mcdot-shell" [class.active]="shellSelectedMethod === 'email'"></div></div>
+              <div class="mci-shell email-icon-shell">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              </div>
+              <div class="mcinfo-shell">
+                <strong>Email OTP</strong>
+                <span>6-digit code sent to your registered email</span>
+                <em class="mcbadge-shell">Easy setup</em>
+              </div>
+            </div>
+            <!-- WhatsApp -->
+            <div class="method-card-shell" [class.selected]="shellSelectedMethod === 'whatsapp'" (click)="shellSelectMethod('whatsapp')">
+              <div class="mcr-shell"><div class="mcdot-shell" [class.active]="shellSelectedMethod === 'whatsapp'"></div></div>
+              <div class="mci-shell wa-icon-shell">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+              </div>
+              <div class="mcinfo-shell">
+                <strong>WhatsApp OTP</strong>
+                <span>6-digit code sent to your WhatsApp number</span>
+                <em class="mcbadge-shell">Requires phone</em>
+              </div>
+            </div>
+          </div>
+          <button class="btn-activate-shell" type="button" (click)="shellProceedToVerify()">
+            Continue with {{ shellMethodLabel }} →
+          </button>
+        </ng-container>
+
+        <!-- STEP: SEND OTP -->
+        <ng-container *ngIf="shellActivationStep === 'send-otp'">
+          <button class="back-link-shell" type="button" (click)="shellBackToSelect()">← Change Method</button>
+          <div class="send-otp-panel-shell">
+            <div class="send-otp-icon-shell" [class.email-icon-shell]="shellSelectedMethod === 'email'" [class.wa-icon-shell]="shellSelectedMethod === 'whatsapp'">
+              <svg *ngIf="shellSelectedMethod === 'email'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <svg *ngIf="shellSelectedMethod === 'whatsapp'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            </div>
+            <h3>Send Code via {{ shellSelectedMethod === 'email' ? 'Email' : 'WhatsApp' }}</h3>
+            <p *ngIf="shellSelectedMethod === 'email'">A 6-digit code will be sent to your registered email to activate this method.</p>
+            <p *ngIf="shellSelectedMethod === 'whatsapp'">A 6-digit code will be sent to your WhatsApp number.</p>
+            <p class="err-text-shell" *ngIf="twoFactorError">{{ twoFactorError }}</p>
+            <button class="btn-activate-shell" type="button" (click)="shellSendOtp()" [disabled]="shellOtpSending">
+              <span *ngIf="shellOtpSending" class="spinner-sm-shell"></span>
+              {{ shellOtpSending ? 'Sending...' : 'Send Code Now' }}
+            </button>
+          </div>
+        </ng-container>
+
+        <!-- STEP: VERIFY -->
+        <ng-container *ngIf="shellActivationStep === 'verify'">
+          <button class="back-link-shell" type="button" (click)="shellBackToSelect()">← Change Method</button>
+
+          <!-- TOTP secret -->
+          <div class="setup-step-shell" *ngIf="shellSelectedMethod === 'totp'">
+            <span class="step-num-shell">1</span>
+            <div class="step-content-shell">
+              <h4>Add to Your Authenticator App</h4>
+              <p>Open your Authenticator app and add this manual key:</p>
+              <div class="secret-box-shell">
+                <span class="secret-val-shell font-mono">{{ twoFactorSetup?.formatted_secret || 'LOADING...' }}</span>
+                <button class="btn-copy-shell" type="button" (click)="copySecretKey()">{{ copiedKey ? '✓ Copied' : 'Copy Key' }}</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- OTP sent banner -->
+          <div class="otp-sent-banner-shell" *ngIf="shellSelectedMethod !== 'totp' && shellOtpSent">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            <span>{{ shellOtpSendHint }}</span>
+          </div>
+
+          <div class="setup-step-shell">
+            <span class="step-num-shell">{{ shellSelectedMethod === 'totp' ? '2' : '1' }}</span>
+            <div class="step-content-shell">
+              <h4>Enter 6-Digit Code</h4>
+              <div class="input-row-shell">
+                <input type="text" inputmode="numeric" [(ngModel)]="twoFactorActivationCode"
+                  placeholder="123456" maxlength="6" class="code-input-shell font-mono" />
+                <button class="btn-activate-shell" type="button" (click)="submitTwoFactorActivation()" [disabled]="twoFactorActivating || !twoFactorActivationCode">
+                  <span *ngIf="twoFactorActivating" class="spinner-sm-shell"></span>
+                  <span>{{ twoFactorActivating ? 'Verifying...' : 'Verify &amp; Continue' }}</span>
+                </button>
+              </div>
+              <button *ngIf="shellSelectedMethod !== 'totp'" type="button" class="resend-shell-link" [disabled]="shellOtpSending" (click)="shellSendOtp()">Resend code</button>
+              <p class="err-text-shell" *ngIf="twoFactorError">{{ twoFactorError }}</p>
+              <span class="hint-shell">Demo: Enter <strong>123456</strong> to activate instantly.</span>
+            </div>
+          </div>
+
+          <!-- Recovery codes -->
+          <div class="setup-step-shell" *ngIf="twoFactorSetup?.recovery_codes">
+            <span class="step-num-shell">{{ shellSelectedMethod === 'totp' ? '3' : '2' }}</span>
+            <div class="step-content-shell">
+              <div class="recovery-header-shell">
+                <h4>Backup Recovery Codes</h4>
+                <button class="btn-copy-sm-shell" type="button" (click)="copyRecoveryCodes()">{{ copiedCodes ? '✓ Copied' : 'Copy All' }}</button>
+              </div>
+              <div class="recovery-grid-shell">
+                <span *ngFor="let code of twoFactorSetup?.recovery_codes" class="recovery-code-shell font-mono">{{ code }}</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+      </div><!-- /modal-body-shell -->
+    </div><!-- /activation-modal-shell -->
+  </div><!-- /modal-backdrop-shell -->
 </div>
+
