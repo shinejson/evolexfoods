@@ -1,0 +1,1006 @@
+<div class="settings-page">
+  <!-- Toast notification -->
+  <div class="toast-container" *ngIf="toast">
+    <div class="toast" [ngClass]="toast.type">
+      <div class="toast-icon">
+        <svg *ngIf="toast.type === 'success'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+        <svg *ngIf="toast.type === 'error'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        <svg *ngIf="toast.type === 'info'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      </div>
+      <div class="toast-message">{{ toast.message }}</div>
+      <button class="toast-close" (click)="closeToast()">✕</button>
+    </div>
+  </div>
+
+  <!-- Unsaved Changes Banner -->
+  <div class="dirty-banner" *ngIf="isDirty">
+    <div class="dirty-content">
+      <span class="dirty-dot"></span>
+      <span>You have unsaved configuration modifications. Remember to save changes before leaving.</span>
+    </div>
+    <div class="dirty-actions">
+      <button class="btn btn-secondary-sm" (click)="loadSettings()">Discard</button>
+      <button class="btn btn-primary-sm" (click)="saveSettings()" [disabled]="saving">
+        <span *ngIf="saving" class="spinner-sm"></span>
+        {{ saving ? 'Saving...' : 'Save Changes' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Header Section -->
+  <header class="settings-header">
+    <div class="header-left">
+      <div class="eyebrow">
+        <span class="eyebrow-dot"></span>
+        <span>Evolex Operations Platform · System Administration</span>
+      </div>
+      <h1>System Settings & Control</h1>
+      <p class="subtitle">
+        Manage enterprise company details, outbound SMTP mail servers, event-driven alert triggers, livestock identification standards, connected integrations, and platform security.
+      </p>
+    </div>
+    <div class="header-actions">
+      <div class="status-pill operational" title="Core server and SQLite database operational">
+        <span class="pulse-dot"></span>
+        <span>{{ systemInfo.server_status | uppercase }}</span>
+      </div>
+      <button class="btn btn-outline" (click)="clearCache()" [disabled]="clearingCache" title="Flush application cache & config">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="icon"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+        <span>{{ clearingCache ? 'Flushing...' : 'Clear Cache' }}</span>
+      </button>
+      <button class="btn btn-outline" (click)="exportConfigJson()" title="Download JSON configuration snapshot">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        <span>Export</span>
+      </button>
+      <button class="btn btn-primary" (click)="saveSettings()" [disabled]="saving">
+        <svg *ngIf="!saving" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        <span *ngIf="saving" class="spinner-sm"></span>
+        <span>{{ saving ? 'Saving Changes...' : 'Save Settings' }}</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="settings-tabs" role="tablist">
+    <button class="tab-btn" [class.active]="activeTab === 'general'" (click)="selectTab('general')" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="tab-icon"><path d="M3 21h18M3 7v14M21 7v14M6 7V3h12v4M9 11h2M9 15h2M13 11h2M13 15h2"/></svg>
+      <span>Organization & Info</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'email'" (click)="selectTab('email')" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="tab-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+      <span>Email & SMTP</span>
+      <span class="tab-badge ok">Active</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'notifications'" (click)="selectTab('notifications')" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="tab-icon"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span>Alert Triggers</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'livestock'" (click)="selectTab('livestock')" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="tab-icon"><path d="M7 8c0-1.7 1.8-3 4-3s4 1.3 4 3c2.2 0 4 1.6 4 3.5S17.2 15 15 15H8c-2.2 0-4-1.6-4-3.5S5.8 8 8 8H7zm1 9v3m8-3v3M9 8V5m6 3V5"/></svg>
+      <span>Livestock Rules</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'integrations'" (click)="selectTab('integrations')" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="tab-icon"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+      <span>Integrations</span>
+      <span class="tab-badge sync">5 Linked</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'security'" (click)="selectTab('security')" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="tab-icon"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <span>Security & Diagnostics</span>
+    </button>
+  </nav>
+
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="loading">
+    <div class="spinner"></div>
+    <p>Loading system configuration...</p>
+  </div>
+
+  <!-- TAB CONTENT -->
+  <div class="tab-content-area" *ngIf="!loading">
+
+    <!-- 1. GENERAL & ORGANIZATION INFO -->
+    <section *ngIf="activeTab === 'general'" class="settings-section">
+      <!-- Quick Info Cards -->
+      <div class="kpi-grid">
+        <div class="stat-card">
+          <div class="stat-icon forest">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M3 7v14M21 7v14M6 7V3h12v4M9 11h2M9 15h2M13 11h2M13 15h2"/></svg>
+          </div>
+          <div class="stat-body">
+            <span class="stat-label">Operating Entity</span>
+            <span class="stat-value">{{ form.general.company_name }}</span>
+            <span class="stat-sub">{{ form.general.registration_no }}</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon moss">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="stat-body">
+            <span class="stat-label">Active Staff & Accounts</span>
+            <span class="stat-value">{{ systemInfo.active_users_count }} Team Members</span>
+            <span class="stat-sub">Across 6 departments</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon gold">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 8c0-1.7 1.8-3 4-3s4 1.3 4 3c2.2 0 4 1.6 4 3.5S17.2 15 15 15H8c-2.2 0-4-1.6-4-3.5S5.8 8 8 8H7zm1 9v3m8-3v3M9 8V5m6 3V5"/></svg>
+          </div>
+          <div class="stat-body">
+            <span class="stat-label">Registered Herd</span>
+            <span class="stat-value">{{ systemInfo.total_livestock_count }} Animals</span>
+            <span class="stat-sub">100% Unique Tagged</span>
+          </div>
+        </div>
+
+        <div class="stat-card">
+          <div class="stat-icon sky">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div class="stat-body">
+            <span class="stat-label">System Timezone</span>
+            <span class="stat-value">{{ form.general.timezone }}</span>
+            <span class="stat-sub">{{ form.general.operating_hours }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Legal & Company Profile Card -->
+      <div class="settings-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Company & Legal Identity</h3>
+            <p>Official registration credentials and branding used across reports, invoices, and purchase orders.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="company_name">Trading Brand Name <span class="req">*</span></label>
+              <input type="text" id="company_name" [(ngModel)]="form.general.company_name" (ngModelChange)="onFieldChange()" class="form-control" placeholder="e.g. Evolex Food Ltd" />
+            </div>
+
+            <div class="form-group">
+              <label for="legal_name">Registered Legal Entity <span class="req">*</span></label>
+              <input type="text" id="legal_name" [(ngModel)]="form.general.legal_name" (ngModelChange)="onFieldChange()" class="form-control" placeholder="Full legal company name" />
+            </div>
+
+            <div class="form-group span-2">
+              <label for="tagline">Mission Tagline</label>
+              <input type="text" id="tagline" [(ngModel)]="form.general.tagline" (ngModelChange)="onFieldChange()" class="form-control" placeholder="Precision livestock and food operations..." />
+            </div>
+
+            <div class="form-group">
+              <label for="registration_no">Company Registration No.</label>
+              <input type="text" id="registration_no" [(ngModel)]="form.general.registration_no" (ngModelChange)="onFieldChange()" class="form-control" placeholder="GH-EVF-2024-..." />
+            </div>
+
+            <div class="form-group">
+              <label for="tax_id">Tax Identification Number (TIN)</label>
+              <input type="text" id="tax_id" [(ngModel)]="form.general.tax_id" (ngModelChange)="onFieldChange()" class="form-control" placeholder="C00..." />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Contact & Physical Locations -->
+      <div class="settings-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Contact Channels & Operations Base</h3>
+            <p>Physical coordinates and communication endpoints for veterinary, supplier, and buyer coordination.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="primary_email">Primary Operations Email <span class="req">*</span></label>
+              <input type="email" id="primary_email" [(ngModel)]="form.general.primary_email" (ngModelChange)="onFieldChange()" class="form-control" placeholder="operations@evolexfood.com" />
+            </div>
+
+            <div class="form-group">
+              <label for="support_email">Internal Support Email</label>
+              <input type="email" id="support_email" [(ngModel)]="form.general.support_email" (ngModelChange)="onFieldChange()" class="form-control" placeholder="support@evolexfood.com" />
+            </div>
+
+            <div class="form-group">
+              <label for="phone_number">Head Office Line</label>
+              <input type="tel" id="phone_number" [(ngModel)]="form.general.phone_number" (ngModelChange)="onFieldChange()" class="form-control" placeholder="+233 20 890 1234" />
+            </div>
+
+            <div class="form-group">
+              <label for="secondary_phone">Farm Emergency Line</label>
+              <input type="tel" id="secondary_phone" [(ngModel)]="form.general.secondary_phone" (ngModelChange)="onFieldChange()" class="form-control" placeholder="+233 24 555 0199" />
+            </div>
+
+            <div class="form-group span-2">
+              <label for="farm_location">Farm Operations Location</label>
+              <input type="text" id="farm_location" [(ngModel)]="form.general.farm_location" (ngModelChange)="onFieldChange()" class="form-control" placeholder="Paddock location, district, region" />
+            </div>
+
+            <div class="form-group span-2">
+              <label for="head_office">Corporate Headquarters Address</label>
+              <input type="text" id="head_office" [(ngModel)]="form.general.head_office" (ngModelChange)="onFieldChange()" class="form-control" placeholder="Tower, street, city" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Regional, Localization & Fiscal Calendar -->
+      <div class="settings-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Regional & Fiscal Standards</h3>
+            <p>Accounting currency, timezone synchronization, and date presentation.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="currency">Operating Currency</label>
+              <select id="currency" [(ngModel)]="form.general.currency" (ngModelChange)="onFieldChange()" class="form-control">
+                <option value="GHS">Ghanaian Cedi (GHS)</option>
+                <option value="USD">US Dollar (USD)</option>
+                <option value="EUR">Euro (EUR)</option>
+                <option value="GBP">British Pound (GBP)</option>
+                <option value="NGN">Nigerian Naira (NGN)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="currency_symbol">Currency Display Symbol</label>
+              <input type="text" id="currency_symbol" [(ngModel)]="form.general.currency_symbol" (ngModelChange)="onFieldChange()" class="form-control" placeholder="GH₵" />
+            </div>
+
+            <div class="form-group">
+              <label for="timezone">System Timezone</label>
+              <select id="timezone" [(ngModel)]="form.general.timezone" (ngModelChange)="onFieldChange()" class="form-control">
+                <option value="Africa/Accra">Africa/Accra (GMT+0)</option>
+                <option value="Africa/Lagos">Africa/Lagos (GMT+1)</option>
+                <option value="UTC">UTC (Universal Coordinated Time)</option>
+                <option value="Europe/London">Europe/London (GMT/BST)</option>
+                <option value="America/New_York">America/New_York (EST)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="date_format">Date Format</label>
+              <select id="date_format" [(ngModel)]="form.general.date_format" (ngModelChange)="onFieldChange()" class="form-control">
+                <option value="YYYY-MM-DD">YYYY-MM-DD (2026-10-14)</option>
+                <option value="DD/MM/YYYY">DD/MM/YYYY (14/10/2026)</option>
+                <option value="MM/DD/YYYY">MM/DD/YYYY (10/14/2026)</option>
+                <option value="D MMM YYYY">D MMM YYYY (14 Oct 2026)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="time_format">Time Display</label>
+              <select id="time_format" [(ngModel)]="form.general.time_format" (ngModelChange)="onFieldChange()" class="form-control">
+                <option value="24h">24-hour clock (14:30)</option>
+                <option value="12h">12-hour clock (2:30 PM)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="operating_hours">Standard Operational Hours</label>
+              <input type="text" id="operating_hours" [(ngModel)]="form.general.operating_hours" (ngModelChange)="onFieldChange()" class="form-control" placeholder="06:00 - 18:00 GMT" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. EMAIL & SMTP CONFIGURATION -->
+    <section *ngIf="activeTab === 'email'" class="settings-section">
+      <!-- Notice Box -->
+      <div class="info-banner">
+        <div class="info-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+        </div>
+        <div class="info-text">
+          <strong>Google Workspace & Outbound SMTP Infrastructure</strong>
+          <p>Evolex Hub utilizes an authenticated SMTP gateway for operational dispatches (health emergency alerts, low feed warnings, PO approvals, weekly CEO digests). Ensure your App Password or SMTP relay credentials are valid.</p>
+        </div>
+      </div>
+
+      <!-- Outbound Mail Server -->
+      <div class="settings-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Outbound Mail Server (SMTP)</h3>
+            <p>Define the relay server, ports, and authentication handshake parameters.</p>
+          </div>
+          <span class="badge ok">Authenticated</span>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="mail_mailer">Mail Driver / Protocol</label>
+              <select id="mail_mailer" [(ngModel)]="form.email.mail_mailer" (ngModelChange)="onFieldChange()" class="form-control">
+                <option value="smtp">SMTP (Recommended)</option>
+                <option value="sendmail">Sendmail / Unix Daemon</option>
+                <option value="mailgun">Mailgun API</option>
+                <option value="postmark">Postmark Relay</option>
+                <option value="log">Log Only (Testing / Staging)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="mail_host">SMTP Server Host <span class="req">*</span></label>
+              <input type="text" id="mail_host" [(ngModel)]="form.email.mail_host" (ngModelChange)="onFieldChange()" class="form-control" placeholder="smtp.googlemail.com" />
+            </div>
+
+            <div class="form-group">
+              <label for="mail_port">Server Port <span class="req">*</span></label>
+              <input type="number" id="mail_port" [(ngModel)]="form.email.mail_port" (ngModelChange)="onFieldChange()" class="form-control" placeholder="587" />
+            </div>
+
+            <div class="form-group">
+              <label for="mail_encryption">Encryption Security</label>
+              <select id="mail_encryption" [(ngModel)]="form.email.mail_encryption" (ngModelChange)="onFieldChange()" class="form-control">
+                <option value="tls">TLS (STARTTLS - Standard port 587)</option>
+                <option value="ssl">SSL (Implicit SSL - Port 465)</option>
+                <option value="none">None (Insecure / Local only)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="mail_username">SMTP Username / Email <span class="req">*</span></label>
+              <input type="text" id="mail_username" [(ngModel)]="form.email.mail_username" (ngModelChange)="onFieldChange()" class="form-control" placeholder="alerts@evolexfood.com" />
+            </div>
+
+            <div class="form-group">
+              <label for="mail_password">SMTP App Password / Token <span class="req">*</span></label>
+              <div class="input-with-button">
+                <input [type]="showPassword ? 'text' : 'password'" id="mail_password" [(ngModel)]="form.email.mail_password" (ngModelChange)="onFieldChange()" class="form-control" placeholder="••••••••••••" />
+                <button type="button" class="btn-inside-icon" (click)="showPassword = !showPassword" [title]="showPassword ? 'Hide password' : 'Show password'">
+                  <svg *ngIf="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg *ngIf="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="toggle-group-item mt-4">
+            <div class="toggle-info">
+              <span class="toggle-title">Require SMTP Server Authentication</span>
+              <span class="toggle-desc">Authenticate outbound requests with the username and secret provided above.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="form.email.smtp_auth" (ngModelChange)="onFieldChange()" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Outbound Sender Profile -->
+      <div class="settings-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Sender Identity & Footers</h3>
+            <p>Configure how automated emails appear in staff, buyer, and management inboxes.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="mail_from_address">From Email Address <span class="req">*</span></label>
+              <input type="email" id="mail_from_address" [(ngModel)]="form.email.mail_from_address" (ngModelChange)="onFieldChange()" class="form-control" placeholder="alerts@evolexfood.com" />
+            </div>
+
+            <div class="form-group">
+              <label for="mail_from_name">From Sender Name <span class="req">*</span></label>
+              <input type="text" id="mail_from_name" [(ngModel)]="form.email.mail_from_name" (ngModelChange)="onFieldChange()" class="form-control" placeholder="Evolex Operations Hub" />
+            </div>
+
+            <div class="form-group span-2">
+              <label for="mail_reply_to">Reply-To Address</label>
+              <input type="email" id="mail_reply_to" [(ngModel)]="form.email.mail_reply_to" (ngModelChange)="onFieldChange()" class="form-control" placeholder="operations@evolexfood.com" />
+            </div>
+
+            <div class="form-group span-2">
+              <label for="email_footer_text">Automated Email Compliance Footer</label>
+              <textarea id="email_footer_text" [(ngModel)]="form.email.email_footer_text" (ngModelChange)="onFieldChange()" rows="2" class="form-control" placeholder="Standard compliance footer..."></textarea>
+            </div>
+          </div>
+
+          <div class="toggle-group-item mt-4">
+            <div class="toggle-info">
+              <span class="toggle-title">Send Onboarding Email to New Employees</span>
+              <span class="toggle-desc">Dispatches access credentials and link to SOP library when a new employee record is created.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="form.email.send_welcome_email" (ngModelChange)="onFieldChange()" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Interactive Test Diagnostic Box -->
+      <div class="settings-card test-box">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Live SMTP Connection Diagnostic</h3>
+            <p>Perform an end-to-end handshake test to verify SMTP routing and firewall connectivity.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="test-controls">
+            <div class="form-group flex-1">
+              <label for="testRecipient">Test Recipient Email Address</label>
+              <input type="email" id="testRecipient" [(ngModel)]="testRecipient" class="form-control" placeholder="Enter recipient email..." />
+            </div>
+            <button class="btn btn-forest" (click)="sendTestEmail()" [disabled]="testingEmail || !testRecipient">
+              <svg *ngIf="!testingEmail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+              <span *ngIf="testingEmail" class="spinner-sm"></span>
+              <span>{{ testingEmail ? 'Testing Handshake...' : 'Send Test Email' }}</span>
+            </button>
+          </div>
+
+          <!-- Test Result Card -->
+          <div class="test-result-card" *ngIf="testEmailResult">
+            <div class="result-header">
+              <div class="status-indicator-badge" [ngClass]="testEmailResult.success ? 'success' : 'error'">
+                <span class="dot"></span>
+                <span>{{ testEmailResult.success ? 'SMTP Handshake 250 OK - Message Dispatched' : 'Handshake Failed' }}</span>
+              </div>
+              <span class="latency" *ngIf="testEmailResult.details?.latency_ms">{{ testEmailResult.details?.latency_ms }} ms</span>
+            </div>
+            <p class="result-summary">{{ testEmailResult.message }}</p>
+            <div class="result-specs" *ngIf="testEmailResult.details">
+              <div class="spec-row">
+                <span class="spec-label">Target Recipient:</span>
+                <span class="spec-val font-mono">{{ testEmailResult.details.recipient }}</span>
+              </div>
+              <div class="spec-row">
+                <span class="spec-label">Relay Server:</span>
+                <span class="spec-val font-mono">{{ testEmailResult.details.smtp_server }} ({{ testEmailResult.details.encryption }})</span>
+              </div>
+              <div class="spec-row">
+                <span class="spec-label">Sender Signature:</span>
+                <span class="spec-val">{{ testEmailResult.details.from_sender }}</span>
+              </div>
+              <div class="spec-row">
+                <span class="spec-label">Dispatch Timestamp:</span>
+                <span class="spec-val font-mono">{{ testEmailResult.details.sent_at }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. NOTIFICATION & ALERT TRIGGERS -->
+    <section *ngIf="activeTab === 'notifications'" class="settings-section">
+      <div class="settings-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Automated Event-Driven Alerts</h3>
+            <p>Configure which farm operational incidents automatically dispatch real-time email broadcasts.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="toggle-list">
+            <div class="toggle-group-item">
+              <div class="toggle-info">
+                <div class="toggle-label-badge alert">CRITICAL</div>
+                <span class="toggle-title">Sick Animal Isolation Flagged</span>
+                <span class="toggle-desc">Trigger instant alert to Vet and Farm Manager whenever a worker logs an animal as sick or isolated.</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="form.notifications.alert_sick_animals" (ngModelChange)="onFieldChange()" />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-group-item">
+              <div class="toggle-info">
+                <div class="toggle-label-badge alert">CRITICAL</div>
+                <span class="toggle-title">Animal Mortality / Death Record</span>
+                <span class="toggle-desc">Dispatches immediate notification upon any registered livestock mortality for cause investigation.</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="form.notifications.alert_mortality_events" (ngModelChange)="onFieldChange()" />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-group-item">
+              <div class="toggle-info">
+                <div class="toggle-label-badge warn">WARNING</div>
+                <span class="toggle-title">Low Feed Inventory Cover Alert</span>
+                <span class="toggle-desc">Automatically alerts Procurement and Operations when calculated feed days drop below 14 days.</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="form.notifications.alert_low_feed" (ngModelChange)="onFieldChange()" />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-group-item">
+              <div class="toggle-info">
+                <div class="toggle-label-badge info">WORKFLOW</div>
+                <span class="toggle-title">Purchase Order Approval Action Required</span>
+                <span class="toggle-desc">Pings Executive and Operations managers when a purchase request requires authorization.</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="form.notifications.alert_po_approval_needed" (ngModelChange)="onFieldChange()" />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-group-item">
+              <div class="toggle-info">
+                <div class="toggle-label-badge warn">MAINTENANCE</div>
+                <span class="toggle-title">Overdue Machinery & Asset Maintenance</span>
+                <span class="toggle-desc">Alerts technician and farm manager when tractors, pumps, or generators pass their scheduled service date.</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="form.notifications.alert_maintenance_due" (ngModelChange)="onFieldChange()" />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-group-item">
+              <div class="toggle-info">
+                <div class="toggle-label-badge info">BIOSECURITY</div>
+                <span class="toggle-title">Quarantine Pen Transfer Alert</span>
+                <span class="toggle-desc">Alerts animal health team whenever an animal enters or exits the biosecurity quarantine pen.</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="form.notifications.alert_quarantine_breach" (ngModelChange)="onFieldChange()" />
+                <span class="slider"></span>
+              </label>
+            </div>
+
+            <div class="toggle-group-item">
+              <div class="toggle-info">
+                <div class="toggle-label-badge info">HR & LABOUR</div>
+                <span class="toggle-title">Daily Attendance Gaps Alert</span>
+                <span class="toggle-desc">Sends morning roll-call notification if any farm employee has unverified absence by 08:00 AM.</span>
+              </div>
+              <label class="switch">
+                <input type="checkbox" [(ngModel)]="form.notifications.alert_daily_attendance_gap" (ngModelChange)="onFieldChange()" />
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Executive Digest & Distribution -->
+      <div class="settings-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Executive Weekly Digest & Recipient List</h3>
+            <p>Scheduled automated compilation of herd growth, feed burn rate, and procurement summaries.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="toggle-group-item mb-4">
+            <div class="toggle-info">
+              <span class="toggle-title">Dispatch Weekly CEO & Owner Command Digest</span>
+              <span class="toggle-desc">Packages KPIs, pending owner decisions, herd health status, and spend into a unified summary.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="form.notifications.weekly_ceo_digest" (ngModelChange)="onFieldChange()" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="weekly_digest_day">Digest Delivery Day</label>
+              <select id="weekly_digest_day" [(ngModel)]="form.notifications.weekly_digest_day" (ngModelChange)="onFieldChange()" class="form-control">
+                <option value="Monday">Monday Morning</option>
+                <option value="Friday">Friday Afternoon</option>
+                <option value="Sunday">Sunday Evening</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="weekly_digest_time">Delivery Time (GMT)</label>
+              <input type="time" id="weekly_digest_time" [(ngModel)]="form.notifications.weekly_digest_time" (ngModelChange)="onFieldChange()" class="form-control" />
+            </div>
+
+            <div class="form-group span-2">
+              <label for="alert_recipients">Operational Alert Broadcast Recipients (Comma separated)</label>
+              <textarea id="alert_recipients" [(ngModel)]="form.notifications.alert_recipients" (ngModelChange)="onFieldChange()" rows="2" class="form-control" placeholder="owner@evolex.com, ops@evolex.com..."></textarea>
+              <span class="field-hint">Recipients who receive automated system broadcasts for critical health and operational warnings.</span>
+            </div>
+          </div>
+
+          <div class="divider my-4"></div>
+
+          <div class="toggle-group-item">
+            <div class="toggle-info">
+              <span class="toggle-title">Urgent SMS Fallback for Critical Alerts</span>
+              <span class="toggle-desc">Forward Critical disease outbreak or death alerts to farm emergency phone.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="form.notifications.urgent_sms_alerts" (ngModelChange)="onFieldChange()" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="form-group mt-3" *ngIf="form.notifications.urgent_sms_alerts">
+            <label for="urgent_sms_phone">Target SMS Mobile Number</label>
+            <input type="tel" id="urgent_sms_phone" [(ngModel)]="form.notifications.urgent_sms_phone" (ngModelChange)="onFieldChange()" class="form-control" placeholder="+233 20 890 1234" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. LIVESTOCK & FARM OPERATIONAL RULES -->
+    <section *ngIf="activeTab === 'livestock'" class="settings-section">
+      <!-- Tag Prefix Configuration -->
+      <div class="settings-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Animal & Asset Unique ID Prefixes</h3>
+            <p>Strict numbering conventions enforce permanent IDs across livestock masters and physical ear tags.</p>
+          </div>
+          <span class="badge info">Format: PREFIX-000000</span>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="id_prefix_goat">Goat Tag Code Prefix</label>
+              <input type="text" id="id_prefix_goat" [(ngModel)]="form.livestock.id_prefix_goat" (ngModelChange)="onFieldChange()" class="form-control" placeholder="EV-GT" />
+              <span class="field-hint">Example: EV-GT-000042</span>
+            </div>
+
+            <div class="form-group">
+              <label for="id_prefix_sheep">Sheep Tag Code Prefix</label>
+              <input type="text" id="id_prefix_sheep" [(ngModel)]="form.livestock.id_prefix_sheep" (ngModelChange)="onFieldChange()" class="form-control" placeholder="EV-SH" />
+              <span class="field-hint">Example: EV-SH-000018</span>
+            </div>
+
+            <div class="form-group">
+              <label for="id_prefix_cattle">Cattle Tag Code Prefix</label>
+              <input type="text" id="id_prefix_cattle" [(ngModel)]="form.livestock.id_prefix_cattle" (ngModelChange)="onFieldChange()" class="form-control" placeholder="EV-CT" />
+              <span class="field-hint">Example: EV-CT-000009</span>
+            </div>
+
+            <div class="form-group">
+              <label for="id_prefix_asset">Fixed Asset Tag Prefix</label>
+              <input type="text" id="id_prefix_asset" [(ngModel)]="form.livestock.id_prefix_asset" (ngModelChange)="onFieldChange()" class="form-control" placeholder="EV-AS" />
+              <span class="field-hint">Example: EV-AS-000003</span>
+            </div>
+
+            <div class="form-group">
+              <label for="id_prefix_employee">Employee Staff Code Prefix</label>
+              <input type="text" id="id_prefix_employee" [(ngModel)]="form.livestock.id_prefix_employee" (ngModelChange)="onFieldChange()" class="form-control" placeholder="EV-EMP" />
+              <span class="field-hint">Example: EV-EMP-0012</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Health Thresholds & Quarantine -->
+      <div class="settings-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Health Thresholds & Biosecurity</h3>
+            <p>Configure automated alert triggers for veterinary safety and feed cover continuity.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="default_quarantine_days">Mandatory Quarantine Period (Days)</label>
+              <input type="number" id="default_quarantine_days" [(ngModel)]="form.livestock.default_quarantine_days" (ngModelChange)="onFieldChange()" class="form-control" min="7" max="60" />
+              <span class="field-hint">Minimum observation days for new animals entering the farm.</span>
+            </div>
+
+            <div class="form-group">
+              <label for="mortality_alert_threshold">Monthly Mortality Alarm Rate (%)</label>
+              <input type="number" step="0.1" id="mortality_alert_threshold" [(ngModel)]="form.livestock.mortality_alert_threshold" (ngModelChange)="onFieldChange()" class="form-control" min="0.5" max="10.0" />
+              <span class="field-hint">CEO alert triggered if 30-day mortality exceeds this percentage.</span>
+            </div>
+
+            <div class="form-group">
+              <label for="feed_low_threshold_days">Low Feed Replenishment Notice (Days)</label>
+              <input type="number" id="feed_low_threshold_days" [(ngModel)]="form.livestock.feed_low_threshold_days" (ngModelChange)="onFieldChange()" class="form-control" min="3" max="30" />
+              <span class="field-hint">Triggers purchase request when feed days remaining drops below this.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gestation & Weaning Parameters -->
+      <div class="settings-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Species Gestation & Life Cycle Standards</h3>
+            <p>Calculates expected due dates and automatic transition milestones in the breeding pipeline.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="gestation_days_goat">Goat Gestation Duration (Days)</label>
+              <input type="number" id="gestation_days_goat" [(ngModel)]="form.livestock.gestation_days_goat" (ngModelChange)="onFieldChange()" class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label for="gestation_days_sheep">Sheep Gestation Duration (Days)</label>
+              <input type="number" id="gestation_days_sheep" [(ngModel)]="form.livestock.gestation_days_sheep" (ngModelChange)="onFieldChange()" class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label for="gestation_days_cattle">Cattle Gestation Duration (Days)</label>
+              <input type="number" id="gestation_days_cattle" [(ngModel)]="form.livestock.gestation_days_cattle" (ngModelChange)="onFieldChange()" class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label for="wean_age_days_goat">Kid Weaning Age (Days)</label>
+              <input type="number" id="wean_age_days_goat" [(ngModel)]="form.livestock.wean_age_days_goat" (ngModelChange)="onFieldChange()" class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label for="wean_age_days_sheep">Lamb Weaning Age (Days)</label>
+              <input type="number" id="wean_age_days_sheep" [(ngModel)]="form.livestock.wean_age_days_sheep" (ngModelChange)="onFieldChange()" class="form-control" />
+            </div>
+
+            <div class="form-group">
+              <label for="wean_age_days_cattle">Calf Weaning Age (Days)</label>
+              <input type="number" id="wean_age_days_cattle" [(ngModel)]="form.livestock.wean_age_days_cattle" (ngModelChange)="onFieldChange()" class="form-control" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. INTEGRATIONS & EXTERNAL STACK -->
+    <section *ngIf="activeTab === 'integrations'" class="settings-section">
+      <div class="integrations-grid">
+
+        <!-- Google Workspace -->
+        <div class="integration-card">
+          <div class="integration-header">
+            <div class="integration-brand google">
+              <span>G</span>
+            </div>
+            <div class="integration-title">
+              <h4>Google Workspace</h4>
+              <span class="integration-type">Identity, Drive & Sheets</span>
+            </div>
+            <span class="status-badge connected">Connected</span>
+          </div>
+          <p class="integration-desc">Single sign-on authentication, automated daily spreadsheet backups, and corporate media storage drive.</p>
+          <div class="integration-meta">
+            <div class="meta-row">
+              <span class="meta-label">Domain:</span>
+              <span class="meta-value">{{ form.integrations.google_workspace_domain }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Backup Folder:</span>
+              <span class="meta-value">{{ form.integrations.google_drive_backup_folder }}</span>
+            </div>
+          </div>
+          <div class="integration-actions">
+            <button class="btn btn-outline-sm" (click)="testIntegration('google')" [disabled]="integrationStatuses['google'].testing">
+              {{ integrationStatuses['google'].testing ? 'Verifying...' : 'Test Sync' }}
+            </button>
+            <span class="feedback-msg" *ngIf="integrationStatuses['google'].message">{{ integrationStatuses['google'].message }}</span>
+          </div>
+        </div>
+
+        <!-- Odoo ERP -->
+        <div class="integration-card">
+          <div class="integration-header">
+            <div class="integration-brand odoo">
+              <span>OD</span>
+            </div>
+            <div class="integration-title">
+              <h4>Odoo Community ERP</h4>
+              <span class="integration-type">Procurement & Warehouse</span>
+            </div>
+            <span class="status-badge connected">Connected</span>
+          </div>
+          <p class="integration-desc">Bidirectional synchronization for purchase orders, inventory valuations, supplier invoicing, and maintenance assets.</p>
+          <div class="integration-meta">
+            <div class="meta-row">
+              <span class="meta-label">Endpoint:</span>
+              <span class="meta-value font-mono">{{ form.integrations.odoo_erp_url }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Database:</span>
+              <span class="meta-value">{{ form.integrations.odoo_erp_db }}</span>
+            </div>
+          </div>
+          <div class="integration-actions">
+            <button class="btn btn-outline-sm" (click)="testIntegration('odoo')" [disabled]="integrationStatuses['odoo'].testing">
+              {{ integrationStatuses['odoo'].testing ? 'Checking RPC...' : 'Test Connection' }}
+            </button>
+            <span class="feedback-msg" *ngIf="integrationStatuses['odoo'].message">{{ integrationStatuses['odoo'].message }}</span>
+          </div>
+        </div>
+
+        <!-- HubSpot CRM -->
+        <div class="integration-card">
+          <div class="integration-header">
+            <div class="integration-brand hubspot">
+              <span>HS</span>
+            </div>
+            <div class="integration-title">
+              <h4>HubSpot CRM</h4>
+              <span class="integration-type">Commercial Pipeline & Leads</span>
+            </div>
+            <span class="status-badge connected">Synced</span>
+          </div>
+          <p class="integration-desc">Mirrors restaurant, supermarket, and institutional butcher deals with automated next-step reminders.</p>
+          <div class="integration-meta">
+            <div class="meta-row">
+              <span class="meta-label">Portal Hub ID:</span>
+              <span class="meta-value font-mono">{{ form.integrations.hubspot_portal_id }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Sync Cadence:</span>
+              <span class="meta-value">Hourly Real-time Webhooks</span>
+            </div>
+          </div>
+          <div class="integration-actions">
+            <button class="btn btn-outline-sm" (click)="testIntegration('hubspot')" [disabled]="integrationStatuses['hubspot'].testing">
+              {{ integrationStatuses['hubspot'].testing ? 'Testing API...' : 'Verify Tokens' }}
+            </button>
+            <span class="feedback-msg" *ngIf="integrationStatuses['hubspot'].message">{{ integrationStatuses['hubspot'].message }}</span>
+          </div>
+        </div>
+
+        <!-- WhatsApp Cloud API -->
+        <div class="integration-card">
+          <div class="integration-header">
+            <div class="integration-brand whatsapp">
+              <span>WA</span>
+            </div>
+            <div class="integration-title">
+              <h4>WhatsApp Business API</h4>
+              <span class="integration-type">Buyer & Farm Chatbot</span>
+            </div>
+            <span class="status-badge connected">Active</span>
+          </div>
+          <p class="integration-desc">Routes inbound meat orders and dispatches automated livestock delivery schedules to registered buyers.</p>
+          <div class="integration-meta">
+            <div class="meta-row">
+              <span class="meta-label">Sender Number:</span>
+              <span class="meta-value font-mono">{{ form.integrations.whatsapp_sender_id }}</span>
+            </div>
+            <div class="meta-row">
+              <span class="meta-label">Webhook Status:</span>
+              <span class="meta-value">Listening on /api/v1/webhooks/wa</span>
+            </div>
+          </div>
+          <div class="integration-actions">
+            <button class="btn btn-outline-sm" (click)="testIntegration('whatsapp')" [disabled]="integrationStatuses['whatsapp'].testing">
+              {{ integrationStatuses['whatsapp'].testing ? 'Pinging Cloud...' : 'Ping Webhook' }}
+            </button>
+            <span class="feedback-msg" *ngIf="integrationStatuses['whatsapp'].message">{{ integrationStatuses['whatsapp'].message }}</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- 6. SECURITY, GOVERNANCE & DIAGNOSTICS -->
+    <section *ngIf="activeTab === 'security'" class="settings-section">
+      <!-- Security Policies -->
+      <div class="settings-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Session & Authentication Policies</h3>
+            <p>Safeguard livestock records and executive financial data with enterprise access parameters.</p>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="session_lifetime_minutes">Session Inactivity Timeout (Minutes)</label>
+              <input type="number" id="session_lifetime_minutes" [(ngModel)]="form.security.session_lifetime_minutes" (ngModelChange)="onFieldChange()" class="form-control" min="15" max="480" />
+            </div>
+
+            <div class="form-group">
+              <label for="password_expiry_days">Mandatory Password Rotation (Days)</label>
+              <input type="number" id="password_expiry_days" [(ngModel)]="form.security.password_expiry_days" (ngModelChange)="onFieldChange()" class="form-control" min="0" max="365" />
+            </div>
+
+            <div class="form-group">
+              <label for="max_failed_login_attempts">Max Failed Login Attempts</label>
+              <input type="number" id="max_failed_login_attempts" [(ngModel)]="form.security.max_failed_login_attempts" (ngModelChange)="onFieldChange()" class="form-control" min="3" max="10" />
+            </div>
+
+            <div class="form-group">
+              <label for="audit_retention_days">Audit Trail Retention (Days)</label>
+              <input type="number" id="audit_retention_days" [(ngModel)]="form.security.audit_retention_days" (ngModelChange)="onFieldChange()" class="form-control" min="30" max="1825" />
+            </div>
+          </div>
+
+          <div class="divider my-4"></div>
+
+          <div class="toggle-group-item">
+            <div class="toggle-info">
+              <span class="toggle-title">Enforce Two-Factor Authentication (2FA)</span>
+              <span class="toggle-desc">Require OTP authenticator codes for Owner, Executive, and Finance accounts.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="form.security.enforce_two_factor" (ngModelChange)="onFieldChange()" />
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="toggle-group-item mt-3">
+            <div class="toggle-info">
+              <span class="toggle-title">Farm Hub Maintenance Mode</span>
+              <span class="toggle-desc">Temporarily freeze write actions while field tablets perform offline synchronization.</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" [(ngModel)]="form.security.maintenance_mode" (ngModelChange)="onFieldChange()" />
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Environment Diagnostics -->
+      <div class="settings-card">
+        <div class="card-head">
+          <div class="card-title-group">
+            <h3>Live Environment & Engine Diagnostics</h3>
+            <p>Real-time architectural parameters reporting from the Laravel API engine.</p>
+          </div>
+          <span class="badge ok">PHP {{ systemInfo.php_version }}</span>
+        </div>
+        <div class="card-body">
+          <div class="diagnostics-grid">
+            <div class="diag-card">
+              <span class="diag-label">Framework Engine</span>
+              <span class="diag-val">Laravel {{ systemInfo.laravel_version }}</span>
+            </div>
+            <div class="diag-card">
+              <span class="diag-label">Runtime Environment</span>
+              <span class="diag-val font-mono">{{ systemInfo.app_env }}</span>
+            </div>
+            <div class="diag-card">
+              <span class="diag-label">Primary Database</span>
+              <span class="diag-val font-mono">{{ systemInfo.database_connection | uppercase }}</span>
+            </div>
+            <div class="diag-card">
+              <span class="diag-label">Engine Host</span>
+              <span class="diag-val font-mono">{{ systemInfo.app_url }}</span>
+            </div>
+            <div class="diag-card">
+              <span class="diag-label">Server Time (ISO)</span>
+              <span class="diag-val font-mono">{{ systemInfo.server_time | slice:0:19 }}Z</span>
+            </div>
+            <div class="diag-card">
+              <span class="diag-label">Storage Integrity</span>
+              <span class="diag-val text-success">Healthy / Writable</span>
+            </div>
+          </div>
+
+          <div class="system-tools-bar mt-4">
+            <button class="btn btn-outline" (click)="clearCache()" [disabled]="clearingCache">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="icon"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
+              <span>{{ clearingCache ? 'Purging...' : 'Flush Cache & Config' }}</span>
+            </button>
+            <button class="btn btn-outline" (click)="exportConfigJson()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              <span>Download Schema JSON</span>
+            </button>
+            <a routerLink="/sops" class="btn btn-outline">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="icon"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span>View System SOPs</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</div>

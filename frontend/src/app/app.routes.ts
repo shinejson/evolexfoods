@@ -49,7 +49,8 @@ export const routes: Routes = [
       { path: 'governance', pathMatch: 'full', redirectTo: 'risks' },
       { path: 'risks', component: CrudPageComponent, data: { resource: 'risks' } },
       { path: 'decisions', component: CrudPageComponent, data: { resource: 'decisions' } },
-      { path: 'sops', component: CrudPageComponent, data: { resource: 'sops' } }
+      { path: 'sops', component: CrudPageComponent, data: { resource: 'sops' } },
+      { path: 'settings', loadComponent: () => import('./features/settings/settings.component').then((module) => module.SettingsComponent) }
     ]
   },
   { path: '**', redirectTo: 'ceo' }

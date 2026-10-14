@@ -131,7 +131,8 @@ export class ShellComponent {
       items: [
         { path: '/risks', label: 'Risks', icon: 'risks' },
         { path: '/decisions', label: 'Decisions', icon: 'decisions' },
-        { path: '/sops', label: 'SOPs', icon: 'sops' }
+        { path: '/sops', label: 'SOPs', icon: 'sops' },
+        { path: '/settings', label: 'System Settings', icon: 'settings' }
       ]
     }
   ];

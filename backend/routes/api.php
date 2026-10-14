@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\HrTaskController;
 use App\Http\Controllers\Api\V1\LivestockController;
 use App\Http\Controllers\Api\V1\MarketingController;
 use App\Http\Controllers\Api\V1\ProcurementController;
+use App\Http\Controllers\Api\V1\SettingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -88,6 +89,12 @@ Route::prefix('v1')->group(function () {
         Route::get('/audit-logs', [GovernanceController::class, 'auditLogs']);
         Route::get('/sops', [GovernanceController::class, 'sops']);
         Route::get('/systems', [GovernanceController::class, 'systems']);
+
+        Route::get('/settings', [SettingsController::class, 'index']);
+        Route::put('/settings', [SettingsController::class, 'update']);
+        Route::post('/settings/test-email', [SettingsController::class, 'testEmail']);
+        Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache']);
+        Route::get('/settings/export', [SettingsController::class, 'exportConfig']);
 
         Route::get('/lookups', [CrudController::class, 'lookups']);
         Route::get('/records/{resource}', [CrudController::class, 'index']);
