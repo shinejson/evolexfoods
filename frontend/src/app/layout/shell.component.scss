@@ -635,6 +635,15 @@ nav {
   &:hover {
     background: rgba(52, 92, 64, 0.08);
   }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: default;
+
+    &:hover {
+      background: none;
+    }
+  }
 }
 
 .notifications-list {
@@ -649,6 +658,14 @@ nav {
   cursor: pointer;
   transition: background 0.2s ease;
   border-left: 3px solid transparent;
+  width: 100%;
+  text-align: left;
+  border-top: none;
+  border-right: none;
+  border-bottom: none;
+  background: none;
+  font-family: inherit;
+  color: inherit;
   
   &.unread {
     background: rgba(52, 92, 64, 0.03);
@@ -657,6 +674,50 @@ nav {
   
   &:hover {
     background: rgba(0, 0, 0, 0.04);
+  }
+}
+
+.notif-unread-count {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--tint-info-bg);
+  color: var(--info-text);
+  font-size: 11px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.dropdown-footer {
+  border-top: 1px solid var(--hairline);
+  padding: 8px;
+}
+
+.view-all-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--moss);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.2s ease;
+
+  svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  &:hover {
+    background: rgba(52, 92, 64, 0.08);
   }
 }
 

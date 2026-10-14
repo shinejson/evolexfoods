@@ -1,0 +1,710 @@
+/* ==========================================================================
+   Report workspace — builder + catalogue
+   Layout follows the POS report builder: a searchable report catalogue on the
+   left and the report form on the right. Colours come from the Evolex tokens.
+   ========================================================================== */
+
+.report-page {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 26px 30px 56px;
+}
+
+.report-head {
+  margin-bottom: 18px;
+}
+
+.report-head-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  svg {
+    width: 26px;
+    height: 26px;
+    color: var(--forest);
+  }
+
+  h1 {
+    margin: 0;
+    font-family: 'Fraunces', serif;
+    font-size: 27px;
+    color: var(--ink);
+  }
+}
+
+.report-head-sub {
+  margin: 4px 0 0 36px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.report-body {
+  display: grid;
+  grid-template-columns: 292px minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+/* ------------------------------------------------------------- sidebar -- */
+
+.report-side {
+  background: var(--surface-paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 14px 14px 10px;
+  position: sticky;
+  top: 84px;
+  max-height: calc(100vh - 110px);
+  display: flex;
+  flex-direction: column;
+}
+
+.report-side-tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.report-search {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+
+  svg {
+    position: absolute;
+    left: 10px;
+    width: 15px;
+    height: 15px;
+    color: var(--text-muted);
+    pointer-events: none;
+  }
+
+  input {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--ink);
+    padding: 8px 12px 8px 32px;
+    font-size: 13px;
+    outline: none;
+
+    &:focus {
+      border-color: var(--forest);
+    }
+  }
+}
+
+.report-star-all {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  svg {
+    width: 17px;
+    height: 17px;
+    fill: var(--line);
+    stroke: var(--ink-soft);
+    stroke-width: 1.4;
+  }
+
+  &.is-on svg {
+    fill: var(--gold);
+    stroke: var(--gold);
+  }
+
+  &:hover {
+    border-color: var(--gold);
+  }
+}
+
+.report-nav {
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px;
+}
+
+.report-section {
+  margin-bottom: 6px;
+}
+
+.report-section-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-mute);
+  color: var(--ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+
+  svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: var(--ink-soft);
+    stroke-width: 2;
+    transition: transform 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  &.is-recommended {
+    background: var(--forest);
+    color: #fff;
+
+    svg {
+      stroke: #fff;
+    }
+  }
+
+  .is-open & svg {
+    transform: rotate(180deg);
+  }
+}
+
+.report-list {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+}
+
+.report-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: var(--row-hover);
+    color: var(--ink);
+  }
+
+  &.is-active {
+    background: rgba(47, 74, 50, 0.1);
+    color: var(--forest-text);
+    font-weight: 700;
+  }
+}
+
+.report-item-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.report-item-star {
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  svg {
+    width: 14px;
+    height: 14px;
+    fill: transparent;
+    stroke: var(--ink-soft);
+    stroke-width: 1.5;
+  }
+
+  &.is-on svg {
+    fill: var(--gold);
+    stroke: var(--gold);
+  }
+}
+
+/* -------------------------------------------------------------- builder -- */
+
+.report-main {
+  min-width: 0;
+}
+
+.report-card {
+  background: var(--surface-paper);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  padding: 22px 24px 20px;
+}
+
+.report-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--hairline);
+
+  svg {
+    width: 22px;
+    height: 22px;
+    color: var(--forest);
+  }
+
+  h2 {
+    margin: 0;
+    font-family: 'Fraunces', serif;
+    font-size: 21px;
+    color: var(--ink);
+  }
+}
+
+.report-preview-chip {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--forest-text);
+  background: var(--tint-ok-bg);
+  border: 1px solid var(--tint-ok-border);
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+.report-error {
+  margin: 0 0 12px;
+  padding: 9px 13px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  background: var(--tint-danger-bg);
+  border: 1px solid var(--tint-danger-border);
+  color: var(--tint-danger-fg);
+}
+
+.report-loading {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.report-section-block {
+  padding-bottom: 18px;
+  margin-bottom: 18px;
+  border-bottom: 1px solid var(--hairline);
+
+  &:last-of-type {
+    border-bottom: 0;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+}
+
+.report-block-title {
+  margin: 0 0 12px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.report-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.report-field-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-label);
+
+  em {
+    color: var(--danger-text);
+    font-style: normal;
+  }
+}
+
+.report-field select,
+.report-field input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 9px 11px;
+  font-size: 13px;
+  outline: none;
+
+  &:focus {
+    border-color: var(--forest);
+  }
+}
+
+.report-template-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin-bottom: 12px;
+
+  .report-field-template {
+    max-width: 260px;
+  }
+}
+
+.report-icon-btn {
+  width: 38px;
+
+.report-mandatory {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.report-date-range {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  input {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.report-date-sep {
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.report-date-icon {
+  position: absolute;
+  right: 9px;
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 1.7;
+  pointer-events: none;
+}
+
+.report-field-location {
+  position: relative;
+}
+
+.report-location {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.report-location-field {
+  flex: 1;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 5px 8px;
+  cursor: pointer;
+  position: relative;
+
+  &:hover {
+    border-color: var(--forest);
+  }
+}
+
+.report-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+
+.report-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--forest-text);
+  background: var(--tint-ok-bg);
+  border: 1px solid var(--tint-ok-border);
+  border-radius: 6px;
+  padding: 3px 8px;
+
+  button {
+    border: 0;
+    background: none;
+    color: inherit;
+    font-size: 14px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+  }
+}
+
+.report-chip-all {
+  color: var(--text-label);
+  background: var(--surface-mute);
+  border-color: var(--hairline);
+}
+
+.report-location-caret {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+
+  svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: var(--ink-soft);
+    stroke-width: 2;
+  }
+}
+
+.report-location-panel {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 60px;
+  background: var(--surface-paper);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(28, 46, 31, 0.18);
+  padding: 10px;
+
+  input {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--ink);
+    padding: 7px 10px;
+    font-size: 12.5px;
+    margin-bottom: 8px;
+    outline: none;
+  }
+
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 190px;
+    overflow-y: auto;
+  }
+
+  li button {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    background: none;
+    color: var(--ink-soft);
+    font-size: 12.5px;
+    text-align: left;
+    padding: 7px 8px;
+    border-radius: 7px;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--row-hover);
+      color: var(--ink);
+    }
+  }
+}
+
+.report-location-empty {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px;
+}
+
+.report-check {
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--line);
+  border-radius: 4px;
+  flex-shrink: 0;
+
+  &.is-on {
+    background: var(--forest);
+    border-color: var(--forest);
+    box-shadow: inset 0 0 0 2px var(--surface);
+  }
+}
+
+.report-copies {
+  width: 64px;
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  padding: 9px 8px;
+  font-size: 13px;
+  height: 38px;
+}
+
+.report-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 14px 16px;
+  margin-bottom: 14px;
+}
+
+.report-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+  cursor: pointer;
+
+  input {
+    width: 15px;
+    height: 15px;
+    accent-color: var(--forest);
+  }
+}
+
+.report-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--hairline);
+}
+
+.report-btn {
+  border-radius: 8px;
+  padding: 10px 24px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.report-btn-reset {
+  background: var(--surface);
+  border-color: var(--line);
+  color: var(--ink-soft);
+
+  &:hover {
+    border-color: var(--forest);
+    color: var(--forest-text);
+  }
+}
+
+.report-btn-run {
+  background: var(--forest);
+  color: #fff;
+
+  &:hover {
+    background: var(--forest-deep);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.report-generated {
+  margin: 10px 0 0;
+  text-align: right;
+  font-size: 11.5px;
+  color: var(--text-muted);
+}
+
+@media (max-width: 1080px) {
+  .report-body {
+    grid-template-columns: 1fr;
+  }
+
+  .report-side {
+    position: static;
+    max-height: none;
+  }
+
+  .report-mandatory {
+    grid-template-columns: 1fr;
+  }
+}
+
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex-shrink: 0;
+
+  svg {
+    width: 17px;
+    height: 17px;
+    fill: none;
+    stroke: var(--ink-soft);
+    stroke-width: 1.7;
+    stroke-linecap: round;
+  }
+
+  &:hover {
+    border-color: var(--forest);
+    color: var(--forest-text);
+
+    svg {
+      stroke: var(--forest-text);
+    }
+  }
+}
+
+.report-quick-ranges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 11.5px;
+  color: var(--text-muted);
+
+  button {
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--ink-soft);
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      border-color: var(--forest);
+      color: var(--forest-text);
+    }
+  }
+}
+

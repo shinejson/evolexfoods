@@ -25,6 +25,10 @@ export class ApiService {
     return this.http.put<T>(`/api/v1${path}`, body);
   }
 
+  patch<T>(path: string, body: unknown) {
+    return this.http.patch<T>(`/api/v1${path}`, body);
+  }
+
   delete<T>(path: string) {
     return this.http.delete<T>(`/api/v1${path}`);
   }
