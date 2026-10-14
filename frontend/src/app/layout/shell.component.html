@@ -152,7 +152,7 @@
       
       <button class="sidebar-footer-btn danger" 
               [title]="'Sign Out'"
-              (click)="auth.logout()">
+              (click)="confirmLogout()">
         <span class="ico">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9" />
@@ -285,7 +285,7 @@
               Help & Support
             </a>
             <hr />
-            <a class="dropdown-item danger" (click)="auth.logout()">
+            <a class="dropdown-item danger" (click)="confirmLogout()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9" />
               </svg>
@@ -452,3 +452,35 @@
   </div><!-- /modal-backdrop-shell -->
 </div>
 
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     LOGOUT CONFIRMATION MODAL
+══════════════════════════════════════════════════════════════════════ -->
+<div class="logout-backdrop" *ngIf="showLogoutConfirm" (click)="cancelLogout()">
+  <div class="logout-modal" (click)="$event.stopPropagation()">
+    <div class="logout-modal-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9" />
+      </svg>
+    </div>
+
+    <div class="logout-modal-body">
+      <h3>Sign Out of Evolex Hub?</h3>
+      <p>You are currently signed in as <strong>{{ auth.user?.name }}</strong>. Any unsaved changes will be lost.</p>
+    </div>
+
+    <div class="logout-modal-actions">
+      <button class="logout-cancel-btn" type="button" (click)="cancelLogout()">
+        Cancel
+      </button>
+      <button class="logout-confirm-btn" type="button" (click)="performLogout()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9" />
+        </svg>
+        Yes, Sign Out
+      </button>
+    </div>
+
+    <p class="logout-esc-hint">Press <kbd>Esc</kbd> to cancel</p>
+  </div>
+</div>

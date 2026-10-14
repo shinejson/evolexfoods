@@ -20,6 +20,7 @@ export class ShellComponent implements OnInit, OnDestroy {
   showUserMenu = false;
   searchQuery = '';
   activePopupGroup: any = null;
+  showLogoutConfirm = false;
 
   // Notifications (live from the Notification Centre API)
   notifications: AppNotification[] = [];
@@ -274,6 +275,10 @@ export class ShellComponent implements OnInit, OnDestroy {
 
   @HostListener('document:keydown', ['$event'])
   onKeyDown(event: KeyboardEvent) {
+    if (event.key === 'Escape' && this.showLogoutConfirm) {
+      this.showLogoutConfirm = false;
+      return;
+    }
     // Ctrl+K or Cmd+K for search focus
     if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
       event.preventDefault();
@@ -379,5 +384,20 @@ export class ShellComponent implements OnInit, OnDestroy {
     if (this.sidebarCollapsed) {
       this.activePopupGroup = null;
     }
+  }
+
+  // ─── Logout Confirmation ──────────────────────────────────────────────────
+  confirmLogout(): void {
+    this.showUserMenu = false;
+    this.showLogoutConfirm = true;
+  }
+
+  cancelLogout(): void {
+    this.showLogoutConfirm = false;
+  }
+
+  performLogout(): void {
+    this.showLogoutConfirm = false;
+    this.auth.logout();
   }
 }
