@@ -80,7 +80,8 @@ export class ShellComponent implements OnInit {
       expanded: true,
       items: [
         { path: '/hub', label: 'Hub', icon: 'hub' },
-        { path: '/ceo', label: 'CEO Command', icon: 'ceo' }
+        { path: '/ceo', label: 'CEO Command', icon: 'ceo' },
+        { path: '/reports', label: 'Reports', icon: 'report' }
       ]
     },
     {
