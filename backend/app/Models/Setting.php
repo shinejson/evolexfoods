@@ -3,9 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Crypt;
 
 class Setting extends Model
 {
+    public const SECRETS = ['mail_password', 'sms_api_key'];
+
     protected $fillable = [
         'group',
         'key',
@@ -47,6 +50,11 @@ class Setting extends Model
             default => (string) $value,
         };
 
+        if (in_array($key, self::SECRETS, true)) {
+            $serializedValue = Crypt::encryptString((string) $value);
+            $type = 'encrypted';
+        }
+
         return static::updateOrCreate(
             ['key' => $key],
             [
@@ -71,7 +79,12 @@ class Setting extends Model
             if (! isset($grouped[$group])) {
                 $grouped[$group] = [];
             }
-            $grouped[$group][$setting->key] = $setting->castValue();
+            if (in_array($setting->key, self::SECRETS, true)) {
+                $grouped[$group][$setting->key] = '';
+                $grouped[$group][$setting->key.'_configured'] = !empty($setting->castValue());
+            } else {
+                $grouped[$group][$setting->key] = $setting->castValue();
+            }
         }
 
         return $grouped;
@@ -87,6 +100,7 @@ class Setting extends Model
         }
 
         return match ($this->type) {
+            'encrypted' => Crypt::decryptString($this->value),
             'boolean' => filter_var($this->value, FILTER_VALIDATE_BOOLEAN),
             'integer' => (int) $this->value,
             'float' => (float) $this->value,

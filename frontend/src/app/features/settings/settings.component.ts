@@ -11,6 +11,7 @@ import {
   ActivityLog,
   ActivityLogsResponse
 } from '../../core/services/settings.service';
+import { CommunicationsComponent } from './communications.component';
 import { AuthService, TwoFactorSetupResponse, TwoFaMethod } from '../../core/services/auth.service';
 
 export interface GeneralSettings {
@@ -40,6 +41,7 @@ export interface EmailSettings {
   mail_port: number;
   mail_username: string;
   mail_password: string;
+  mail_password_configured?: boolean;
   mail_encryption: string;
   mail_from_address: string;
   mail_from_name: string;
@@ -125,12 +127,12 @@ interface Toast {
 @Component({
   selector: 'app-settings',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink],
+  imports: [CommonModule, FormsModule, RouterLink, CommunicationsComponent],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss'
 })
 export class SettingsComponent implements OnInit {
-  activeTab: 'general' | 'email' | 'notifications' | 'livestock' | 'integrations' | 'security' | 'backups' | 'activity' = 'general';
+  activeTab: 'general' | 'email' | 'communications' | 'notifications' | 'livestock' | 'integrations' | 'security' | 'backups' | 'activity' = 'general';
   
   loading = true;
   saving = false;
@@ -245,7 +247,7 @@ export class SettingsComponent implements OnInit {
       mail_host: 'smtp.googlemail.com',
       mail_port: 587,
       mail_username: 'alerts@evolexfood.com',
-      mail_password: '••••••••••••',
+      mail_password: '',
       mail_encryption: 'tls',
       mail_from_address: 'alerts@evolexfood.com',
       mail_from_name: 'Evolex Operations Hub',
@@ -358,7 +360,7 @@ export class SettingsComponent implements OnInit {
     });
   }
 
-  selectTab(tab: 'general' | 'email' | 'notifications' | 'livestock' | 'integrations' | 'security' | 'backups' | 'activity'): void {
+  selectTab(tab: 'general' | 'email' | 'communications' | 'notifications' | 'livestock' | 'integrations' | 'security' | 'backups' | 'activity'): void {
     this.activeTab = tab;
     if (tab === 'security' && !this.twoFactorSetupData) {
       this.loadTwoFactorSetup();
@@ -489,6 +491,8 @@ export class SettingsComponent implements OnInit {
       next: (res) => {
         this.saving = false;
         this.isDirty = false;
+        this.form.email.mail_password = '';
+        this.form.email.mail_password_configured = res.settings?.email?.mail_password_configured;
         this.showToastMsg('success', res.message || 'Settings saved successfully!');
       },
       error: (err) => {
@@ -500,6 +504,10 @@ export class SettingsComponent implements OnInit {
   }
 
   sendTestEmail(): void {
+    if (this.isDirty) {
+      this.showToastMsg('info', 'Save your settings before testing email.');
+      return;
+    }
     if (!this.testRecipient) {
       this.showToastMsg('error', 'Please enter a valid recipient email address.');
       return;
@@ -512,12 +520,13 @@ export class SettingsComponent implements OnInit {
       next: (res) => {
         this.testingEmail = false;
         this.testEmailResult = res;
-        this.showToastMsg('success', `Diagnostic email sent to ${this.testRecipient}!`);
+        this.showToastMsg('info', res.message);
       },
       error: (err) => {
         this.testingEmail = false;
         console.error('Test email failed:', err);
-        this.showToastMsg('error', 'SMTP test dispatch failed. Check host and credentials.');
+        this.testEmailResult = err?.error || { success: false, message: 'Email test failed.' };
+        this.showToastMsg('error', this.testEmailResult!.message);
       }
     });
   }
@@ -572,15 +581,7 @@ export class SettingsComponent implements OnInit {
         this.showToastMsg('success', 'Configuration snapshot exported to JSON!');
       },
       error: () => {
-        const jsonStr = JSON.stringify({ settings: this.form, system: this.systemInfo }, null, 2);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `evolex-settings-local-${new Date().toISOString().slice(0, 10)}.json`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        this.showToastMsg('info', 'Local configuration exported.');
+        this.showToastMsg('error', 'Configuration export failed. No local credentials were exported.');
       }
     });
   }

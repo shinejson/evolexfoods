@@ -1,0 +1,410 @@
+<div class="communications">
+  <header class="intro">
+    <span class="eyebrow">COMMUNICATIONS</span>
+    <h2>Keep your team informed</h2>
+    <p>
+      Configure SMS, prepare reusable messages, and send reminders or meeting
+      invitations by SMS or email.
+    </p>
+  </header>
+  <nav class="panel-tabs" aria-label="Communication settings">
+    <button
+      *ngFor="let item of panels"
+      type="button"
+      [class.selected]="panel === item.id"
+      (click)="selectPanel(item.id)"
+    >
+      {{ item.name }}
+    </button>
+  </nav>
+  <p *ngIf="loading" role="status">Loading configuration…</p>
+  <div *ngIf="notice" class="notice" [class.error]="isError" role="status">
+    {{ notice }}
+  </div>
+  <ng-container *ngIf="ready">
+    <section class="card" *ngIf="panel === 'config'">
+      <div class="card-head">
+        <div>
+          <h3>Arkesel SMS gateway</h3>
+          <p>A dedicated SMS provider for your Ghana-based operations.</p>
+        </div>
+        <span class="pill">{{ sms.sms_enabled ? "Enabled" : "Disabled" }}</span>
+      </div>
+      <div class="provider-note">
+        <strong>Set up your provider account</strong>
+        <p>
+          Create an account at
+          <a
+            href="https://arkesel.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            >arkesel.com ↗</a
+          >, fund your SMS balance, request approval for your sender ID, and
+          copy your API key from the dashboard. An enabled switch does not
+          verify connectivity.
+        </p>
+      </div>
+      <form (ngSubmit)="saveSms()" #smsForm="ngForm">
+        <label class="check"
+          ><input
+            type="checkbox"
+            name="enabled"
+            [(ngModel)]="sms.sms_enabled"
+            (ngModelChange)="dirty = true"
+          />
+          Enable outbound SMS</label
+        >
+        <div class="grid">
+          <label>Provider<input value="Arkesel · SMS API v2" readonly /></label>
+          <label
+            >Approved sender ID<input
+              name="sender"
+              [(ngModel)]="sms.sms_sender_id"
+              (ngModelChange)="dirty = true"
+              required
+              maxlength="11"
+              pattern="[a-zA-Z0-9 ]+"
+            /><small
+              >Up to 11 letters, numbers or spaces; must match your approved
+              sender.</small
+            ></label
+          >
+          <label class="wide"
+            >API key<input
+              type="password"
+              autocomplete="new-password"
+              name="key"
+              [(ngModel)]="sms.sms_api_key"
+              (ngModelChange)="dirty = true"
+              placeholder="Enter a new key, or leave blank to keep the saved key"
+            /><small>{{
+              sms.sms_api_key_configured
+                ? "A key is saved securely. It is never returned to your browser."
+                : "No API key saved yet."
+            }}</small></label
+          >
+        </div>
+        <button
+          class="primary"
+          type="submit"
+          [disabled]="busy || !smsForm.valid"
+        >
+          {{ busy ? "Working…" : "Save SMS configuration" }}
+        </button>
+      </form>
+      <hr />
+      <h3>Send a test SMS</h3>
+      <p>
+        Uses saved settings. This sends a real message and may incur charges.
+      </p>
+      <form class="test-row" (ngSubmit)="testSms()">
+        <label
+          >Test phone number<input
+            type="tel"
+            name="testPhone"
+            [(ngModel)]="testPhone"
+            required
+            placeholder="+233241234567" /></label
+        ><button
+          type="submit"
+          [disabled]="
+            busy ||
+            dirty ||
+            !sms.sms_enabled ||
+            !sms.sms_api_key_configured ||
+            !testPhone
+          "
+        >
+          Send test SMS
+        </button>
+      </form>
+      <small *ngIf="dirty">Save configuration changes before testing.</small>
+    </section>
+    <div class="template-layout" *ngIf="panel === 'templates'">
+      <section class="card template-list">
+        <div class="card-head">
+          <h3>Template library</h3>
+          <button type="button" (click)="edit()">+ New</button>
+        </div>
+        <button
+          class="template-item"
+          type="button"
+          *ngFor="let template of templates"
+          [class.chosen]="editor.id === template.id"
+          (click)="edit(template)"
+        >
+          <strong>{{ template.name }}</strong
+          ><small
+            >{{ template.channel | uppercase }} · {{ template.category }} ·
+            {{ template.enabled ? "Enabled" : "Disabled" }}</small
+          >
+        </button>
+        <p *ngIf="!templates.length">No templates available.</p>
+      </section>
+      <section class="card">
+        <h3>{{ editor.id ? "Edit template" : "New template" }}</h3>
+        <p>Templates and SMS configuration have their own Save buttons.</p>
+        <form (ngSubmit)="saveTemplate()" #templateForm="ngForm">
+          <div class="grid">
+            <label class="wide"
+              >Template name<input
+                name="name"
+                [(ngModel)]="editor.name"
+                required
+                maxlength="100"
+            /></label>
+            <label
+              >Channel<select name="channel" [(ngModel)]="editor.channel">
+                <option value="sms">SMS</option>
+                <option value="email">Email</option>
+              </select></label
+            >
+            <label
+              >Purpose<select name="category" [(ngModel)]="editor.category">
+                <option value="reminder">Reminder</option>
+                <option value="meeting">Meeting invitation</option>
+                <option value="notification">Notification</option>
+              </select></label
+            >
+            <label class="wide" *ngIf="editor.channel === 'email'"
+              >Subject<input
+                name="subject"
+                [(ngModel)]="editor.subject"
+                required
+                maxlength="255"
+            /></label>
+            <label class="wide"
+              >Message body<textarea
+                name="body"
+                [(ngModel)]="editor.body"
+                rows="6"
+                required
+                maxlength="5000"
+              ></textarea>
+            </label>
+          </div>
+          <p class="variables">
+            Supported placeholders:
+            <code *ngFor="let key of variableNames"
+              >{{ '{{' + key + '}}' }}</code
+            >
+          </p>
+          <label class="check"
+            ><input
+              type="checkbox"
+              name="active"
+              [(ngModel)]="editor.enabled"
+            />
+            Allow this template to be used</label
+          >
+          <div class="preview">
+            <small>SAMPLE PREVIEW</small
+            ><strong *ngIf="editor.channel === 'email'">{{
+              render(editor.subject, true)
+            }}</strong>
+            <p>
+              {{
+                render(editor.body, true) ||
+                  "Your message preview appears here."
+              }}
+            </p>
+            <small *ngIf="editor.channel === 'sms'"
+              >{{ smsLength(render(editor.body, true)) }} · estimate only</small
+            >
+          </div>
+          <button
+            type="submit"
+            class="primary"
+            [disabled]="busy || !templateForm.valid"
+          >
+            Save template
+          </button>
+        </form>
+      </section>
+    </div>
+    <section class="card" *ngIf="panel === 'compose'">
+      <h3>Send a message or schedule a reminder</h3>
+      <p>
+        One recipient per message. Meeting templates send an invitation message,
+        not a calendar booking. Only contact people who have agreed to receive
+        messages.
+      </p>
+      <form (ngSubmit)="send()">
+        <div class="grid">
+          <label
+            >Message template<select name="template" [(ngModel)]="templateId">
+              <option [ngValue]="0">Select an enabled template</option>
+              <ng-container *ngFor="let template of templates"
+                ><option *ngIf="template.enabled" [ngValue]="template.id">
+                  {{ template.channel | uppercase }} · {{ template.name }}
+                </option></ng-container
+              >
+            </select></label
+          >
+          <label
+            >Recipient
+            {{ chosen?.channel === "email" ? "email address" : "phone number"
+            }}<input
+              name="recipient"
+              [(ngModel)]="recipient"
+              [type]="chosen?.channel === 'email' ? 'email' : 'tel'"
+              required
+              [placeholder]="
+                chosen?.channel === 'email'
+                  ? 'name@example.com'
+                  : '+233241234567'
+              "
+          /></label>
+          <label *ngFor="let key of usedVariables"
+            >{{ key | titlecase
+            }}<textarea
+              *ngIf="key === 'details'; else shortField"
+              [name]="key"
+              [(ngModel)]="variables[key]"
+              required
+              maxlength="2000"
+              rows="2"
+            ></textarea
+            ><ng-template #shortField
+              ><input
+                [name]="key"
+                [(ngModel)]="variables[key]"
+                required
+                maxlength="500" /></ng-template
+          ></label>
+        </div>
+        <div class="preview" *ngIf="chosen">
+          <small>MESSAGE PREVIEW · {{ chosen.channel | uppercase }}</small
+          ><strong *ngIf="chosen.channel === 'email'">{{
+            render(chosen.subject)
+          }}</strong>
+          <p>{{ render(chosen.body) }}</p>
+          <small *ngIf="chosen.channel === 'sms'"
+            >{{ smsLength(render(chosen.body)) }} · charges depend on provider
+            encoding</small
+          ><small *ngIf="chosen.channel === 'email'"
+            >The saved email footer is appended when sending.</small
+          >
+        </div>
+        <label class="check"
+          ><input type="checkbox" name="later" [(ngModel)]="sendLater" />
+          Schedule for later</label
+        >
+        <label *ngIf="sendLater"
+          >Send date & time<input
+            type="datetime-local"
+            name="schedule"
+            [(ngModel)]="schedule"
+            required
+          /><small
+            >Timezone: {{ browserTimezone }}. Converted to UTC for the server.
+            The date/time placeholders above are message text only.</small
+          ></label
+        >
+        <p class="provider-note" *ngIf="sendLater">
+          Scheduled messages require the Laravel scheduler to run every minute.
+          Content is saved now; later template edits will not change this
+          message.
+        </p>
+        <button class="primary" type="submit" [disabled]="busy || !canSend">
+          {{
+            busy
+              ? "Working…"
+              : sendLater
+                ? "Schedule message"
+                : "Send message now"
+          }}
+        </button>
+      </form>
+    </section>
+    <section class="card" *ngIf="panel === 'history'">
+      <div class="card-head">
+        <div>
+          <h3>Outbox & sending history</h3>
+          <p>
+            Accepted means the provider accepted the message, not that it
+            reached the recipient. Logged means email was not sent.
+          </p>
+        </div>
+        <button
+          type="button"
+          (click)="loadHistory(page)"
+          [disabled]="historyLoading"
+        >
+          Refresh
+        </button>
+      </div>
+      <p *ngIf="historyLoading" role="status">Loading messages…</p>
+      <div class="table-scroll">
+        <table *ngIf="messages.length">
+          <thead>
+            <tr>
+              <th>Recipient</th>
+              <th>Message</th>
+              <th>Send time</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let message of messages">
+              <td>
+                <strong>{{ message.recipient }}</strong
+                ><small
+                  >{{ message.channel | uppercase }} · #{{ message.id }}</small
+                >
+              </td>
+              <td class="message-cell">
+                <strong *ngIf="message.subject">{{ message.subject }}</strong>
+                <p>{{ message.body }}</p>
+                <small class="failure" *ngIf="message.error">{{
+                  message.error
+                }}</small>
+              </td>
+              <td>
+                {{ message.scheduled_at | date: "medium"
+                }}<small>{{ browserTimezone }}</small>
+              </td>
+              <td>
+                <span
+                  class="pill"
+                  [class.failure]="message.status === 'failed'"
+                  >{{ message.status }}</span
+                >
+              </td>
+              <td>
+                <button
+                  *ngIf="message.status === 'pending'"
+                  type="button"
+                  (click)="cancel(message)"
+                  [disabled]="busy"
+                >
+                  Cancel
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p *ngIf="!messages.length && !historyLoading">
+        No messages yet. Start with a template in Send / schedule.
+      </p>
+      <div class="pagination">
+        <span>{{ total }} message(s) · Page {{ page }} of {{ lastPage }}</span
+        ><button
+          type="button"
+          [disabled]="page <= 1 || historyLoading"
+          (click)="loadHistory(page - 1)"
+        >
+          Previous</button
+        ><button
+          type="button"
+          [disabled]="page >= lastPage || historyLoading"
+          (click)="loadHistory(page + 1)"
+        >
+          Next
+        </button>
+      </div>
+    </section>
+  </ng-container>
+</div>
