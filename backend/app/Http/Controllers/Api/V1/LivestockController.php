@@ -9,6 +9,8 @@ use App\Models\Death;
 use App\Models\HealthRecord;
 use App\Models\Pregnancy;
 use App\Models\Treatment;
+use App\Services\AnimalIdGenerator;
+use App\Services\GestationRadarService;
 use App\Support\DateRange;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -129,6 +131,36 @@ class LivestockController extends Controller
      * Optional: status=active|completed|failed|all, date_field=expected_birth_date|confirmed_date,
      * from / to (inclusive, Y-m-d).
      */
+    /**
+     * Preview the next auto-generated Animal ID for a species (§10) —
+     * e.g. ?species=goat → EV-GT-000017. Does not consume the number.
+     */
+    public function nextId(Request $request, AnimalIdGenerator $ids): JsonResponse
+    {
+        $species = AnimalIdGenerator::normaliseSpecies($request->query('species', 'goat'));
+
+        return response()->json([
+            'species' => $species,
+            'prefix' => AnimalIdGenerator::prefixFor($species),
+            'next_animal_id' => $ids->peek($species),
+            'formats' => [
+                'goat' => 'EV-GT-000001',
+                'sheep' => 'EV-SH-000001',
+                'cattle' => 'EV-CT-000001',
+            ],
+            'source' => 'animal_id_sequences',
+        ]);
+    }
+
+    /**
+     * Expected Kidding / Gestation Horizon Radar (§39): every active
+     * pregnancy bucketed into overdue / 7 / 30 / 60 / 90-day horizons.
+     */
+    public function gestationRadar(GestationRadarService $radar): JsonResponse
+    {
+        return response()->json($radar->radar());
+    }
+
     public function pregnancies(Request $request): JsonResponse
     {
         $status = (string) $request->query('status', 'active');

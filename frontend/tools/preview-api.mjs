@@ -365,7 +365,7 @@ const HEALTH_STORE = {
 /* Breeding workspace fixtures (mirroring the seeder)                    */
 /* ------------------------------------------------------------------ */
 
-const GESTATION = { goat: 150, sheep: 147, cattle: 283 };
+const GESTATION = { goat: 150, sheep: 150, cattle: 283 };
 const BREEDING_METHODS = ['natural', 'natural', 'natural', 'artificial_insemination', 'embryo_transfer'];
 
 function daysFromNow(days) {
@@ -825,6 +825,263 @@ function financeOverview(url) {
   };
 }
 
+/* ------------------------------------------------------------------ */
+/* Executive features: Animal ID automation (§10/§96), Gestation Radar  */
+/* (§39), Weekly Owner Report (§113), Procurement matrix (§44–47).      */
+/* In-memory mirrors of the Laravel services — writes last for the      */
+/* preview session only.                                                */
+/* ------------------------------------------------------------------ */
+
+const ID_PREFIX = { goat: 'EV-GT', sheep: 'EV-SH', cattle: 'EV-CT' };
+let extraAnimals = [];
+
+function allAnimals() {
+  return [...ANIMALS, ...extraAnimals];
+}
+
+function highestAnimalNumber(prefix) {
+  return allAnimals()
+    .filter((animal) => animal.animal_id?.startsWith(`${prefix}-`))
+    .reduce((max, animal) => {
+      const suffix = Number(String(animal.animal_id).slice(prefix.length + 1));
+      return Number.isFinite(suffix) ? Math.max(max, suffix) : max;
+    }, 0);
+}
+
+const animalSequences = {
+  goat: highestAnimalNumber('EV-GT'),
+  sheep: highestAnimalNumber('EV-SH'),
+  cattle: highestAnimalNumber('EV-CT')
+};
+
+function peekAnimalId(species) {
+  const key = ID_PREFIX[species] ? species : 'goat';
+  return `${ID_PREFIX[key]}-${String(animalSequences[key] + 1).padStart(6, '0')}`;
+}
+
+function nextAnimalId(species) {
+  const key = ID_PREFIX[species] ? species : 'goat';
+  animalSequences[key] = Math.max(animalSequences[key], highestAnimalNumber(ID_PREFIX[key])) + 1;
+  return `${ID_PREFIX[key]}-${String(animalSequences[key]).padStart(6, '0')}`;
+}
+
+function roleFromRequest(req) {
+  const token = String(req.headers.authorization ?? '').replace('Bearer ', '');
+  const role = token.startsWith('mock-token-') ? token.slice('mock-token-'.length) : 'owner';
+  return role || 'owner';
+}
+
+function radarPayload() {
+  const today = isoDay(new Date());
+  const dayMs = 86_400_000;
+  const entries = pregnancies
+    .filter((row) => row.status === 'active')
+    .map((row) => {
+      const attached = BREEDING_STORE.pregnancies.attach(row);
+      const animal = attached.animal ?? {};
+      const gestationDays = GESTATION[animal.species] ?? 150;
+      const due = row.expected_birth_date ? new Date(`${row.expected_birth_date}T00:00:00Z`) : null;
+      const daysToDue = due ? Math.round((due - new Date(`${today}T00:00:00Z`)) / dayMs) : null;
+      const progress = daysToDue === null ? 0 : Math.max(0, Math.min(1, (gestationDays - daysToDue) / gestationDays));
+      const bucket = daysToDue === null ? 'beyond' : daysToDue < 0 ? 'overdue' : daysToDue <= 7 ? '7' : daysToDue <= 30 ? '30' : daysToDue <= 60 ? '60' : daysToDue <= 90 ? '90' : 'beyond';
+      return {
+        pregnancy_id: row.id,
+        animal_id: row.animal_id,
+        animal_code: animal.animal_id ?? `EV-?-${row.animal_id}`,
+        species: animal.species ?? null,
+        breed: animal.breed ?? null,
+        location: animal.location?.name ?? null,
+        location_id: animal.location_id ?? null,
+        sire_code: attached.breeding?.male?.animal_id ?? null,
+        confirmed_date: row.confirmed_date,
+        breeding_date: attached.breeding?.breeding_date ?? null,
+        expected_birth_date: row.expected_birth_date,
+        expected_birth_date_source: row.expected_birth_date ? 'recorded' : 'calculated_from_breeding',
+        record_source: 'pregnancy',
+        gestation_days: gestationDays,
+        days_to_due: daysToDue,
+        bucket,
+        horizon: daysToDue !== null && daysToDue >= 0 ? ([7, 30, 60, 90].find((h) => daysToDue <= h) ?? null) : null,
+        gestation_progress: Number(progress.toFixed(3)),
+        gestation_percent: Math.round(progress * 100),
+        stage: progress >= 0.8 ? 'late' : progress >= 0.5 ? 'mid' : 'early',
+        attention: daysToDue !== null && daysToDue < 0
+      };
+    })
+    .sort((a, b) => (a.days_to_due ?? Number.MAX_SAFE_INTEGER) - (b.days_to_due ?? Number.MAX_SAFE_INTEGER));
+
+  const horizons = [7, 30, 60, 90].map((days) => {
+    const rows = entries.filter((e) => e.days_to_due !== null && e.days_to_due >= 0 && e.days_to_due <= days);
+    return { days, label: `Next ${days} days`, count: rows.length, animal_codes: rows.map((e) => e.animal_code) };
+  });
+  const labels = { overdue: 'Overdue', '7': 'Next 7 days', '30': 'Next 30 days', '60': 'Next 60 days', '90': 'Next 90 days', beyond: 'Beyond 90 days' };
+  const buckets = ['overdue', '7', '30', '60', '90', 'beyond'].map((key) => {
+    const rows = entries.filter((e) => e.bucket === key);
+    return { key, label: labels[key], exclusive: true, count: rows.length, entries: rows };
+  });
+
+  return {
+    generated_at: new Date().toISOString(),
+    today,
+    gestation_days: GESTATION,
+    total_active: entries.length,
+    overdue: entries.filter((e) => e.bucket === 'overdue').length,
+    horizons,
+    buckets,
+    entries,
+    source: 'pregnancies, animals'
+  };
+}
+
+function weeklyOwnerPayload(url) {
+  const to = url.searchParams.get('to') ?? isoDay(new Date());
+  const fromDate = url.searchParams.get('from') ? new Date(`${url.searchParams.get('from')}T00:00:00Z`) : new Date(Date.now() - 6 * 86_400_000);
+  const from = url.searchParams.get('from') ?? isoDay(fromDate);
+  const label = `${new Date(`${from}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })} – ${new Date(`${to}T00:00:00Z`).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}`;
+  const radar = radarPayload();
+  const spend = (total, f, t) => ({ from: f, to: t, expenses: total, purchase_orders: 0, invoices: 0, total });
+  const pendingExecutive = procurementRequests
+    .filter((r) => r.approval_stage === 'pending_tier_2')
+    .map((r) => ({ request_number: r.request_number, item_name: r.item_name, estimated_cost: Number(r.estimated_cost ?? 0), priority: r.priority }));
+
+  return {
+    report: 'Weekly Owner Report',
+    manual_reference: '§113',
+    generated_at: new Date().toISOString(),
+    period: { from, to, label },
+    sections: [
+      {
+        key: 'executive_summary', number: 1, title: 'Executive Summary',
+        headline: 'Week in review — items need ownership attention',
+        major_developments: [
+          '4 births registered this week.',
+          'Feed cover stands at 11.3 days.',
+          'Spend this week: GH₵920.00 · Month to date: GH₵4,840.00.',
+          ...(pendingExecutive.length ? [`${pendingExecutive.length} purchase(s) over GH₵1,000 await Executive approval.`] : []),
+          ...(radar.overdue ? [`${radar.overdue} expected birth(s) are overdue.`] : []),
+          '2 owner decision(s) required.'
+        ],
+        key_numbers: { closing_herd: 45, births: 4, deaths: 2, feed_days_remaining: 11.3, spend_week_to_date: 920, spend_month_to_date: 4840, risks_open: 3, decisions_required: 2 }
+      },
+      {
+        key: 'livestock', number: 2, title: 'Livestock',
+        herd_reconciliation: {
+          opening_herd: 43, births: 4, purchases: 1, deaths: 2, sales: 1, closing_herd: 45,
+          computed_closing: 45, variance: 0,
+          equation: 'Opening herd + Births + Purchases − Deaths − Sales = Closing herd',
+          equation_display: '43 + 4 + 1 − 2 − 1 = 45', reconciles: true
+        },
+        pregnancies: radar.total_active,
+        expected_births: Object.fromEntries(radar.horizons.map((h) => [`next_${h.days}`, h.count])),
+        health_issues: 3, under_treatment: 3, mortality_rate: 2.4
+      },
+      {
+        key: 'operations_people', number: 3, title: 'Operations & People',
+        completed_work: 6, outstanding_work: 11, overdue_work: 2,
+        problems: [{ ticket_number: 'MT-2026-003', title: 'Water pump seal inspection', priority: 'high', status: 'open' }],
+        attendance: { present: 6, absent: 1, leave: 1, records: 8 }, staffing: 11,
+        performance_concerns: '2 overdue task(s) outstanding.'
+      },
+      {
+        key: 'feed_inventory', number: 4, title: 'Feed & Inventory',
+        feed_on_hand_kg: 565, daily_consumption_kg: 50, feed_days_remaining: 11.3, medicines_available: 3,
+        critical_stock: [{ name: 'Ivermectin', category: 'Medicine', quantity_on_hand: 4, reorder_level: 10, unit: 'bottle' }]
+      },
+      {
+        key: 'procurement_spend', number: 5, title: 'Procurement & Financial Operations',
+        requests_in_period: procurementRequests.length,
+        pending_supervisor_approvals: procurementRequests.filter((r) => r.approval_stage === 'pending_tier_1').length,
+        pending_executive_approvals: pendingExecutive,
+        approval_threshold_ghs: PROCUREMENT_THRESHOLD, purchases_in_period: procurementOrders.length, open_orders: procurementOrders.filter((o) => o.status === 'open').length,
+        spend: { period: spend(920, from, to), week_to_date: spend(920, from, to), month_to_date: spend(4840, from, to) }
+      },
+      {
+        key: 'sales_marketing', number: 6, title: 'Sales & Marketing',
+        prospects: 7, opportunities: 3, pipeline_value: 17600, sales_in_period: 1,
+        content_produced: 12, reach: 48200, views: 18600, leads: 14
+      },
+      {
+        key: 'risks', number: 7, title: 'Risks',
+        open_risks: [
+          { title: 'Feed price volatility', category: 'supply', severity: 'high', status: 'open' },
+          { title: 'Dry-season water supply', category: 'operations', severity: 'medium', status: 'open' }
+        ],
+        unread_alerts: ALERTS.filter((a) => !a.is_read).slice(0, 5).map((a) => ({ type: a.type, severity: a.severity, title: a.title, message: a.message }))
+      },
+      {
+        key: 'decisions', number: 8, title: 'Owner Decisions Required',
+        decisions: [
+          { title: 'Approve borehole pump replacement', description: 'Quoted at GH₵3,850 by Northstar Farm Services.', due_date: daysFromNow(4) },
+          { title: 'Confirm December breeding groups', description: '12 does ready for the next service round.', due_date: daysFromNow(9) }
+        ],
+        executive_procurement_awaiting: pendingExecutive.length,
+        note: 'Keep this concise and actionable — each item needs an owner decision.'
+      }
+    ],
+    source: 'animals, births, deaths, sales_culls, pregnancies, feed_items, expenses, purchase_orders, invoices, risks, decisions'
+  };
+}
+
+const PROCUREMENT_THRESHOLD = 1000;
+const TIER_ROLES = {
+  1: ['supervisor', 'operations', 'operations_manager', 'farm_manager', 'procurement', 'executive', 'owner', 'admin'],
+  2: ['executive', 'owner', 'ceo', 'admin']
+};
+
+function tierForCost(cost) {
+  return Number(cost ?? 0) > PROCUREMENT_THRESHOLD ? 2 : 1;
+}
+
+function presentRequest(row) {
+  const tier = row.approval_tier ?? tierForCost(row.estimated_cost);
+  const stage = row.approval_stage ?? (row.status === 'pending' ? (tier === 2 ? 'pending_tier_2' : 'pending_tier_1') : row.status);
+  return {
+    ...row,
+    approval_tier: tier,
+    approval_stage: stage,
+    tier_label: tier === 2 ? 'Tier 2 · Executive approval' : 'Tier 1 · Supervisor approval',
+    approver_label: tier === 2 ? 'Executive / Owner' : 'Supervisor / Operations',
+    requires_executive: tier === 2
+  };
+}
+
+function procurementMatrix() {
+  return {
+    currency: 'GH₵',
+    executive_threshold: PROCUREMENT_THRESHOLD,
+    workflow: ['Purchase Request', 'Approval', 'Purchase Order', 'Goods Received', 'Inventory Updated', 'Closed'],
+    tiers: [
+      { tier: 1, key: 'tier_1', label: 'Tier 1 · Supervisor approval', approver_label: 'Supervisor / Operations', rule: `Estimated cost ≤ GH₵${PROCUREMENT_THRESHOLD.toLocaleString()}.00`, min_cost: 0, max_cost: PROCUREMENT_THRESHOLD, roles: TIER_ROLES[1], stage: 'pending_tier_1' },
+      { tier: 2, key: 'tier_2', label: 'Tier 2 · Executive approval', approver_label: 'Executive / Owner', rule: `Estimated cost > GH₵${PROCUREMENT_THRESHOLD.toLocaleString()}.00 — routed directly to Executive approval`, min_cost: PROCUREMENT_THRESHOLD, max_cost: null, roles: TIER_ROLES[2], stage: 'pending_tier_2' }
+    ],
+    source: 'config/evolex.php, settings'
+  };
+}
+
+let procurementRequests = [
+  { id: 1, request_number: 'PR-2026-001', requested_by: 4, requested_at: dayOffset(6), item_name: 'Dairy Mash', category: 'Feed', quantity: 500, unit: 'kg', estimated_cost: 2100, priority: 'high', status: 'ordered', approval_tier: 2, approval_stage: 'ordered', required_approver_role: 'executive', justification: 'Feed days remaining approaching threshold', requester: { id: 4, name: 'Kwame Asante', role: 'farm_manager' }, approvals: [{ id: 1, purchase_request_id: 1, approver_id: 2, tier: 2, approver_role: 'executive', decision: 'approved', decided_at: dayOffset(5), comments: 'Approved against low-feed alert', approver: { id: 2, name: 'Daniel Mensah', role: 'executive' } }] },
+  { id: 2, request_number: 'PR-2026-002', requested_by: 9, requested_at: dayOffset(1), item_name: 'Ivermectin', category: 'Medicine', quantity: 20, unit: 'bottle', estimated_cost: 440, priority: 'high', status: 'pending', approval_tier: 1, approval_stage: 'pending_tier_1', required_approver_role: 'supervisor', justification: 'Below reorder level', requester: { id: 9, name: 'Dr. Helen Nkrumah', role: 'vet' }, approvals: [] },
+  { id: 3, request_number: 'PR-2026-003', requested_by: 11, requested_at: dayOffset(3), item_name: 'Fence Staples', category: 'Tools', quantity: 10, unit: 'box', estimated_cost: 110, priority: 'normal', status: 'ordered', approval_tier: 1, approval_stage: 'ordered', required_approver_role: 'supervisor', justification: 'South paddock repair', requester: { id: 11, name: 'Yaw Mensah', role: 'farm_employee' }, approvals: [{ id: 2, purchase_request_id: 3, approver_id: 4, tier: 1, approver_role: 'farm_manager', decision: 'approved', decided_at: dayOffset(2), comments: null, approver: { id: 4, name: 'Kwame Asante', role: 'farm_manager' } }] },
+  { id: 4, request_number: 'PR-2026-004', requested_by: 4, requested_at: dayOffset(0), item_name: 'Borehole Pump Replacement', category: 'Maintenance', quantity: 1, unit: 'unit', estimated_cost: 3850, priority: 'urgent', status: 'pending', approval_tier: 2, approval_stage: 'pending_tier_2', required_approver_role: 'executive', justification: 'Main borehole pump failing — water supply at risk', requester: { id: 4, name: 'Kwame Asante', role: 'farm_manager' }, approvals: [] }
+];
+
+let procurementOrders = [
+  { id: 1, po_number: 'PO-2026-001', purchase_request_id: 1, supplier_id: 1, ordered_at: dayOffset(4), total_amount: 2100, status: 'received', supplier: { id: 1, name: 'Green Valley Feeds' } },
+  { id: 2, po_number: 'PO-2026-002', purchase_request_id: 3, supplier_id: 4, ordered_at: dayOffset(2), total_amount: 115, status: 'open', supplier: { id: 4, name: 'Northstar Farm Services' } }
+];
+
+function readBody(req, done) {
+  let raw = '';
+  req.on('data', (chunk) => (raw += chunk));
+  req.on('end', () => {
+    try {
+      done(JSON.parse(raw || '{}'));
+    } catch {
+      done({});
+    }
+  });
+}
+
 function json(res, status, body) {
   const payload = JSON.stringify(body);
   res.writeHead(status, {
@@ -881,7 +1138,7 @@ const server = createServer((req, res) => {
   if (req.method === 'GET' && path === '/api/v1/lookups') {
     json(res, 200, {
       locations: PADDOCKS,
-      animals: ANIMALS,
+      animals: allAnimals(),
       suppliers: financeSuppliers,
       users: [],
       employees: [],
@@ -935,6 +1192,250 @@ const server = createServer((req, res) => {
       .filter((row) => row.birth_date >= from && row.birth_date <= to)
       .sort((a, b) => b.birth_date.localeCompare(a.birth_date));
     json(res, 200, { question: 6, from, to, count: records.length, records, source: 'births' });
+    return;
+  }
+
+  /* ---- Executive features (§10/§39/§44–47/§96/§113) ------------------ */
+
+  if (req.method === 'GET' && path === '/api/v1/livestock/next-id') {
+    const species = (url.searchParams.get('species') ?? 'goat').toLowerCase();
+    const key = ID_PREFIX[species] ? species : 'goat';
+    json(res, 200, {
+      species: key,
+      prefix: ID_PREFIX[key],
+      next_animal_id: peekAnimalId(key),
+      formats: { goat: 'EV-GT-000001', sheep: 'EV-SH-000001', cattle: 'EV-CT-000001' },
+      source: 'animal_id_sequences'
+    });
+    return;
+  }
+
+  if (req.method === 'GET' && path === '/api/v1/livestock/gestation-radar') {
+    json(res, 200, radarPayload());
+    return;
+  }
+
+  if (req.method === 'POST' && path === '/api/v1/livestock/events/birth') {
+    readBody(req, (body) => {
+      const dam = allAnimals().find((animal) => animal.animal_id === body.mother_animal_id);
+      if (!dam) {
+        json(res, 422, { message: 'The given data was invalid.', errors: { mother_animal_id: [`Mother ID ${body.mother_animal_id ?? ''} was not found in the Livestock Master.`] } });
+        return;
+      }
+      if (String(dam.sex).toLowerCase() !== 'female') {
+        json(res, 422, { message: 'The given data was invalid.', errors: { mother_animal_id: [`${dam.animal_id} is not recorded as female and cannot be registered as a dam.`] } });
+        return;
+      }
+      const sire = body.father_animal_id ? allAnimals().find((animal) => animal.animal_id === body.father_animal_id) : null;
+      const species = dam.species;
+      const kids = Array.isArray(body.kids) && body.kids.length ? body.kids : [{ sex: body.sex ?? 'female', birth_weight: body.birth_weight ?? null }];
+      const birthDate = body.birth_date ?? isoDay(new Date());
+      const locationId = body.location_id ?? dam.location_id ?? PADDOCKS[3].id;
+      const animals = [];
+      const birthRows = [];
+      for (const kid of kids) {
+        const animal = {
+          id: Math.max(...allAnimals().map((a) => a.id), 0) + 1,
+          animal_id: nextAnimalId(species),
+          tag_id: null,
+          species,
+          breed: dam.breed ?? null,
+          sex: kid.sex,
+          dob: birthDate,
+          mother_id: dam.animal_id,
+          father_id: sire?.animal_id ?? null,
+          source: 'born_on_farm',
+          location_id: locationId,
+          location: PADDOCKS.find((p) => p.id === locationId) ?? null,
+          weight: kid.birth_weight ?? null,
+          breeding_status: kid.sex === 'female' ? 'open' : null,
+          pregnancy_status: kid.sex === 'female' ? 'open' : null,
+          health_status: 'healthy',
+          status: 'alive',
+          current_status: 'active',
+          notes: body.notes ?? null
+        };
+        extraAnimals = [...extraAnimals, animal];
+        animals.push(animal);
+        const record = {
+          id: nextId(births),
+          animal_id: animal.id,
+          mother_animal_id: dam.animal_id,
+          father_animal_id: sire?.animal_id ?? null,
+          birth_date: birthDate,
+          sex: kid.sex,
+          birth_weight: kid.birth_weight ?? null,
+          location_id: locationId,
+          status: 'alive',
+          notes: body.notes ?? null,
+          animal,
+          location: animal.location
+        };
+        births = [...births, record];
+        birthRows.push(record);
+      }
+      // Dam automation: close her active pregnancy, reopen breeding status.
+      const hadActive = pregnancies.some((row) => row.animal_id === dam.id && row.status === 'active');
+      pregnancies = pregnancies.map((row) =>
+        row.animal_id === dam.id && row.status === 'active' ? { ...row, status: 'completed', ended_at: birthDate } : row
+      );
+      json(res, 201, {
+        dam: { ...dam, pregnancy_status: 'open', breeding_status: 'open', expected_birth_date: null },
+        animals,
+        births: birthRows,
+        litter_size: animals.length,
+        pregnancy_closed: hadActive,
+        animal: animals[0] ?? null,
+        birth: birthRows[0] ?? null
+      });
+    });
+    return;
+  }
+
+  if (req.method === 'GET' && path === '/api/v1/reports/weekly-owner') {
+    json(res, 200, weeklyOwnerPayload(url));
+    return;
+  }
+
+  if (req.method === 'GET' && path === '/api/v1/procurement/approval-matrix') {
+    json(res, 200, procurementMatrix());
+    return;
+  }
+
+  if (req.method === 'GET' && path === '/api/v1/procurement/requests') {
+    const records = procurementRequests.map(presentRequest);
+    json(res, 200, {
+      question: 16,
+      count: records.length,
+      pending: records.filter((r) => r.status === 'pending').length,
+      pending_tier_1: records.filter((r) => r.approval_stage === 'pending_tier_1').length,
+      pending_tier_2: records.filter((r) => r.approval_stage === 'pending_tier_2').length,
+      approval_matrix: procurementMatrix(),
+      records,
+      source: 'purchase_requests'
+    });
+    return;
+  }
+
+  if (req.method === 'POST' && path === '/api/v1/procurement/requests') {
+    readBody(req, (body) => {
+      const tier = tierForCost(body.estimated_cost);
+      const created = presentRequest({
+        id: Math.max(...procurementRequests.map((r) => r.id), 0) + 1,
+        request_number: `PR-${new Date().getFullYear()}-${String(procurementRequests.length + 1).padStart(3, '0')}`,
+        requested_by: 1,
+        requested_at: isoDay(new Date()),
+        item_name: body.item_name,
+        category: body.category ?? null,
+        quantity: body.quantity,
+        unit: body.unit ?? null,
+        estimated_cost: body.estimated_cost ?? null,
+        priority: body.priority ?? 'normal',
+        status: 'pending',
+        approval_tier: tier,
+        approval_stage: tier === 2 ? 'pending_tier_2' : 'pending_tier_1',
+        required_approver_role: tier === 2 ? 'executive' : 'supervisor',
+        justification: body.justification ?? null,
+        requester: { id: 1, name: 'Demo Owner', role: roleFromRequest(req) },
+        approvals: []
+      });
+      procurementRequests = [created, ...procurementRequests];
+      json(res, 201, created);
+    });
+    return;
+  }
+
+  const procurementAction = path.match(/^\/api\/v1\/procurement\/requests\/(\d+)\/(approve|reject|purchase-order)$/);
+  if (req.method === 'POST' && procurementAction) {
+    const id = Number(procurementAction[1]);
+    const action = procurementAction[2];
+    readBody(req, (body) => {
+      const index = procurementRequests.findIndex((r) => r.id === id);
+      if (index < 0) {
+        json(res, 404, { message: 'Purchase request not found.' });
+        return;
+      }
+      const current = presentRequest(procurementRequests[index]);
+      const role = roleFromRequest(req);
+
+      if (action === 'purchase-order') {
+        if (current.approval_stage !== 'approved') {
+          json(res, 422, { message: 'The given data was invalid.', errors: { purchase_order: [`A Purchase Order can only be raised after ${current.request_number} has been approved.`] } });
+          return;
+        }
+        const supplier = financeSuppliers.find((s) => s.id === Number(body.supplier_id)) ?? null;
+        const order = {
+          id: Math.max(...procurementOrders.map((o) => o.id), 0) + 1,
+          po_number: `PO-${new Date().getFullYear()}-${String(procurementOrders.length + 1).padStart(3, '0')}`,
+          purchase_request_id: current.id,
+          supplier_id: supplier?.id ?? null,
+          ordered_at: isoDay(new Date()),
+          total_amount: Number(body.total_amount ?? current.estimated_cost ?? 0),
+          status: 'open',
+          supplier: supplier ? { id: supplier.id, name: supplier.name } : null
+        };
+        procurementOrders = [order, ...procurementOrders];
+        procurementRequests[index] = { ...procurementRequests[index], status: 'ordered', approval_stage: 'ordered' };
+        json(res, 201, { purchase_order: order, request: presentRequest(procurementRequests[index]) });
+        return;
+      }
+
+      if (!['pending_tier_1', 'pending_tier_2'].includes(current.approval_stage)) {
+        json(res, 422, { message: 'The given data was invalid.', errors: { decision: [`${current.request_number} has already been decided and cannot be decided again.`] } });
+        return;
+      }
+      const allowed = role === 'owner' || role === 'admin' || TIER_ROLES[current.approval_tier].includes(role);
+      if (!allowed) {
+        json(res, 422, {
+          message: 'The given data was invalid.',
+          errors: { decision: [`${current.request_number} is a Tier ${current.approval_tier} purchase and requires ${current.approver_label} approval. Your role (${role}) cannot decide it.`] }
+        });
+        return;
+      }
+      const decision = action === 'approve' ? 'approved' : 'rejected';
+      const approval = {
+        id: Math.max(...procurementRequests.flatMap((r) => (r.approvals ?? []).map((a) => a.id)), 0) + 1,
+        purchase_request_id: current.id,
+        approver_id: 1,
+        tier: current.approval_tier,
+        approver_role: role,
+        decision,
+        decided_at: new Date().toISOString(),
+        comments: body.comments ?? null,
+        approver: { id: 1, name: 'Demo Approver', role }
+      };
+      procurementRequests[index] = {
+        ...procurementRequests[index],
+        status: decision,
+        approval_stage: decision,
+        approvals: [...(procurementRequests[index].approvals ?? []), approval]
+      };
+      json(res, 200, { approval, request: presentRequest(procurementRequests[index]) });
+    });
+    return;
+  }
+
+  if (req.method === 'GET' && path === '/api/v1/procurement/requests/') {
+    json(res, 404, { message: 'Not found' });
+    return;
+  }
+
+  if (req.method === 'GET' && /^\/api\/v1\/procurement\/requests\/\d+\/approvals$/.test(path)) {
+    const id = Number(path.split('/')[5]);
+    const request = procurementRequests.find((r) => r.id === id);
+    request
+      ? json(res, 200, { question: 17, request: presentRequest(request), approvals: request.approvals ?? [], source: 'purchase_request_approvals' })
+      : json(res, 404, { message: 'Not found' });
+    return;
+  }
+
+  if (req.method === 'GET' && path === '/api/v1/procurement/purchases') {
+    json(res, 200, { question: 18, purchase_orders: procurementOrders, goods_receipts: [], count: procurementOrders.length, source: 'purchase_orders, goods_receipts' });
+    return;
+  }
+
+  if (req.method === 'GET' && path === '/api/v1/suppliers') {
+    json(res, 200, { question: 24, count: financeSuppliers.length, records: financeSuppliers, source: 'suppliers' });
     return;
   }
 

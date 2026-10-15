@@ -69,11 +69,14 @@ class SettingSeeder extends Seeder
             ['group' => 'livestock', 'key' => 'mortality_alert_threshold', 'value' => '3.0', 'type' => 'float', 'description' => 'Herd monthly mortality rate percentage that triggers CEO alert'],
             ['group' => 'livestock', 'key' => 'feed_low_threshold_days', 'value' => '14', 'type' => 'integer', 'description' => 'Days of remaining feed stock that triggers replenishment PO'],
             ['group' => 'livestock', 'key' => 'gestation_days_goat', 'value' => '150', 'type' => 'integer', 'description' => 'Expected gestation days for goats'],
-            ['group' => 'livestock', 'key' => 'gestation_days_sheep', 'value' => '147', 'type' => 'integer', 'description' => 'Expected gestation days for sheep'],
+            ['group' => 'livestock', 'key' => 'gestation_days_sheep', 'value' => '150', 'type' => 'integer', 'description' => 'Expected gestation days for sheep'],
             ['group' => 'livestock', 'key' => 'gestation_days_cattle', 'value' => '283', 'type' => 'integer', 'description' => 'Expected gestation days for cattle'],
             ['group' => 'livestock', 'key' => 'wean_age_days_goat', 'value' => '90', 'type' => 'integer', 'description' => 'Standard weaning age for kids (days)'],
             ['group' => 'livestock', 'key' => 'wean_age_days_sheep', 'value' => '90', 'type' => 'integer', 'description' => 'Standard weaning age for lambs (days)'],
             ['group' => 'livestock', 'key' => 'wean_age_days_cattle', 'value' => '210', 'type' => 'integer', 'description' => 'Standard weaning age for calves (days)'],
+
+            // Procurement approval matrix (§44–47)
+            ['group' => 'procurement', 'key' => 'procurement_executive_threshold_ghs', 'value' => '1000', 'type' => 'float', 'description' => 'Estimated cost (GH₵) above which a purchase request routes directly to Executive approval (Tier 2); at or below it a Supervisor may approve (Tier 1)'],
 
             // Integrations & External Connected Stack
             ['group' => 'integrations', 'key' => 'google_workspace_connected', 'value' => '1', 'type' => 'boolean', 'description' => 'Google Workspace SSO and Drive synchronization status'],

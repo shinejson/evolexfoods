@@ -12,62 +12,77 @@ use App\Models\Death;
 use App\Models\HealthRecord;
 use App\Models\PurchaseRequest;
 use App\Models\Treatment;
+use App\Services\BirthRegistrationService;
+use App\Services\ProcurementApprovalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class EventController extends Controller
 {
-    public function birth(Request $request): JsonResponse
+    /**
+     * Birth lifecycle automation (§96): validates the dam, auto-generates an
+     * EV-GT / EV-SH / EV-CT ID per kid, creates the animal + birth records,
+     * closes the dam's pregnancy and returns her to open breeding status.
+     *
+     * Accepts a litter via `kids: [{sex, birth_weight}]`, or the legacy
+     * single-kid shape (`sex`, `birth_weight` at the top level).
+     */
+    public function birth(Request $request, BirthRegistrationService $births): JsonResponse
     {
         $data = $request->validate([
             'mother_animal_id' => 'required|string',
-            'sex' => 'required|in:female,male',
-            'species' => 'required|string',
+            'father_animal_id' => 'nullable|string',
+            'species' => 'nullable|string',
             'breed' => 'nullable|string',
-            'birth_weight' => 'nullable|numeric',
+            'birth_date' => 'nullable|date|before_or_equal:today',
+            'birth_weight' => 'nullable|numeric|min:0',
+            'sex' => 'nullable|in:female,male',
             'location_id' => 'nullable|exists:locations,id',
             'notes' => 'nullable|string',
+            'kids' => 'nullable|array|min:1|max:12',
+            'kids.*.sex' => 'required_with:kids|in:female,male',
+            'kids.*.birth_weight' => 'nullable|numeric|min:0',
+            'kids.*.breed' => 'nullable|string',
+            'kids.*.notes' => 'nullable|string',
         ]);
 
-        $prefix = match ($data['species']) {
-            'sheep' => 'EV-SH',
-            'cattle' => 'EV-CT',
-            default => 'EV-GT',
-        };
+        $kids = $data['kids'] ?? null;
+        if (! $kids) {
+            if (empty($data['sex'])) {
+                throw ValidationException::withMessages([
+                    'sex' => 'Record the kid\'s sex, or submit a `kids` list for a litter.',
+                ]);
+            }
+            $kids = [[
+                'sex' => $data['sex'],
+                'birth_weight' => $data['birth_weight'] ?? null,
+                'breed' => $data['breed'] ?? null,
+                'notes' => $data['notes'] ?? null,
+            ]];
+        }
 
-        $next = Animal::where('animal_id', 'like', $prefix.'-%')->count() + 1;
-        $animalId = $prefix.'-'.str_pad((string) $next, 6, '0', STR_PAD_LEFT);
-
-        $animal = Animal::create([
-            'animal_id' => $animalId,
-            'species' => $data['species'],
-            'breed' => $data['breed'] ?? null,
-            'sex' => $data['sex'],
-            'dob' => now()->toDateString(),
-            'mother_id' => $data['mother_animal_id'],
-            'source' => 'born_on_farm',
-            'location_id' => $data['location_id'] ?? null,
-            'weight' => $data['birth_weight'] ?? null,
-            'health_status' => 'healthy',
-            'status' => 'alive',
-            'current_status' => 'active',
-            'notes' => $data['notes'] ?? null,
-        ]);
-
-        $birth = Birth::create([
-            'animal_id' => $animal->id,
+        $result = $births->register([
             'mother_animal_id' => $data['mother_animal_id'],
-            'birth_date' => now()->toDateString(),
-            'sex' => $data['sex'],
-            'birth_weight' => $data['birth_weight'] ?? null,
+            'father_animal_id' => $data['father_animal_id'] ?? null,
+            'species' => $data['species'] ?? null,
+            'breed' => $data['breed'] ?? null,
+            'birth_date' => $data['birth_date'] ?? now()->toDateString(),
             'location_id' => $data['location_id'] ?? null,
-            'status' => 'alive',
             'notes' => $data['notes'] ?? null,
-        ]);
+            'kids' => $kids,
+        ], $request->user()?->id);
 
-        $this->logEvent($animal->id, 'birth', $request, ['birth_id' => $birth->id, 'animal_id' => $animalId]);
-
-        return response()->json(['animal' => $animal, 'birth' => $birth], 201);
+        return response()->json([
+            'dam' => $result['dam'],
+            'animals' => $result['animals'],
+            'births' => $result['births'],
+            'litter_size' => $result['litter_size'],
+            'pregnancy_closed' => $result['pregnancy_closed'],
+            // Legacy single-birth consumers continue to work.
+            'animal' => $result['animals'][0] ?? null,
+            'birth' => $result['births'][0] ?? null,
+        ], 201);
     }
 
     public function death(Request $request): JsonResponse
@@ -166,7 +181,7 @@ class EventController extends Controller
         return response()->json($treatment, 201);
     }
 
-    public function purchaseRequest(Request $request): JsonResponse
+    public function purchaseRequest(Request $request, ProcurementApprovalService $matrix): JsonResponse
     {
         $data = $request->validate([
             'item_name' => 'required|string',
@@ -179,6 +194,8 @@ class EventController extends Controller
         ]);
 
         $count = PurchaseRequest::count() + 1;
+        // Two-tier routing (§44–47): > GH₵1,000 goes straight to Executive.
+        $routing = $matrix->routingFor($data['estimated_cost'] ?? null);
         $pr = PurchaseRequest::create([
             'request_number' => 'PR-'.now()->format('Y').'-'.str_pad((string) $count, 3, '0', STR_PAD_LEFT),
             'requested_by' => $request->user()->id,
@@ -191,6 +208,7 @@ class EventController extends Controller
             'priority' => $data['priority'] ?? 'normal',
             'status' => 'pending',
             'justification' => $data['justification'] ?? null,
+            ...$routing,
         ]);
 
         AuditLog::create([

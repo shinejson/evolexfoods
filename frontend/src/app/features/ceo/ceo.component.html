@@ -68,7 +68,14 @@
           <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V3h10v6M7 19H5v-8h14v8h-2M8 15h8v6H8z" /></svg>
           Print
         </button>
+        <button type="button" class="btn btn--solid btn--sm" (click)="generateOwnerReport()" [disabled]="ownerReportBusy()" title="Compile the §113 eight-section Weekly Owner Report for the last 7 days">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zM14 2v6h6M9 13h7M9 17h7" /></svg>
+          {{ ownerReportBusy() ? 'Compiling…' : 'Weekly Owner Report' }}
+        </button>
       </div>
+      @if (ownerReportNotice()) {
+        <p class="freshness" role="status">{{ ownerReportNotice() }}</p>
+      }
 
       <p class="freshness" role="status">
         <span class="live-dot" [class.is-live]="autoRefresh()" aria-hidden="true"></span>

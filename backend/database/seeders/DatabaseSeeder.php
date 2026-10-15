@@ -163,7 +163,7 @@ class DatabaseSeeder extends Seeder
         // pregnancy and the due date of every new cycle.
         $gestation = fn (string $species): int => match ($species) {
             'cattle' => 283,
-            'sheep' => 147,
+            'sheep' => 150,
             default => 150,
         };
         $methods = ['natural', 'natural', 'natural', 'artificial_insemination', 'embryo_transfer'];

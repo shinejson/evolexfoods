@@ -65,6 +65,7 @@ export class ShellComponent implements OnInit, OnDestroy {
         { path: '/health', label: 'Health', icon: 'health', permission: 'health.view' },
         { path: '/treatments', label: 'Treatments', icon: 'treatments', permission: 'treatments.view' },
         { path: '/breeding', label: 'Breeding', icon: 'breeding', permission: 'breeding.view' },
+        { path: '/kidding-radar', label: 'Kidding Radar', icon: 'breeding', permission: 'breeding.view' },
         { path: '/feed', label: 'Feed', icon: 'feed', permission: 'feed.view' }
       ]
     },

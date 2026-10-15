@@ -6,6 +6,9 @@ import { Title } from '@angular/platform-browser';
 import { ApiService } from '../../core/services/api.service';
 import { CeoDashboard } from './ceo.models';
 import { buildCeoView, formatDateTime, ledgerToCsv, timeAgo } from './ceo.insights';
+import { WeeklyOwnerReport } from './owner-report.models';
+import { buildOwnerReportView } from './owner-report.insights';
+import { buildOwnerReportDocument } from './owner-report.document';
 
 type LoadState = 'loading' | 'ready' | 'error';
 type RangeId = '7d' | '30d' | '90d' | 'ytd' | 'custom';
@@ -303,6 +306,61 @@ export class CeoComponent implements OnInit {
 
   print(): void {
     window.print();
+  }
+
+  /* ---------------- Weekly Owner Report (§113) ---------------- */
+
+  readonly ownerReportBusy = signal(false);
+  readonly ownerReportNotice = signal('');
+
+  /**
+   * 1-Click Weekly Owner Report: compiles the eight-section digest for the
+   * last 7 days and opens it as a printable document (Print → Save as PDF).
+   * The tab is opened synchronously so popup blockers don't eat it, then
+   * filled once the API responds.
+   */
+  generateOwnerReport(): void {
+    if (this.ownerReportBusy()) {
+      return;
+    }
+    const tab = window.open('', '_blank');
+    this.ownerReportBusy.set(true);
+    this.ownerReportNotice.set('');
+
+    const to = this.toIsoDate(new Date());
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - 6);
+
+    this.api
+      .get<WeeklyOwnerReport>('/reports/weekly-owner', { from: this.toIsoDate(fromDate), to })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (payload) => {
+          this.ownerReportBusy.set(false);
+          const generatedLabel = formatDateTime(new Date().toISOString());
+          const html = buildOwnerReportDocument(buildOwnerReportView(payload), generatedLabel);
+          if (tab) {
+            tab.document.open();
+            tab.document.write(html);
+            tab.document.close();
+          } else {
+            // Popup was blocked after all — fall back to a download.
+            const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `evolex-weekly-owner-report-${payload.period.from}-to-${payload.period.to}.html`;
+            link.click();
+            URL.revokeObjectURL(url);
+          }
+          this.ownerReportNotice.set(`Weekly Owner Report for ${payload.period.label} is ready.`);
+        },
+        error: () => {
+          this.ownerReportBusy.set(false);
+          tab?.close();
+          this.ownerReportNotice.set('The Weekly Owner Report could not be compiled. Check the API connection and try again.');
+        }
+      });
   }
 
   /* ---------------- template helpers ---------------- */

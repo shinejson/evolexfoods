@@ -1,0 +1,139 @@
+<main class="radar-page">
+  <header class="radar-head">
+    <div>
+      <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> Evolex Hub · Breeding · §39</p>
+      <h1>Expected Kidding Radar</h1>
+      <p class="subtitle">
+        Every active pregnancy on one horizon — due dates recorded on the pregnancy, or calculated
+        from the breeding date at 150 days for goats &amp; sheep (283 for cattle).
+      </p>
+    </div>
+    <div class="head-actions">
+      <a class="btn btn--quiet" routerLink="/breeding">Breeding workspace</a>
+      <button type="button" class="btn btn--solid" (click)="load()">Refresh</button>
+    </div>
+  </header>
+
+  @if (state() === 'loading' && !view()) {
+    <div class="skeleton" aria-busy="true"><div></div><div></div><div></div><div></div></div>
+  }
+
+  @if (state() === 'error' && !view()) {
+    <section class="state-panel" role="alert">
+      <h2>Radar unavailable</h2>
+      <p>{{ errorMessage() }}</p>
+      <button type="button" class="btn btn--solid" (click)="load()">Try again</button>
+    </section>
+  }
+
+  @if (view(); as vm) {
+    @if (vm.overdue > 0) {
+      <div class="notice notice--alert" role="alert">
+        <strong>{{ vm.overdue }} overdue</strong>
+        <span>— expected births past their due date need a stockman check today.</span>
+        <button type="button" class="text-button" (click)="selectBucket('overdue')">Show overdue</button>
+      </div>
+    }
+
+    <!-- Cumulative horizon cards -->
+    <section class="horizon-grid" aria-label="Expected births by horizon">
+      <button type="button" class="horizon-card horizon-card--total" [class.is-active]="selectedBucket() === 'all'" (click)="selectBucket('all')">
+        <span class="horizon-label">Pregnant now</span>
+        <span class="horizon-value">{{ vm.totalActive }}</span>
+        <span class="horizon-hint">active pregnancies</span>
+      </button>
+      @for (horizon of vm.horizons; track horizon.days) {
+        <button
+          type="button"
+          class="horizon-card"
+          [class.is-active]="selectedBucket() === '' + horizon.days"
+          (click)="selectBucket($any('' + horizon.days))">
+          <span class="horizon-label">{{ horizon.label }}</span>
+          <span class="horizon-value">{{ horizon.count }}</span>
+          <span class="horizon-hint">expected births</span>
+        </button>
+      }
+      <button type="button" class="horizon-card horizon-card--overdue" [class.is-active]="selectedBucket() === 'overdue'" (click)="selectBucket('overdue')">
+        <span class="horizon-label">Overdue</span>
+        <span class="horizon-value">{{ vm.overdue }}</span>
+        <span class="horizon-hint">past due date</span>
+      </button>
+    </section>
+
+    <!-- Visual horizon track -->
+    <section class="panel track-panel" aria-label="Due date horizon">
+      <div class="panel-head">
+        <h2>Birth horizon</h2>
+        <span class="panel-note">Today → next {{ vm.trackDays }} days · each marker is a dam</span>
+      </div>
+      <div class="track" role="img" [attr.aria-label]="'Expected births spread over the next ' + vm.trackDays + ' days'">
+        <div class="track-line" aria-hidden="true"></div>
+        @for (marker of [7, 30, 60, 90]; track marker) {
+          <div class="track-tick" [style.left.%]="(marker / vm.trackDays) * 100" aria-hidden="true">
+            <span>{{ marker }}d</span>
+          </div>
+        }
+        @for (entry of vm.entries; track entry.animal_code) {
+          <button
+            type="button"
+            class="track-dot"
+            [class.is-overdue]="entry.attention"
+            [class.is-soon]="entry.days_to_due !== null && entry.days_to_due >= 0 && entry.days_to_due <= 7"
+            [style.left.%]="trackPosition(entry)"
+            [attr.title]="entry.animal_code + ' · ' + dueLabel(entry) + ' · due ' + formatDate(entry.expected_birth_date)"
+            (click)="selectBucket(entry.bucket)">
+            <span class="track-dot-tip">{{ entry.animal_code }} · {{ dueLabel(entry) }}</span>
+          </button>
+        }
+      </div>
+      @if (vm.nextDue) {
+        <p class="next-due">
+          Next expected birth: <strong>{{ vm.nextDue.animal_code }}</strong>
+          ({{ vm.nextDue.species || 'livestock' }}{{ vm.nextDue.location ? ' · ' + vm.nextDue.location : '' }})
+          — {{ dueLabel(vm.nextDue) }}, due {{ formatDate(vm.nextDue.expected_birth_date) }}.
+        </p>
+      } @else {
+        <p class="next-due">No active pregnancies are on the radar. Record a breeding or pregnancy to start the horizon.</p>
+      }
+    </section>
+
+    <!-- Bucket lists -->
+    @for (bucket of visibleBuckets(); track bucket.key) {
+      <section class="panel bucket" [class.bucket--overdue]="bucket.key === 'overdue'">
+        <div class="panel-head">
+          <h2>{{ bucket.label }}</h2>
+          <span class="count-pill">{{ bucket.count }}</span>
+        </div>
+        @if (bucket.count === 0) {
+          <p class="empty">No expected births in this window.</p>
+        } @else {
+          <div class="entry-list">
+            @for (entry of bucket.entries; track entry.animal_code) {
+              <article class="entry">
+                <div class="entry-main">
+                  <strong>{{ entry.animal_code }}</strong>
+                  <span class="entry-meta">
+                    {{ entry.species || '—' }}{{ entry.breed ? ' · ' + entry.breed : '' }}{{ entry.location ? ' · ' + entry.location : '' }}
+                    {{ entry.sire_code ? ' · sire ' + entry.sire_code : '' }}
+                  </span>
+                </div>
+                <div class="entry-progress">
+                  <div class="progress" role="progressbar" [attr.aria-valuenow]="entry.gestation_percent" aria-valuemin="0" aria-valuemax="100">
+                    <span [style.width.%]="entry.gestation_percent"></span>
+                  </div>
+                  <span class="entry-meta">{{ entry.gestation_percent }}% of {{ entry.gestation_days }}d · {{ entry.stage }} stage</span>
+                </div>
+                <div class="entry-due">
+                  <strong [class.is-overdue]="entry.attention">{{ dueLabel(entry) }}</strong>
+                  <span class="entry-meta">{{ formatDate(entry.expected_birth_date) }} · {{ sourceLabel(entry.expected_birth_date_source) }}</span>
+                </div>
+              </article>
+            }
+          </div>
+        }
+      </section>
+    }
+
+    <p class="source-note">Source: {{ payload()?.source || 'pregnancies, animals' }} · Generated {{ formatDate(payload()?.generated_at) }}</p>
+  }
+</main>

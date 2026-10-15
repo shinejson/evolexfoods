@@ -88,11 +88,139 @@ export class LivestockComponent implements OnInit {
   showViewModal = false;
   viewingAnimal: Animal | null = null;
 
+  // Birth lifecycle automation (§96): litter form, auto-ID preview, result.
+  showBirthModal = false;
+  birthSaving = false;
+  birthError = '';
+  birthResult: { animals: Animal[]; litter_size: number; pregnancy_closed: boolean } | null = null;
+  birthForm: {
+    mother_animal_id: string;
+    father_animal_id: string;
+    birth_date: string;
+    location_id: number | null;
+    notes: string;
+  } = { mother_animal_id: '', father_animal_id: '', birth_date: '', location_id: null, notes: '' };
+  birthKids: { sex: string; birth_weight: number | null }[] = [{ sex: 'female', birth_weight: null }];
+  herdAnimals: { id: number; animal_id: string; species?: string; sex?: string; status?: string }[] = [];
+  nextIdPreview = '';
+  nextIdSpecies = '';
+
   constructor(private api: ApiService, private router: Router) {}
 
   ngOnInit(): void {
     this.load();
     this.loadLocations();
+    this.loadHerdAnimals();
+  }
+
+  /* ---------------- Birth lifecycle automation (§96) ---------------- */
+
+  loadHerdAnimals(): void {
+    this.api.get<any>('/lookups').subscribe((d) => {
+      this.herdAnimals = Array.isArray(d?.animals) ? d.animals : [];
+    });
+  }
+
+  get dams(): { id: number; animal_id: string; species?: string; sex?: string; status?: string }[] {
+    return this.herdAnimals.filter((a) => (a.sex || '').toLowerCase() === 'female' && (a.status || 'alive') !== 'dead');
+  }
+
+  get sires(): { id: number; animal_id: string; species?: string; sex?: string; status?: string }[] {
+    return this.herdAnimals.filter((a) => (a.sex || '').toLowerCase() === 'male' && (a.status || 'alive') !== 'dead');
+  }
+
+  openBirth(): void {
+    this.birthForm = {
+      mother_animal_id: '',
+      father_animal_id: '',
+      birth_date: new Date().toISOString().slice(0, 10),
+      location_id: this.locationsList[0]?.id ?? null,
+      notes: ''
+    };
+    this.birthKids = [{ sex: 'female', birth_weight: null }];
+    this.birthError = '';
+    this.birthResult = null;
+    this.nextIdPreview = '';
+    this.showBirthModal = true;
+  }
+
+  closeBirth(): void {
+    this.showBirthModal = false;
+  }
+
+  onDamChange(): void {
+    const dam = this.herdAnimals.find((a) => a.animal_id === this.birthForm.mother_animal_id);
+    if (dam?.species) {
+      this.previewNextId(dam.species);
+    }
+  }
+
+  onSpeciesChange(): void {
+    if (!this.isEditing && this.modalAnimal.species) {
+      this.previewNextId(this.modalAnimal.species);
+    }
+  }
+
+  /** Preview the next auto-generated EV-… ID without consuming it. */
+  previewNextId(species: string): void {
+    this.nextIdSpecies = species;
+    this.api.get<any>('/livestock/next-id', { species }).subscribe({
+      next: (d) => {
+        if (this.nextIdSpecies === species) {
+          this.nextIdPreview = d?.next_animal_id || '';
+        }
+      },
+      error: () => (this.nextIdPreview = '')
+    });
+  }
+
+  addKid(): void {
+    this.birthKids = [...this.birthKids, { sex: 'female', birth_weight: null }];
+  }
+
+  removeKid(index: number): void {
+    this.birthKids = this.birthKids.filter((_, i) => i !== index);
+  }
+
+  submitBirth(): void {
+    if (!this.birthForm.mother_animal_id) {
+      this.birthError = 'Select the dam — her ID is validated before any kid is registered.';
+      return;
+    }
+    if (this.birthKids.length === 0) {
+      this.birthError = 'Add at least one kid to register.';
+      return;
+    }
+    this.birthSaving = true;
+    this.birthError = '';
+    const dam = this.herdAnimals.find((a) => a.animal_id === this.birthForm.mother_animal_id);
+    this.api
+      .post<any>('/livestock/events/birth', {
+        mother_animal_id: this.birthForm.mother_animal_id,
+        father_animal_id: this.birthForm.father_animal_id || null,
+        species: dam?.species || null,
+        birth_date: this.birthForm.birth_date || null,
+        location_id: this.birthForm.location_id,
+        notes: this.birthForm.notes || null,
+        kids: this.birthKids.map((kid) => ({ sex: kid.sex, birth_weight: kid.birth_weight }))
+      })
+      .subscribe({
+        next: (result) => {
+          this.birthSaving = false;
+          this.birthResult = {
+            animals: result.animals || (result.animal ? [result.animal] : []),
+            litter_size: result.litter_size || 1,
+            pregnancy_closed: !!result.pregnancy_closed
+          };
+          this.load();
+          this.loadHerdAnimals();
+        },
+        error: (err) => {
+          this.birthSaving = false;
+          const errors = err.error?.errors;
+          this.birthError = errors ? Object.values(errors).flat().join(' ') : err.error?.message || 'The birth could not be registered.';
+        }
+      });
   }
 
   load(): void {
@@ -273,6 +401,7 @@ export class LivestockComponent implements OnInit {
       location_id: this.locationsList[0]?.id
     };
     this.showModal = true;
+    this.previewNextId('goat');
   }
 
   editAnimal(animal: Animal): void {
