@@ -49,25 +49,17 @@ class SettingsController extends Controller
      */
     public function update(Request $request): JsonResponse
     {
-        $payload = $request->all();
+        $payload = \App\Services\CommunicationSettings::validate($request->all());
         $updatedCount = 0;
 
-        // If payload is grouped (e.g. { general: {...}, email: {...} })
-        // or flat { key: value, ... }
-        foreach ($payload as $groupOrKey => $data) {
-            if (is_array($data)) {
-                $group = $groupOrKey;
-                foreach ($data as $key => $val) {
-                    Setting::set($key, $val, $group);
+        \Illuminate\Support\Facades\DB::transaction(function () use ($payload, &$updatedCount) {
+            foreach ($payload as $group => $data) {
+                foreach ($data as $key => $value) {
+                    Setting::set($key, $value, $group);
                     $updatedCount++;
                 }
-            } else {
-                $existing = Setting::where('key', $groupOrKey)->first();
-                $group = $existing ? $existing->group : 'general';
-                Setting::set($groupOrKey, $data, $group);
-                $updatedCount++;
             }
-        }
+        });
 
         // Record audit trail
         try {
@@ -97,51 +89,35 @@ class SettingsController extends Controller
      */
     public function testEmail(Request $request): JsonResponse
     {
-        $request->validate([
-            'recipient' => 'nullable|email',
-        ]);
-
-        $recipient = $request->input('recipient') ?: $request->user()?->email ?: 'operations@evolexfood.com';
-        $host = Setting::get('mail_host', 'smtp.googlemail.com');
-        $port = Setting::get('mail_port', 587);
-        $encryption = Setting::get('mail_encryption', 'tls');
-        $fromAddress = Setting::get('mail_from_address', 'alerts@evolexfood.com');
-        $fromName = Setting::get('mail_from_name', 'Evolex Operations Hub');
-
-        $startTime = microtime(true);
-
-        // Perform connection test / diagnostic verification
-        $simulatedLatencyMs = round((microtime(true) - $startTime) * 1000 + rand(45, 120), 1);
-
-        // Log the test in audit logs
+        $data = $request->validate(['recipient' => 'required|email']);
+        $recipient = $data['recipient'];
+        $start = microtime(true);
         try {
-            AuditLog::create([
-                'user_id' => $request->user()?->id,
-                'action' => 'email.test_dispatched',
-                'meta' => [
-                    'recipient' => $recipient,
-                    'host' => $host,
-                    'port' => $port,
-                    'from' => $fromAddress,
-                    'status' => 'delivered',
-                ],
-                'ip_address' => $request->ip(),
-            ]);
+            $status = app(\App\Services\OutboundMailService::class)->send(
+                $recipient, 'Evolex Hub email configuration test',
+                'This is a real test of your saved Evolex Hub email configuration. No action is required.'
+            );
         } catch (\Throwable $e) {
-            // non-fatal
+            return response()->json([
+                'success' => false,
+                'message' => 'Email acceptance not confirmed. Check saved SMTP host, port, encryption, credentials and sender. A timeout may still have been accepted; check the mailbox before retrying.',
+            ], 502);
         }
-
+        AuditLog::create([
+            'user_id' => $request->user()?->id, 'action' => 'email.test_'.$status,
+            'meta' => ['status' => $status], 'ip_address' => $request->ip(),
+        ]);
         return response()->json([
             'success' => true,
-            'message' => "Test email successfully sent to {$recipient}!",
+            'message' => $status === 'logged' ? 'Test email written to the application log only. No email was sent.' : 'SMTP server accepted the test email. Inbox delivery is not guaranteed.',
             'details' => [
                 'recipient' => $recipient,
-                'smtp_server' => "{$host}:{$port}",
-                'encryption' => strtoupper($encryption),
-                'from_sender' => "{$fromName} <{$fromAddress}>",
-                'handshake' => '250 OK - Service Ready',
-                'latency_ms' => $simulatedLatencyMs,
-                'sent_at' => now()->format('Y-m-d H:i:s T'),
+                'smtp_server' => $status === 'logged' ? 'Log only' : Setting::get('mail_host').':'.Setting::get('mail_port'),
+                'encryption' => strtoupper(Setting::get('mail_encryption', 'tls')),
+                'from_sender' => Setting::get('mail_from_name').' <'.Setting::get('mail_from_address').'>',
+                'handshake' => $status,
+                'latency_ms' => round((microtime(true) - $start) * 1000, 1),
+                'sent_at' => now()->toIso8601String(),
             ],
         ]);
     }
@@ -178,7 +154,7 @@ class SettingsController extends Controller
      */
     public function exportConfig(): JsonResponse
     {
-        $settings = Setting::all();
+        $settings = Setting::getAllGrouped();
         return response()->json([
             'export_date' => now()->toIso8601String(),
             'platform' => 'Evolex Digital Operations Platform',

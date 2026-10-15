@@ -35,7 +35,7 @@ class SettingSeeder extends Seeder
             ['group' => 'email', 'key' => 'mail_host', 'value' => 'smtp.googlemail.com', 'type' => 'string', 'description' => 'SMTP host server address'],
             ['group' => 'email', 'key' => 'mail_port', 'value' => '587', 'type' => 'integer', 'description' => 'SMTP server communication port'],
             ['group' => 'email', 'key' => 'mail_username', 'value' => 'alerts@evolexfood.com', 'type' => 'string', 'description' => 'SMTP authentication username'],
-            ['group' => 'email', 'key' => 'mail_password', 'value' => '••••••••••••', 'type' => 'string', 'description' => 'SMTP account password / app password'],
+            ['group' => 'email', 'key' => 'mail_password', 'value' => '', 'type' => 'string', 'description' => 'SMTP account password / app password'],
             ['group' => 'email', 'key' => 'mail_encryption', 'value' => 'tls', 'type' => 'string', 'description' => 'Encryption protocol (tls, ssl, or none)'],
             ['group' => 'email', 'key' => 'mail_from_address', 'value' => 'alerts@evolexfood.com', 'type' => 'string', 'description' => 'Default sender email address'],
             ['group' => 'email', 'key' => 'mail_from_name', 'value' => 'Evolex Operations Hub', 'type' => 'string', 'description' => 'Default sender display name'],
@@ -104,10 +104,14 @@ class SettingSeeder extends Seeder
         ];
 
         foreach ($settings as $setting) {
-            Setting::updateOrCreate(
-                ['key' => $setting['key']],
-                $setting
-            );
+            if (!Setting::where('key', $setting['key'])->exists()) {
+                Setting::set($setting['key'], match ($setting['type']) {
+                    'boolean' => $setting['value'] === '1',
+                    'integer' => (int) $setting['value'],
+                    'float' => (float) $setting['value'],
+                    default => $setting['value'],
+                }, $setting['group'], $setting['type'], $setting['description']);
+            }
         }
     }
 }

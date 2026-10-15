@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\AssetMaintenanceController;
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\CrmController;
+use App\Http\Controllers\Api\V1\CommunicationController;
 use App\Http\Controllers\Api\V1\CrudController;
 use App\Http\Controllers\Api\V1\DashboardController;
 use App\Http\Controllers\Api\V1\EventController;
@@ -118,19 +119,29 @@ Route::prefix('v1')->group(function () {
         Route::get('/sops', [GovernanceController::class, 'sops']);
         Route::get('/systems', [GovernanceController::class, 'systems']);
 
-        Route::get('/settings', [SettingsController::class, 'index']);
-        Route::put('/settings', [SettingsController::class, 'update']);
-        Route::post('/settings/test-email', [SettingsController::class, 'testEmail']);
-        Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache']);
-        Route::get('/settings/export', [SettingsController::class, 'exportConfig']);
-        Route::get('/settings/backups', [SettingsController::class, 'listBackups']);
-        Route::post('/settings/backups', [SettingsController::class, 'createBackup']);
-        Route::get('/settings/backups/download/{filename}', [SettingsController::class, 'downloadBackup']);
-        Route::post('/settings/backups/restore/{filename}', [SettingsController::class, 'restoreBackup']);
-        Route::delete('/settings/backups/{filename}', [SettingsController::class, 'deleteBackup']);
+        Route::middleware(\App\Http\Middleware\ManageCommunications::class)->group(function () {
+            Route::get('/settings', [SettingsController::class, 'index']);
+            Route::put('/settings', [SettingsController::class, 'update']);
+            Route::post('/settings/test-email', [SettingsController::class, 'testEmail'])->middleware('throttle:5,1');
+            Route::post('/settings/clear-cache', [SettingsController::class, 'clearCache']);
+            Route::get('/settings/export', [SettingsController::class, 'exportConfig']);
+            Route::get('/settings/backups', [SettingsController::class, 'listBackups']);
+            Route::post('/settings/backups', [SettingsController::class, 'createBackup']);
+            Route::get('/settings/backups/download/{filename}', [SettingsController::class, 'downloadBackup']);
+            Route::post('/settings/backups/restore/{filename}', [SettingsController::class, 'restoreBackup']);
+            Route::delete('/settings/backups/{filename}', [SettingsController::class, 'deleteBackup']);
 
-        Route::get('/settings/activity-logs', [SettingsController::class, 'activityLogs']);
-        Route::post('/settings/activity-logs/clear', [SettingsController::class, 'clearActivityLogs']);
+            Route::get('/settings/activity-logs', [SettingsController::class, 'activityLogs']);
+            Route::post('/settings/activity-logs/clear', [SettingsController::class, 'clearActivityLogs']);
+
+            Route::post('/settings/test-sms', [CommunicationController::class, 'testSms'])->middleware('throttle:5,1');
+            Route::get('/communications/templates', [CommunicationController::class, 'templates']);
+            Route::post('/communications/templates', [CommunicationController::class, 'saveTemplate']);
+            Route::put('/communications/templates/{id}', [CommunicationController::class, 'saveTemplate'])->whereNumber('id');
+            Route::get('/communications/messages', [CommunicationController::class, 'messages']);
+            Route::post('/communications/messages', [CommunicationController::class, 'send'])->middleware('throttle:10,1');
+            Route::post('/communications/messages/{id}/cancel', [CommunicationController::class, 'cancel'])->whereNumber('id');
+        });
 
         // Role & Permission Management
         Route::get('/roles', [RoleController::class, 'index']);

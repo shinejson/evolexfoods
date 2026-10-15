@@ -52,7 +52,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="icon"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
         <span>Export</span>
       </button>
-      <button class="btn btn-primary" (click)="saveSettings()" [disabled]="saving">
+      <button *ngIf="activeTab !== 'communications'" class="btn btn-primary" (click)="saveSettings()" [disabled]="saving || loading">
         <svg *ngIf="!saving" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         <span *ngIf="saving" class="spinner-sm"></span>
         <span>{{ saving ? 'Saving Changes...' : 'Save Settings' }}</span>
@@ -69,7 +69,10 @@
     <button class="tab-btn" [class.active]="activeTab === 'email'" (click)="selectTab('email')" role="tab">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="tab-icon"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
       <span>Email & SMTP</span>
-      <span class="tab-badge ok">Active</span>
+    </button>
+    <button class="tab-btn" [class.active]="activeTab === 'communications'" (click)="selectTab('communications')" role="tab">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="tab-icon"><path d="M21 11a8 8 0 0 1-8 8H5l-4 3V9a8 8 0 0 1 8-8h4a8 8 0 0 1 8 8z"/><path d="M6 7h10M6 11h7"/></svg>
+      <span>SMS & Messaging</span>
     </button>
     <button class="tab-btn" [class.active]="activeTab === 'notifications'" (click)="selectTab('notifications')" role="tab">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="tab-icon"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -420,6 +423,7 @@
     </section>
 
     <!-- 2. EMAIL & SMTP CONFIGURATION -->
+    <section *ngIf="activeTab === 'communications'" class="settings-section"><app-communications /></section>
     <section *ngIf="activeTab === 'email'" class="settings-section">
       <!-- Notice Box -->
       <div class="info-banner">
@@ -428,7 +432,7 @@
         </div>
         <div class="info-text">
           <strong>Google Workspace & Outbound SMTP Infrastructure</strong>
-          <p>Evolex Hub utilizes an authenticated SMTP gateway for operational dispatches (health emergency alerts, low feed warnings, PO approvals, weekly CEO digests). Ensure your App Password or SMTP relay credentials are valid.</p>
+          <p>Configure the SMTP transport used by email tests and SMS & Messaging emails. For Google Workspace, use smtp.gmail.com with STARTTLS on port 587 and an app password or your approved relay credentials. Verify your sender domain and SPF/DKIM records. This does not enable automatic alert or digest workflows.</p>
         </div>
       </div>
 
@@ -439,7 +443,7 @@
             <h3>Outbound Mail Server (SMTP)</h3>
             <p>Define the relay server, ports, and authentication handshake parameters.</p>
           </div>
-          <span class="badge ok">Authenticated</span>
+          <span class="badge">Saved configuration</span>
         </div>
         <div class="card-body">
           <div class="form-grid">
@@ -447,9 +451,6 @@
               <label for="mail_mailer">Mail Driver / Protocol</label>
               <select id="mail_mailer" [(ngModel)]="form.email.mail_mailer" (ngModelChange)="onFieldChange()" class="form-control">
                 <option value="smtp">SMTP (Recommended)</option>
-                <option value="sendmail">Sendmail / Unix Daemon</option>
-                <option value="mailgun">Mailgun API</option>
-                <option value="postmark">Postmark Relay</option>
                 <option value="log">Log Only (Testing / Staging)</option>
               </select>
             </div>
@@ -481,7 +482,7 @@
             <div class="form-group">
               <label for="mail_password">SMTP App Password / Token <span class="req">*</span></label>
               <div class="input-with-button">
-                <input [type]="showPassword ? 'text' : 'password'" id="mail_password" [(ngModel)]="form.email.mail_password" (ngModelChange)="onFieldChange()" class="form-control" placeholder="••••••••••••" />
+                <input [type]="showPassword ? 'text' : 'password'" id="mail_password" [(ngModel)]="form.email.mail_password" (ngModelChange)="onFieldChange()" class="form-control" placeholder="Leave blank to keep saved password" autocomplete="new-password" />
                 <button type="button" class="btn-inside-icon" (click)="showPassword = !showPassword" [title]="showPassword ? 'Hide password' : 'Show password'">
                   <svg *ngIf="!showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                   <svg *ngIf="showPassword" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -490,6 +491,7 @@
             </div>
           </div>
 
+          <p class="text-muted">{{ form.email.mail_password_configured ? 'SMTP password is saved securely. Leave blank to retain it.' : 'No SMTP password saved.' }}</p>
           <div class="toggle-group-item mt-4">
             <div class="toggle-info">
               <span class="toggle-title">Require SMTP Server Authentication</span>
@@ -536,8 +538,8 @@
 
           <div class="toggle-group-item mt-4">
             <div class="toggle-info">
-              <span class="toggle-title">Send Onboarding Email to New Employees</span>
-              <span class="toggle-desc">Dispatches access credentials and link to SOP library when a new employee record is created.</span>
+              <span class="toggle-title">New employee welcome email preference</span>
+              <span class="toggle-desc">Stored preference only. Automatic employee onboarding emails are not connected; use SMS & Messaging to send a message manually.</span>
             </div>
             <label class="switch">
               <input type="checkbox" [(ngModel)]="form.email.send_welcome_email" (ngModelChange)="onFieldChange()" />
@@ -552,7 +554,7 @@
         <div class="card-head">
           <div class="card-title-group">
             <h3>Live SMTP Connection Diagnostic</h3>
-            <p>Perform an end-to-end handshake test to verify SMTP routing and firewall connectivity.</p>
+            <p>Sends a real email using saved settings. Save changes first. Log mode writes to the server log only; SMTP acceptance is not proof of inbox delivery.</p>
           </div>
         </div>
         <div class="card-body">
@@ -561,7 +563,7 @@
               <label for="testRecipient">Test Recipient Email Address</label>
               <input type="email" id="testRecipient" [(ngModel)]="testRecipient" class="form-control" placeholder="Enter recipient email..." />
             </div>
-            <button class="btn btn-forest" (click)="sendTestEmail()" [disabled]="testingEmail || !testRecipient">
+            <button class="btn btn-forest" (click)="sendTestEmail()" [disabled]="testingEmail || !testRecipient || isDirty">
               <svg *ngIf="!testingEmail" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="icon"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
               <span *ngIf="testingEmail" class="spinner-sm"></span>
               <span>{{ testingEmail ? 'Testing Handshake...' : 'Send Test Email' }}</span>
@@ -573,7 +575,7 @@
             <div class="result-header">
               <div class="status-indicator-badge" [ngClass]="testEmailResult.success ? 'success' : 'error'">
                 <span class="dot"></span>
-                <span>{{ testEmailResult.success ? 'SMTP Handshake 250 OK - Message Dispatched' : 'Handshake Failed' }}</span>
+                <span>{{ testEmailResult.success ? 'Transport completed' : 'Acceptance not confirmed' }}</span>
               </div>
               <span class="latency" *ngIf="testEmailResult.details?.latency_ms">{{ testEmailResult.details?.latency_ms }} ms</span>
             </div>
