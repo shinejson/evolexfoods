@@ -114,7 +114,7 @@
             </div>
 
             <!-- Location Filter -->
-            <div class="form-row mt-2">
+            <div class="form-row">
               <label class="form-label">Location</label>
               <div class="report-location" [class.is-open]="locationPickerOpen">
                 <div class="report-location-field" (click)="locationPickerOpen = !locationPickerOpen">
@@ -146,8 +146,8 @@
             <div class="form-row" *ngIf="template.filters.length > 0">
               <label class="form-label">{{ template.filters[0].label }}</label>
               <select [(ngModel)]="filterValues[template.filters[0].key]" (ngModelChange)="onFilterChange()" class="form-select">
-                <option [ngValue]="''">--Select {{ template.filters[0].label }}--</option>
-                <option *ngFor="let option of optionsFor(template.filters[0])" [ngValue]="option.value">{{ option.label }}</option>
+                <option value="">--Select {{ template.filters[0].label }}--</option>
+                <option *ngFor="let option of optionsFor(template.filters[0])" [value]="option.value">{{ option.label }}</option>
               </select>
             </div>
 
@@ -155,8 +155,8 @@
             <div class="form-row" *ngIf="template.filters.length > 1">
               <label class="form-label">{{ template.filters[1].label }}</label>
               <select [(ngModel)]="filterValues[template.filters[1].key]" (ngModelChange)="onFilterChange()" class="form-select">
-                <option [ngValue]="''">--Select {{ template.filters[1].label }}--</option>
-                <option *ngFor="let option of optionsFor(template.filters[1])" [ngValue]="option.value">{{ option.label }}</option>
+                <option value="">--Select {{ template.filters[1].label }}--</option>
+                <option *ngFor="let option of optionsFor(template.filters[1])" [value]="option.value">{{ option.label }}</option>
               </select>
             </div>
 
@@ -186,8 +186,8 @@
             <div class="form-row" *ngIf="template.filters.length > 2">
               <label class="form-label">{{ template.filters[2].label }}</label>
               <select [(ngModel)]="filterValues[template.filters[2].key]" (ngModelChange)="onFilterChange()" class="form-select">
-                <option [ngValue]="''">--Select {{ template.filters[2].label }}--</option>
-                <option *ngFor="let option of optionsFor(template.filters[2])" [ngValue]="option.value">{{ option.label }}</option>
+                <option value="">--Select {{ template.filters[2].label }}--</option>
+                <option *ngFor="let option of optionsFor(template.filters[2])" [value]="option.value">{{ option.label }}</option>
               </select>
             </div>
 
@@ -195,8 +195,8 @@
             <div class="form-row" *ngIf="template.filters.length > 3">
               <label class="form-label">{{ template.filters[3].label }}</label>
               <select [(ngModel)]="filterValues[template.filters[3].key]" (ngModelChange)="onFilterChange()" class="form-select">
-                <option [ngValue]="''">--Select {{ template.filters[3].label }}--</option>
-                <option *ngFor="let option of optionsFor(template.filters[3])" [ngValue]="option.value">{{ option.label }}</option>
+                <option value="">--Select {{ template.filters[3].label }}--</option>
+                <option *ngFor="let option of optionsFor(template.filters[3])" [value]="option.value">{{ option.label }}</option>
               </select>
             </div>
 
@@ -204,9 +204,9 @@
             <div class="form-row">
               <label class="form-label">Valuation / Cost Range</label>
               <div class="form-date-group">
-                <input type="number" placeholder="From (₵)" [(ngModel)]="rateFrom" class="form-input-date" />
+                <input type="number" placeholder="From (₵)" [(ngModel)]="rateFrom" (ngModelChange)="onFilterChange()" class="form-input-date" />
                 <span class="form-sep">To</span>
-                <input type="number" placeholder="To (₵)" [(ngModel)]="rateTo" class="form-input-date" />
+                <input type="number" placeholder="To (₵)" [(ngModel)]="rateTo" (ngModelChange)="onFilterChange()" class="form-input-date" />
               </div>
             </div>
 
@@ -219,7 +219,7 @@
             <!-- Checkboxes options -->
             <div class="form-checkbox-group">
               <label class="report-checkbox">
-                <input type="checkbox" [(ngModel)]="taxInclusive" />
+                <input type="checkbox" [(ngModel)]="taxInclusive" (ngModelChange)="onFilterChange()" />
                 <span>Tax Inclusive Rates (Disc./Adj. included, if applicable)</span>
               </label>
 
@@ -230,10 +230,10 @@
             </div>
 
             <!-- Template Preset -->
-            <div class="form-row mt-2">
+            <div class="form-row">
               <label class="form-label">Report Preset</label>
               <div class="form-preset-row">
-                <select [(ngModel)]="templateName" class="form-select">
+                <select [(ngModel)]="templateName" (ngModelChange)="onFilterChange()" class="form-select">
                   <option *ngFor="let preset of templateOptions" [value]="preset">{{ preset }}</option>
                 </select>
                 <button type="button" class="btn-save-template" title="Save current filter preset" (click)="saveTemplate()">
@@ -311,9 +311,104 @@
         </div>
 
         <p class="report-generated" *ngIf="lastGenerated">
-          Last generated report tab opened at {{ lastGenerated | date: 'mediumTime' }}.
+          Last generated report at {{ lastGenerated | date: 'mediumTime' }}.
         </p>
       </div>
+
+      <!-- ── Live Report Preview Table ──────────────────────────────── -->
+      <section class="report-preview-card" id="report-live-preview" *ngIf="previewModel && !loading">
+        <div class="report-preview-head">
+          <div class="report-preview-meta">
+            <div class="report-preview-title-row">
+              <h2>{{ previewModel.title }}</h2>
+              <span class="report-preset-pill">{{ previewModel.templateName }}</span>
+            </div>
+            <p class="report-preview-sub">
+              <span><strong>Period:</strong> {{ previewModel.dateFrom }} to {{ previewModel.dateTo }}</span>
+              <span class="meta-dot">·</span>
+              <span><strong>Location:</strong> {{ previewModel.locationLabel }}</span>
+              <ng-container *ngIf="previewModel.filterSummary">
+                <span class="meta-dot">·</span>
+                <span>{{ previewModel.filterSummary }}</span>
+              </ng-container>
+            </p>
+          </div>
+          <div class="report-preview-tools">
+            <button
+              type="button"
+              class="btn-preview-tool"
+              (click)="showDetailRows = !showDetailRows">
+              {{ showDetailRows ? 'Summary Only' : 'Show Detail Rows' }}
+            </button>
+            <button
+              type="button"
+              class="btn-preview-tool"
+              (click)="printPreview()">
+              Print View
+            </button>
+          </div>
+        </div>
+
+        <div class="report-table-wrap">
+          <table class="report-live-table">
+            <thead>
+              <tr>
+                <th class="col-first">{{ previewModel.columns[0].label }}</th>
+                <th
+                  *ngFor="let col of previewModel.columns.slice(1)"
+                  [style.text-align]="col.align">
+                  {{ col.label }}
+                </th>
+              </tr>
+            </thead>
+            <tbody *ngIf="previewModel.hasData; else emptyReportBody">
+              <ng-container *ngFor="let group of previewModel.groups">
+                <tr class="row-group-header">
+                  <td [attr.colspan]="previewModel.columns.length">
+                    {{ group.label }} ({{ group.rows.length }})
+                  </td>
+                </tr>
+                <ng-container *ngIf="showDetailRows">
+                  <tr class="row-detail" *ngFor="let row of group.rows">
+                    <td class="cell-label">{{ row.cells[0] }}</td>
+                    <td
+                      *ngFor="let cell of row.cells.slice(1); let i = index"
+                      class="cell-num"
+                      [style.text-align]="previewModel.columns[i + 1].align">
+                      {{ cell }}
+                    </td>
+                  </tr>
+                </ng-container>
+                <tr class="row-subtotal">
+                  <td class="cell-label">Subtotal — {{ group.label }}</td>
+                  <td
+                    *ngFor="let sub of group.subtotal; let i = index"
+                    class="cell-num"
+                    [style.text-align]="previewModel.columns[i + 1].align">
+                    {{ sub }}
+                  </td>
+                </tr>
+              </ng-container>
+              <tr class="row-grand-total">
+                <td class="cell-label">
+                  Grand Total{{ previewModel.groups.length > 1 ? ' (' + previewModel.groups.length + ' groups)' : '' }}
+                </td>
+                <td
+                  *ngFor="let grand of previewModel.grandTotal; let i = index"
+                  class="cell-num"
+                  [style.text-align]="previewModel.columns[i + 1].align">
+                  {{ grand }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <ng-template #emptyReportBody>
+            <div class="report-empty-state">
+              {{ previewModel.emptyHint }}
+            </div>
+          </ng-template>
+        </div>
+      </section>
 
       <!-- ── Help Guide Section ──────────────────────────────────────── -->
       <section class="help-guide-card">
