@@ -10,6 +10,7 @@
     <nav>
       <ng-container *ngFor="let group of navGroups">
         <div class="nav-group" 
+             *ngIf="isGroupVisible(group)"
              [class.has-popup]="activePopupGroup === group"
              (mouseenter)="showPopup(group)"
              (mouseleave)="hidePopup()">
@@ -34,7 +35,7 @@
                (mouseenter)="showPopup(group)"
                (mouseleave)="hidePopup()">
             <div class="nav-popup-header">{{ group.label }}</div>
-            <a *ngFor="let item of group.items" 
+            <a *ngFor="let item of getPermittedItems(group)" 
                [routerLink]="item.path" 
                routerLinkActive="active"
                [routerLinkActiveOptions]="{ exact: true }">
@@ -91,7 +92,7 @@
             </button>
             
             <div class="nav-group-items" [class.expanded]="group.expanded">
-              <a *ngFor="let item of group.items" [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
+              <a *ngFor="let item of getPermittedItems(group)" [routerLink]="item.path" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">
                 <span class="ico" [ngSwitch]="item.icon">
                   <svg *ngSwitchCase="'hub'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z"/></svg>
                   <svg *ngSwitchCase="'ceo'" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19V5h2v14H4zm4-8v8h3v-8H8zm5-5v13h3V6h-3zm5 8v5h3v-5h-3z"/></svg>
@@ -129,6 +130,7 @@
     
     <div class="sidebar-footer">
       <button class="sidebar-footer-btn" 
+              *ngIf="auth.hasPermission('settings.view')"
               [title]="'Settings'"
               (click)="navigateTo('/settings')">
         <span class="ico">

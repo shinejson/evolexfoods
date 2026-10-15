@@ -79,6 +79,9 @@ export class RoleManagementComponent implements OnInit {
   currentRole: Role = this.getEmptyRole();
   
   searchPermission = '';
+  searchPrivilege = '';
+  searchReport = '';
+  searchColumn = '';
   selectedTab: 'privilege' | 'reports' | 'columns' = 'privilege';
   showFilters = false;
 
@@ -329,32 +332,152 @@ export class RoleManagementComponent implements OnInit {
   }
 
   get filteredPermissionGroups(): PermissionGroup {
-    if (!this.searchPermission.trim()) {
-      return this.permissionGroups;
-    }
+    return this.filterGroup(this.permissionGroups, this.searchPrivilege || this.searchPermission);
+  }
 
-    const term = this.searchPermission.toLowerCase();
-    const filtered: PermissionGroup = {};
+  get sortedModules(): string[] {
+    return this.privilegeModules;
+  }
 
-    Object.keys(this.permissionGroups).forEach(module => {
-      if (module.toLowerCase().includes(term)) {
-        filtered[module] = this.permissionGroups[module];
-      } else {
-        const matchingPermissions = this.permissionGroups[module].filter(p =>
+  get privilegeModules(): string[] {
+    const term = (this.searchPrivilege || this.searchPermission).toLowerCase().trim();
+    return Object.keys(this.permissionGroups)
+      .filter(m => !m.startsWith('Reports') && m !== 'Order Summary Columns')
+      .filter(m => {
+        if (!term) return true;
+        if (m.toLowerCase().includes(term)) return true;
+        return (this.permissionGroups[m] || []).some(p =>
           p.name.toLowerCase().includes(term) ||
           p.action.toLowerCase().includes(term) ||
           (p.description || '').toLowerCase().includes(term)
         );
-        if (matchingPermissions.length > 0) {
-          filtered[module] = matchingPermissions;
-        }
-      }
-    });
-
-    return filtered;
+      })
+      .sort();
   }
 
-  get sortedModules(): string[] {
-    return Object.keys(this.filteredPermissionGroups).sort();
+  get reportModules(): string[] {
+    const term = this.searchReport.toLowerCase().trim();
+    return Object.keys(this.permissionGroups)
+      .filter(m => m.startsWith('Reports'))
+      .filter(m => {
+        if (!term) return true;
+        if (m.toLowerCase().includes(term)) return true;
+        return (this.permissionGroups[m] || []).some(p =>
+          p.name.toLowerCase().includes(term) ||
+          p.action.toLowerCase().includes(term) ||
+          (p.description || '').toLowerCase().includes(term)
+        );
+      })
+      .sort();
+  }
+
+  get columnModules(): string[] {
+    const term = this.searchColumn.toLowerCase().trim();
+    return Object.keys(this.permissionGroups)
+      .filter(m => m === 'Order Summary Columns')
+      .filter(m => {
+        if (!term) return true;
+        if (m.toLowerCase().includes(term)) return true;
+        return (this.permissionGroups[m] || []).some(p =>
+          p.name.toLowerCase().includes(term) ||
+          p.action.toLowerCase().includes(term) ||
+          (p.description || '').toLowerCase().includes(term)
+        );
+      });
+  }
+
+  getPermissionsForModule(module: string, searchTerm: string = ''): Permission[] {
+    const list = this.permissionGroups[module] || [];
+    const term = searchTerm.toLowerCase().trim();
+    if (!term) return list;
+    return list.filter(p =>
+      p.name.toLowerCase().includes(term) ||
+      p.action.toLowerCase().includes(term) ||
+      (p.description || '').toLowerCase().includes(term)
+    );
+  }
+
+  private filterGroup(groups: PermissionGroup, term: string): PermissionGroup {
+    if (!term.trim()) return groups;
+    const lower = term.toLowerCase().trim();
+    const result: PermissionGroup = {};
+    Object.keys(groups).forEach(m => {
+      const match = groups[m].filter(p =>
+        m.toLowerCase().includes(lower) ||
+        p.name.toLowerCase().includes(lower) ||
+        p.action.toLowerCase().includes(lower) ||
+        (p.description || '').toLowerCase().includes(lower)
+      );
+      if (match.length > 0) {
+        result[m] = match;
+      }
+    });
+    return result;
+  }
+
+  // ─── Grouped Counts & Select All ──────────────────────────────────────────
+  get totalPrivilegeCount(): number {
+    return this.permissions.filter(p => !p.module.startsWith('Reports') && p.module !== 'Order Summary Columns').length;
+  }
+
+  get selectedPrivilegeCount(): number {
+    const privIds = new Set(this.permissions.filter(p => !p.module.startsWith('Reports') && p.module !== 'Order Summary Columns').map(p => p.id));
+    return this.currentRole.permissions.filter(id => privIds.has(id)).length;
+  }
+
+  get totalReportCount(): number {
+    return this.permissions.filter(p => p.module.startsWith('Reports')).length;
+  }
+
+  get selectedReportCount(): number {
+    const reportIds = new Set(this.permissions.filter(p => p.module.startsWith('Reports')).map(p => p.id));
+    return this.currentRole.permissions.filter(id => reportIds.has(id)).length;
+  }
+
+  get totalColumnCount(): number {
+    return this.permissions.filter(p => p.module === 'Order Summary Columns').length;
+  }
+
+  get selectedColumnCount(): number {
+    const colIds = new Set(this.permissions.filter(p => p.module === 'Order Summary Columns').map(p => p.id));
+    return this.currentRole.permissions.filter(id => colIds.has(id)).length;
+  }
+
+  toggleAllSectionPermissions(type: 'privilege' | 'reports' | 'columns'): void {
+    let targetPerms: Permission[] = [];
+    if (type === 'privilege') {
+      targetPerms = this.permissions.filter(p => !p.module.startsWith('Reports') && p.module !== 'Order Summary Columns');
+    } else if (type === 'reports') {
+      targetPerms = this.permissions.filter(p => p.module.startsWith('Reports'));
+    } else {
+      targetPerms = this.permissions.filter(p => p.module === 'Order Summary Columns');
+    }
+
+    const targetIds = targetPerms.map(p => p.id);
+    const allSelected = targetIds.every(id => this.currentRole.permissions.includes(id));
+
+    if (allSelected) {
+      // Deselect all
+      this.currentRole.permissions = this.currentRole.permissions.filter(id => !targetIds.includes(id));
+    } else {
+      // Select all
+      targetIds.forEach(id => {
+        if (!this.currentRole.permissions.includes(id)) {
+          this.currentRole.permissions.push(id);
+        }
+      });
+    }
+  }
+
+  isAllSectionSelected(type: 'privilege' | 'reports' | 'columns'): boolean {
+    let targetPerms: Permission[] = [];
+    if (type === 'privilege') {
+      targetPerms = this.permissions.filter(p => !p.module.startsWith('Reports') && p.module !== 'Order Summary Columns');
+    } else if (type === 'reports') {
+      targetPerms = this.permissions.filter(p => p.module.startsWith('Reports'));
+    } else {
+      targetPerms = this.permissions.filter(p => p.module === 'Order Summary Columns');
+    }
+    return targetPerms.length > 0 && targetPerms.every(p => this.currentRole.permissions.includes(p.id));
   }
 }

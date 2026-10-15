@@ -194,6 +194,16 @@ export class SettingsComponent implements OnInit {
   clearLogsDays: string | number = 30;
   clearingLogs = false;
 
+  // ─── Branding / Logo & Favicon Upload ────────────────────────────────────
+  logoPreview: string | null = null;
+  faviconPreview: string | null = null;
+  logoFile: File | null = null;
+  faviconFile: File | null = null;
+  logoUploading = false;
+  faviconUploading = false;
+  logoError = '';
+  faviconError = '';
+
   systemInfo: SystemInfo = {
     app_name: 'Evolex Hub',
     app_env: 'production',
@@ -828,5 +838,99 @@ export class SettingsComponent implements OnInit {
     if (this.toastTimer) {
       clearTimeout(this.toastTimer);
     }
+  }
+
+  // ─── Logo & Favicon Upload ────────────────────────────────────────────────
+
+  onLogoSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    this.logoError = '';
+    if (!file) return;
+    const allowed = ['image/png', 'image/jpeg', 'image/svg+xml', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      this.logoError = 'Only PNG, JPG, SVG, or WebP files are allowed.';
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      this.logoError = 'Logo must be under 2 MB.';
+      return;
+    }
+    this.logoFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => { this.logoPreview = e.target?.result as string; };
+    reader.readAsDataURL(file);
+  }
+
+  onFaviconSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    this.faviconError = '';
+    if (!file) return;
+    const allowed = ['image/png', 'image/x-icon', 'image/vnd.microsoft.icon', 'image/svg+xml'];
+    if (!allowed.includes(file.type)) {
+      this.faviconError = 'Only PNG, ICO, or SVG files are allowed for favicon.';
+      return;
+    }
+    if (file.size > 512 * 1024) {
+      this.faviconError = 'Favicon must be under 512 KB.';
+      return;
+    }
+    this.faviconFile = file;
+    const reader = new FileReader();
+    reader.onload = (e) => { this.faviconPreview = e.target?.result as string; };
+    reader.readAsDataURL(file);
+  }
+
+  uploadLogo(): void {
+    if (!this.logoFile || this.logoUploading) return;
+    this.logoUploading = true;
+    this.logoError = '';
+    // Simulate upload — replace with real API call when backend endpoint is ready
+    setTimeout(() => {
+      this.logoUploading = false;
+      this.showToastMsg('success', `Logo "${this.logoFile!.name}" uploaded successfully!`);
+      this.logoFile = null;
+    }, 1400);
+  }
+
+  uploadFavicon(): void {
+    if (!this.faviconFile || this.faviconUploading) return;
+    this.faviconUploading = true;
+    this.faviconError = '';
+    // Simulate upload — replace with real API call when backend endpoint is ready
+    setTimeout(() => {
+      this.faviconUploading = false;
+      this.showToastMsg('success', `Favicon "${this.faviconFile!.name}" uploaded successfully!`);
+      this.faviconFile = null;
+    }, 1200);
+  }
+
+  clearLogo(): void {
+    this.logoPreview = null;
+    this.logoFile = null;
+    this.logoError = '';
+  }
+
+  clearFavicon(): void {
+    this.faviconPreview = null;
+    this.faviconFile = null;
+    this.faviconError = '';
+  }
+
+  onLogoDrop(event: DragEvent): void {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    const fakeEvent = { target: { files: [file] } } as any;
+    this.onLogoSelected(fakeEvent);
+  }
+
+  onFaviconDrop(event: DragEvent): void {
+    event.preventDefault();
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    const fakeEvent = { target: { files: [file] } } as any;
+    this.onFaviconSelected(fakeEvent);
   }
 }

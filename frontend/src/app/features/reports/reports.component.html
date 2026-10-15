@@ -4,9 +4,9 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
         <path d="M4 19V5h2v14H4zm4-8v8h3v-8H8zm5-5v13h3V6h-3zm5 8v5h3v-5h-3z" />
       </svg>
-      <h1>Report</h1>
+      <h1>CEO Command Center · Report Workspace</h1>
     </div>
-    <p class="report-head-sub">Build a report from live farm data and open the printable version in a new tab.</p>
+    <p class="report-head-sub">Real-time enterprise report builder with dynamic column selection, audit reconciliation, and permission enforcement.</p>
   </header>
 
   <div class="report-body">
@@ -17,7 +17,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
             <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
           </svg>
-          <input type="search" placeholder="Search" [(ngModel)]="sidebarQuery" aria-label="Search reports" />
+          <input type="search" placeholder="Search reports..." [(ngModel)]="sidebarQuery" aria-label="Search reports" />
         </div>
         <button
           type="button"
@@ -41,6 +41,7 @@
           <ul class="report-list" *ngIf="section.expanded">
             <li *ngFor="let item of section.items">
               <button type="button" class="report-item" [class.is-active]="item.id === selectedId" (click)="selectReport(item.id)">
+                <span class="report-item-dash">—</span>
                 <span class="report-item-label">{{ item.title }}</span>
                 <span
                   class="report-item-star"
@@ -61,68 +62,60 @@
       </nav>
     </aside>
 
-    <!-- ── Builder ───────────────────────────────────────────────────── -->
+    <!-- ── Main Workspace ────────────────────────────────────────────── -->
     <main class="report-main">
+      
+      <!-- Report active tab -->
+      <div class="report-tab-bar">
+        <div class="report-tab-item active">
+          {{ template.title }}
+        </div>
+      </div>
+
+      <!-- Main Filter Card -->
       <div class="report-card">
-        <div class="report-title-row">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-            <path d="M4 19V5h2v14H4zm4-8v8h3v-8H8zm5-5v13h3V6h-3zm5 8v5h3v-5h-3z" />
-          </svg>
-          <h2>{{ template.title }}</h2>
-          <span class="report-preview-chip" *ngIf="!loading">
-            {{ previewRows }} record{{ previewRows === 1 ? '' : 's' }} · {{ previewGroups }} group{{ previewGroups === 1 ? '' : 's' }}
+        
+        <div class="report-header-status" *ngIf="!loading">
+          <span class="report-preview-chip">
+            <strong>{{ previewRows }}</strong> matching record{{ previewRows === 1 ? '' : 's' }} across <strong>{{ previewGroups }}</strong> operational group{{ previewGroups === 1 ? '' : 's' }}
+          </span>
+          <span class="report-export-status" *ngIf="!canExport">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="lock-icon"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            Export Restricted (Role Privilege Required)
           </span>
         </div>
 
         <p class="report-error" *ngIf="error" role="alert">{{ error }}</p>
-        <p class="report-loading" *ngIf="loading">Loading report data…</p>
+        <p class="report-loading" *ngIf="loading">Loading live operational records…</p>
 
-        <!-- Custom Report -->
-        <section class="report-section-block">
-          <h3 class="report-block-title">Custom Report</h3>
-          <div class="report-template-row">
-            <label class="report-field report-field-template">
-              <span class="report-field-label">Template</span>
-              <select [(ngModel)]="templateName" (ngModelChange)="onFilterChange()">
-                <option *ngFor="let preset of templateOptions" [value]="preset">{{ preset }}</option>
-              </select>
-            </label>
-            <button type="button" class="report-icon-btn" title="Apply last month" (click)="applyQuickRange('month')">
-              <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm9.4 3a9.6 9.6 0 0 0-.1-1l2-1.6-2-3.4-2.4 1a9.6 9.6 0 0 0-1.7-1l-.4-2.6h-4l-.4 2.6c-.6.2-1.2.6-1.7 1l-2.4-1-2 3.4L8.3 10a9.6 9.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-1c.5.4 1.1.8 1.7 1l.4 2.6h4l.4-2.6c.6-.2 1.2-.6 1.7-1l2.4 1 2-3.4-2-1.6c.1-.3.1-.7.1-1z" />
-              </svg>
-            </button>
-            <button type="button" class="report-icon-btn" title="Save current setup as a template" (click)="saveTemplate()">
-              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
-            </button>
-          </div>
-          <div class="report-quick-ranges">
-            <span>Quick range:</span>
-            <button type="button" (click)="applyQuickRange('today')">Today</button>
-            <button type="button" (click)="applyQuickRange('week')">Last 7 days</button>
-            <button type="button" (click)="applyQuickRange('last30')">Last 30 days</button>
-            <button type="button" (click)="applyQuickRange('month')">Last month</button>
-          </div>
-        </section>
+        <!-- Two Column Filters Grid -->
+        <div class="report-grid-form">
+          
+          <!-- Left Column -->
+          <div class="report-form-col">
+            
+            <!-- Date Range -->
+            <div class="form-row">
+              <label class="form-label">Date Range</label>
+              <div class="form-date-group">
+                <input type="date" [(ngModel)]="dateFrom" (ngModelChange)="onFilterChange()" class="form-input-date" />
+                <span class="form-sep">To</span>
+                <input type="date" [(ngModel)]="dateTo" (ngModelChange)="onFilterChange()" class="form-input-date" />
+              </div>
+            </div>
 
-        <!-- Mandatory fields -->
-        <section class="report-section-block">
-          <h3 class="report-block-title">Mandatory Fields</h3>
-          <div class="report-mandatory">
-            <label class="report-field">
-              <span class="report-field-label">Date <em>*</em></span>
-              <span class="report-date-range">
-                <input type="date" [(ngModel)]="dateFrom" (ngModelChange)="onFilterChange()" />
-                <span class="report-date-sep">-</span>
-                <input type="date" [(ngModel)]="dateTo" (ngModelChange)="onFilterChange()" />
-                <svg class="report-date-icon" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M7 2v2M17 2v2M3 8h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" />
-                </svg>
-              </span>
-            </label>
+            <!-- Quick range shortcuts -->
+            <div class="report-quick-ranges">
+              <span>Quick:</span>
+              <button type="button" (click)="applyQuickRange('today')">Today</button>
+              <button type="button" (click)="applyQuickRange('week')">7 Days</button>
+              <button type="button" (click)="applyQuickRange('last30')">30 Days</button>
+              <button type="button" (click)="applyQuickRange('month')">This Month</button>
+            </div>
 
-            <div class="report-field report-field-location">
-              <span class="report-field-label">Location <em>*</em></span>
+            <!-- Location Filter -->
+            <div class="form-row mt-2">
+              <label class="form-label">Location</label>
               <div class="report-location" [class.is-open]="locationPickerOpen">
                 <div class="report-location-field" (click)="locationPickerOpen = !locationPickerOpen">
                   <span class="report-chips">
@@ -135,7 +128,7 @@
                   <span class="report-location-caret"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></span>
                 </div>
                 <div class="report-location-panel" *ngIf="locationPickerOpen">
-                  <input type="search" placeholder="Search locations" [(ngModel)]="locationQuery" (click)="$event.stopPropagation()" />
+                  <input type="search" placeholder="Search facilities..." [(ngModel)]="locationQuery" (click)="$event.stopPropagation()" />
                   <ul>
                     <li *ngFor="let loc of filteredLocations">
                       <button type="button" (click)="toggleLocation(loc)">
@@ -143,51 +136,216 @@
                         <span>{{ loc.code ? loc.code + ' — ' : '' }}{{ loc.name }}</span>
                       </button>
                     </li>
-                    <li class="report-location-empty" *ngIf="!filteredLocations.length">No locations found</li>
+                    <li class="report-location-empty" *ngIf="!filteredLocations.length">No facilities found</li>
                   </ul>
                 </div>
-                <select class="report-copies" [(ngModel)]="copies" (ngModelChange)="onFilterChange()" title="Copies">
-                  <option *ngFor="let option of copiesOptions" [value]="option">{{ option }}</option>
-                </select>
               </div>
             </div>
-          </div>
-        </section>
 
-        <!-- Filter options -->
-        <section class="report-section-block">
-          <h3 class="report-block-title">Filter Options</h3>
-          <div class="report-filter-grid">
-            <label class="report-field" *ngFor="let def of template.filters">
-              <span class="report-field-label">{{ def.label }}</span>
-              <select [(ngModel)]="filterValues[def.key]" (ngModelChange)="onFilterChange()">
-                <option [ngValue]="''">Select {{ def.label }}</option>
-                <option *ngFor="let option of optionsFor(def)" [ngValue]="option.value">{{ option.label }}</option>
+            <!-- Dynamic Template Filter 1 (if exists) -->
+            <div class="form-row" *ngIf="template.filters.length > 0">
+              <label class="form-label">{{ template.filters[0].label }}</label>
+              <select [(ngModel)]="filterValues[template.filters[0].key]" (ngModelChange)="onFilterChange()" class="form-select">
+                <option [ngValue]="''">--Select {{ template.filters[0].label }}--</option>
+                <option *ngFor="let option of optionsFor(template.filters[0])" [ngValue]="option.value">{{ option.label }}</option>
               </select>
-            </label>
-            <label class="report-field report-field-search">
-              <span class="report-field-label">Search</span>
-              <input type="search" placeholder="Search" [(ngModel)]="search" (ngModelChange)="onFilterChange()" />
+            </div>
+
+            <!-- Dynamic Template Filter 2 (if exists) -->
+            <div class="form-row" *ngIf="template.filters.length > 1">
+              <label class="form-label">{{ template.filters[1].label }}</label>
+              <select [(ngModel)]="filterValues[template.filters[1].key]" (ngModelChange)="onFilterChange()" class="form-select">
+                <option [ngValue]="''">--Select {{ template.filters[1].label }}--</option>
+                <option *ngFor="let option of optionsFor(template.filters[1])" [ngValue]="option.value">{{ option.label }}</option>
+              </select>
+            </div>
+
+            <!-- Remarks / Multi-Select Box -->
+            <div class="form-row form-row-top">
+              <label class="form-label">Remarks / Flags</label>
+              <div class="remarks-box">
+                <label class="remarks-item remarks-select-all">
+                  <input type="checkbox" [checked]="areAllRemarksSelected" (change)="toggleAllRemarks()" />
+                  <strong>Select All</strong>
+                </label>
+                <div class="remarks-scroll-list">
+                  <label class="remarks-item" *ngFor="let rem of availableRemarks">
+                    <input type="checkbox" [checked]="isRemarkSelected(rem)" (change)="toggleRemark(rem)" />
+                    <span>{{ rem }}</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Right Column -->
+          <div class="report-form-col">
+            
+            <!-- Dynamic Template Filter 3 (if exists) -->
+            <div class="form-row" *ngIf="template.filters.length > 2">
+              <label class="form-label">{{ template.filters[2].label }}</label>
+              <select [(ngModel)]="filterValues[template.filters[2].key]" (ngModelChange)="onFilterChange()" class="form-select">
+                <option [ngValue]="''">--Select {{ template.filters[2].label }}--</option>
+                <option *ngFor="let option of optionsFor(template.filters[2])" [ngValue]="option.value">{{ option.label }}</option>
+              </select>
+            </div>
+
+            <!-- Dynamic Template Filter 4 (if exists) -->
+            <div class="form-row" *ngIf="template.filters.length > 3">
+              <label class="form-label">{{ template.filters[3].label }}</label>
+              <select [(ngModel)]="filterValues[template.filters[3].key]" (ngModelChange)="onFilterChange()" class="form-select">
+                <option [ngValue]="''">--Select {{ template.filters[3].label }}--</option>
+                <option *ngFor="let option of optionsFor(template.filters[3])" [ngValue]="option.value">{{ option.label }}</option>
+              </select>
+            </div>
+
+            <!-- Rate / Threshold Range -->
+            <div class="form-row">
+              <label class="form-label">Valuation / Cost Range</label>
+              <div class="form-date-group">
+                <input type="number" placeholder="From (₵)" [(ngModel)]="rateFrom" class="form-input-date" />
+                <span class="form-sep">To</span>
+                <input type="number" placeholder="To (₵)" [(ngModel)]="rateTo" class="form-input-date" />
+              </div>
+            </div>
+
+            <!-- Search input -->
+            <div class="form-row">
+              <label class="form-label">Keyword Search</label>
+              <input type="search" placeholder="Filter by ID, batch, notes..." [(ngModel)]="search" (ngModelChange)="onFilterChange()" class="form-select" />
+            </div>
+
+            <!-- Checkboxes options -->
+            <div class="form-checkbox-group">
+              <label class="report-checkbox">
+                <input type="checkbox" [(ngModel)]="taxInclusive" />
+                <span>Tax Inclusive Rates (Disc./Adj. included, if applicable)</span>
+              </label>
+
+              <label class="report-checkbox">
+                <input type="checkbox" [(ngModel)]="includeArchived" (ngModelChange)="onFilterChange()" />
+                <span>Include archived / culled / completed records</span>
+              </label>
+            </div>
+
+            <!-- Template Preset -->
+            <div class="form-row mt-2">
+              <label class="form-label">Report Preset</label>
+              <div class="form-preset-row">
+                <select [(ngModel)]="templateName" class="form-select">
+                  <option *ngFor="let preset of templateOptions" [value]="preset">{{ preset }}</option>
+                </select>
+                <button type="button" class="btn-save-template" title="Save current filter preset" (click)="saveTemplate()">
+                  Save Preset
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+        <!-- ── Dynamic Column Selector (Any 5) ────────────────────────── -->
+        <div class="column-selector-box">
+          <div class="column-selector-header">
+            <span class="column-selector-label">Select Column (Any 5):</span>
+            <span class="column-count-badge" [class.warning]="selectedColumnKeys.length >= 5">
+              {{ selectedColumnKeys.length }} of 5 selected
+            </span>
+            <span class="column-warning-text" *ngIf="columnWarning">{{ columnWarning }}</span>
+          </div>
+
+          <div class="column-checkboxes-grid">
+            <label class="column-choice" *ngFor="let col of availableColumns">
+              <input 
+                type="checkbox" 
+                [checked]="isColumnSelected(col.key)" 
+                (change)="toggleColumn(col.key)" />
+              <span class="choice-title">{{ col.label }}</span>
+              <span class="choice-tag" *ngIf="col.permission">Restricted</span>
             </label>
           </div>
-          <label class="report-checkbox">
-            <input type="checkbox" [(ngModel)]="includeArchived" (ngModelChange)="onFilterChange()" />
-            <span>Include archived / completed records</span>
-          </label>
-        </section>
+        </div>
 
-        <footer class="report-actions">
-          <button type="button" class="report-btn report-btn-reset" (click)="reset()">Reset</button>
-          <button type="button" class="report-btn report-btn-run" [disabled]="generating || loading" (click)="runReport()">
-            <span *ngIf="!generating">Report</span>
-            <span *ngIf="generating">Generating…</span>
-          </button>
-        </footer>
+        <!-- ── Action Buttons ─────────────────────────────────────────── -->
+        <div class="report-actions-bar">
+          <div class="actions-group">
+            <!-- Export button -->
+            <button 
+              type="button" 
+              class="btn-action btn-export" 
+              [disabled]="!canExport || loading" 
+              [title]="canExport ? 'Export filtered records to CSV' : 'Export requires reports.export permission'"
+              (click)="exportCsv()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              <span>Export</span>
+            </button>
+
+            <!-- Report button -->
+            <button 
+              type="button" 
+              class="btn-action btn-report" 
+              [disabled]="generating || loading" 
+              (click)="runReport()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+              </svg>
+              <span *ngIf="!generating">Report</span>
+              <span *ngIf="generating">Generating...</span>
+            </button>
+
+            <!-- Reset button -->
+            <button 
+              type="button" 
+              class="btn-action btn-reset" 
+              (click)="reset()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="btn-icon">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>
+              </svg>
+              <span>Reset</span>
+            </button>
+          </div>
+        </div>
 
         <p class="report-generated" *ngIf="lastGenerated">
-          Last report opened in a new tab at {{ lastGenerated | date: 'mediumTime' }}.
+          Last generated report tab opened at {{ lastGenerated | date: 'mediumTime' }}.
         </p>
       </div>
+
+      <!-- ── Help Guide Section ──────────────────────────────────────── -->
+      <section class="help-guide-card">
+        <div class="help-guide-header">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="help-guide-icon">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+          </svg>
+          <h2>Help Guide</h2>
+        </div>
+
+        <p class="help-desc">
+          An <strong>{{ template.title }}</strong> is used to check the operational status and metrics of Evolex Food Hub. {{ template.helpDescription || 'It captures all real-time data across units, enabling supervisors and management to track performance, verify resource utilization, and cater to operational bottlenecks.' }}
+        </p>
+
+        <h3 class="help-compare-title">How can you compare the report data with other reports?</h3>
+        
+        <ol class="help-comparison-list">
+          <li *ngFor="let guide of template.comparisonGuides">
+            {{ guide }}
+          </li>
+          <li *ngIf="!template.comparisonGuides?.length">
+            <strong>{{ template.title }}</strong> can be cross-checked with the <strong>Audit &amp; Activity Log</strong> for the same date range to verify transactions, operational logs, and data integrity across departments.
+          </li>
+          <li *ngIf="!template.comparisonGuides?.length">
+            Data for particular date ranges can be matched with <strong>Financial Cash Flow &amp; Expense Summaries</strong> to validate operational costs, procurement disbursements, and overall margin variances.
+          </li>
+          <li *ngIf="!template.comparisonGuides?.length">
+            Cross-reference with <strong>Operations Task &amp; Maintenance Logs</strong> to ensure all scheduled health treatments, feeding routines, and asset services align with logged entries.
+          </li>
+        </ol>
+      </section>
+
     </main>
   </div>
 </section>

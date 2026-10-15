@@ -332,6 +332,10 @@ class AuthController extends Controller
             'two_factor_type'        => $user->two_factor_type ?: 'totp',
             'two_factor_confirmed_at'=> $user->two_factor_confirmed_at?->toIso8601String(),
             'two_factor_required'    => true,
+            'role_id'                => $user->role_id,
+            'permissions'            => strtolower((string)$user->role) === 'owner'
+                ? ['*']
+                : ($user->roleModel ? $user->roleModel->permissions->pluck('name')->toArray() : []),
         ];
     }
 }

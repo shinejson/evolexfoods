@@ -303,40 +303,53 @@
           [class.active]="selectedTab === 'privilege'"
           (click)="selectedTab = 'privilege'"
         >
-          Privilege
+          <span>Privilege</span>
+          <span class="tab-pill">{{ selectedPrivilegeCount }}/{{ totalPrivilegeCount }}</span>
         </button>
         <button
           class="tab-btn"
           [class.active]="selectedTab === 'reports'"
           (click)="selectedTab = 'reports'"
         >
-          Reports
+          <span>Reports</span>
+          <span class="tab-pill">{{ selectedReportCount }}/{{ totalReportCount }}</span>
         </button>
         <button
           class="tab-btn"
           [class.active]="selectedTab === 'columns'"
           (click)="selectedTab = 'columns'"
         >
-          Order Summary Columns
+          <span>Order Summary Columns</span>
+          <span class="tab-pill">{{ selectedColumnCount }}/{{ totalColumnCount }}</span>
         </button>
       </div>
 
+      <!-- ── TAB 1: PRIVILEGE ────────────────────────────────────────── -->
       <div *ngIf="selectedTab === 'privilege'">
-        <div class="search-permissions">
-          <svg class="search-icon" viewBox="0 0 24 24">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input
-            type="text"
-            [(ngModel)]="searchPermission"
-            placeholder="Search Privilege"
-            class="form-control"
-          />
+        <div class="tab-toolbar">
+          <div class="search-permissions">
+            <svg class="search-icon" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              [(ngModel)]="searchPrivilege"
+              placeholder="Search Privileges by module or action..."
+              class="form-control"
+            />
+          </div>
+          <button
+            type="button"
+            class="btn-toggle-all"
+            (click)="toggleAllSectionPermissions('privilege')"
+          >
+            {{ isAllSectionSelected('privilege') ? 'Deselect All Privileges' : 'Select All Privileges' }}
+          </button>
         </div>
 
         <div class="permission-list">
-          <div *ngFor="let module of sortedModules" class="permission-group">
+          <div *ngFor="let module of privilegeModules" class="permission-group">
             <div class="permission-module-header">
               <label class="checkbox-label">
                 <input
@@ -347,30 +360,163 @@
                 />
                 <strong>{{ module }}</strong>
               </label>
+              <span class="module-count">{{ getPermissionsForModule(module, searchPrivilege).length }} actions</span>
             </div>
             <div class="permission-items">
               <label
-                *ngFor="let permission of filteredPermissionGroups[module]"
+                *ngFor="let permission of getPermissionsForModule(module, searchPrivilege)"
                 class="checkbox-label permission-item"
+                [title]="permission.description || permission.name"
               >
                 <input
                   type="checkbox"
                   [checked]="isPermissionSelected(permission.id)"
                   (change)="togglePermission(permission.id)"
                 />
-                {{ permission.action }}
+                <span>{{ permission.action }}</span>
               </label>
             </div>
+          </div>
+          <div *ngIf="privilegeModules.length === 0" class="empty-tab">
+            No privileges match "{{ searchPrivilege }}"
           </div>
         </div>
       </div>
 
-      <div *ngIf="selectedTab === 'reports'" class="empty-tab">
-        Reports configuration coming soon
+      <!-- ── TAB 2: REPORTS ──────────────────────────────────────────── -->
+      <div *ngIf="selectedTab === 'reports'">
+        <div class="tab-desc-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19V5h2v14H4zm4-8v8h3v-8H8zm5-5v13h3V6h-3zm5 8v5h3v-5h-3z"/></svg>
+          <div>
+            <strong>Report Catalog Authorization</strong>
+            <p>Select which operational, financial, and analytical reports this role is authorized to view, generate, and export.</p>
+          </div>
+        </div>
+
+        <div class="tab-toolbar">
+          <div class="search-permissions">
+            <svg class="search-icon" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              [(ngModel)]="searchReport"
+              placeholder="Search reports by title or category..."
+              class="form-control"
+            />
+          </div>
+          <button
+            type="button"
+            class="btn-toggle-all"
+            (click)="toggleAllSectionPermissions('reports')"
+          >
+            {{ isAllSectionSelected('reports') ? 'Deselect All Reports' : 'Select All Reports' }}
+          </button>
+        </div>
+
+        <div class="permission-list report-catalog-list">
+          <div *ngFor="let module of reportModules" class="permission-group">
+            <div class="permission-module-header report-cat-header">
+              <label class="checkbox-label">
+                <input
+                  type="checkbox"
+                  [checked]="isModuleSelected(module)"
+                  [indeterminate]="isModulePartiallySelected(module)"
+                  (change)="toggleModulePermissions(module)"
+                />
+                <strong>{{ module.replace('Reports - ', '') }}</strong>
+              </label>
+              <span class="module-count">{{ getPermissionsForModule(module, searchReport).length }} reports</span>
+            </div>
+            <div class="report-perm-items">
+              <div
+                *ngFor="let permission of getPermissionsForModule(module, searchReport)"
+                class="report-perm-row"
+                [class.selected]="isPermissionSelected(permission.id)"
+                (click)="togglePermission(permission.id)"
+              >
+                <input
+                  type="checkbox"
+                  [checked]="isPermissionSelected(permission.id)"
+                  (click)="$event.stopPropagation()"
+                  (change)="togglePermission(permission.id)"
+                />
+                <div class="report-perm-info">
+                  <div class="report-perm-title">{{ permission.action }}</div>
+                  <div class="report-perm-desc">{{ permission.description || 'Full analytics & operational report' }}</div>
+                </div>
+                <span class="report-badge">Report</span>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="reportModules.length === 0" class="empty-tab">
+            No report categories match "{{ searchReport }}"
+          </div>
+        </div>
       </div>
 
-      <div *ngIf="selectedTab === 'columns'" class="empty-tab">
-        Column configuration coming soon
+      <!-- ── TAB 3: ORDER SUMMARY COLUMNS ────────────────────────────── -->
+      <div *ngIf="selectedTab === 'columns'">
+        <div class="tab-desc-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          <div>
+            <strong>Sensitive Column &amp; Data Visibility</strong>
+            <p>Control visibility over commercial costs, asset valuations, gross margins, and confidential remarks across tabular views and export summaries.</p>
+          </div>
+        </div>
+
+        <div class="tab-toolbar">
+          <div class="search-permissions">
+            <svg class="search-icon" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input
+              type="text"
+              [(ngModel)]="searchColumn"
+              placeholder="Search column rules..."
+              class="form-control"
+            />
+          </div>
+          <button
+            type="button"
+            class="btn-toggle-all"
+            (click)="toggleAllSectionPermissions('columns')"
+          >
+            {{ isAllSectionSelected('columns') ? 'Deselect All Columns' : 'Allow All Columns' }}
+          </button>
+        </div>
+
+        <div class="permission-list column-rules-list">
+          <div *ngFor="let module of columnModules" class="permission-group">
+            <div class="column-rules-grid">
+              <div
+                *ngFor="let permission of getPermissionsForModule(module, searchColumn)"
+                class="column-rule-card"
+                [class.selected]="isPermissionSelected(permission.id)"
+                (click)="togglePermission(permission.id)"
+              >
+                <div class="col-check-area">
+                  <input
+                    type="checkbox"
+                    [checked]="isPermissionSelected(permission.id)"
+                    (click)="$event.stopPropagation()"
+                    (change)="togglePermission(permission.id)"
+                  />
+                </div>
+                <div class="col-rule-details">
+                  <div class="col-rule-name">{{ permission.action }}</div>
+                  <div class="col-rule-desc">{{ permission.description }}</div>
+                  <span class="col-tag">Visible &amp; Exportable</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="columnModules.length === 0" class="empty-tab">
+            No columns match "{{ searchColumn }}"
+          </div>
+        </div>
       </div>
     </div>
 

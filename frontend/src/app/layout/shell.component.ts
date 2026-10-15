@@ -50,10 +50,10 @@ export class ShellComponent implements OnInit, OnDestroy {
       icon: 'hub',
       expanded: true,
       items: [
-        { path: '/hub', label: 'Hub', icon: 'hub' },
-        { path: '/notifications', label: 'Notifications', icon: 'notifications' },
-        { path: '/ceo', label: 'CEO Command', icon: 'ceo' },
-        { path: '/reports', label: 'Reports', icon: 'report' }
+        { path: '/hub', label: 'Hub', icon: 'hub', permission: 'dashboard.view' },
+        { path: '/notifications', label: 'Notifications', icon: 'notifications', permission: 'notifications.view' },
+        { path: '/ceo', label: 'CEO Command', icon: 'ceo', permission: 'ceo.view' },
+        { path: '/reports', label: 'Reports', icon: 'report', permission: 'reports.view' }
       ]
     },
     {
@@ -61,11 +61,11 @@ export class ShellComponent implements OnInit, OnDestroy {
       icon: 'livestock',
       expanded: false,
       items: [
-        { path: '/livestock', label: 'Livestock', icon: 'livestock' },
-        { path: '/health', label: 'Health', icon: 'health' },
-        { path: '/treatments', label: 'Treatments', icon: 'treatments' },
-        { path: '/breeding', label: 'Breeding', icon: 'breeding' },
-        { path: '/feed', label: 'Feed', icon: 'feed' }
+        { path: '/livestock', label: 'Livestock', icon: 'livestock', permission: 'livestock.view' },
+        { path: '/health', label: 'Health', icon: 'health', permission: 'health.view' },
+        { path: '/treatments', label: 'Treatments', icon: 'treatments', permission: 'treatments.view' },
+        { path: '/breeding', label: 'Breeding', icon: 'breeding', permission: 'breeding.view' },
+        { path: '/feed', label: 'Feed', icon: 'feed', permission: 'feed.view' }
       ]
     },
     {
@@ -73,11 +73,11 @@ export class ShellComponent implements OnInit, OnDestroy {
       icon: 'inventory',
       expanded: false,
       items: [
-        { path: '/inventory', label: 'Inventory', icon: 'inventory' },
-        { path: '/procurement', label: 'Procurement', icon: 'procurement' },
-        { path: '/suppliers', label: 'Suppliers', icon: 'suppliers' },
-        { path: '/assets', label: 'Assets', icon: 'assets' },
-        { path: '/maintenance', label: 'Maintenance', icon: 'maintenance' }
+        { path: '/inventory', label: 'Inventory', icon: 'inventory', permission: 'inventory.view' },
+        { path: '/procurement', label: 'Procurement', icon: 'procurement', permission: 'procurement.view' },
+        { path: '/suppliers', label: 'Suppliers', icon: 'suppliers', permission: 'suppliers.view' },
+        { path: '/assets', label: 'Assets', icon: 'assets', permission: 'assets.view' },
+        { path: '/maintenance', label: 'Maintenance', icon: 'maintenance', permission: 'maintenance.view' }
       ]
     },
     {
@@ -85,8 +85,8 @@ export class ShellComponent implements OnInit, OnDestroy {
       icon: 'people',
       expanded: false,
       items: [
-        { path: '/hr', label: 'People', icon: 'people' },
-        { path: '/tasks', label: 'Tasks', icon: 'tasks' }
+        { path: '/hr', label: 'People', icon: 'people', permission: 'hr.view' },
+        { path: '/tasks', label: 'Tasks', icon: 'tasks', permission: 'tasks.view' }
       ]
     },
     {
@@ -94,11 +94,11 @@ export class ShellComponent implements OnInit, OnDestroy {
       icon: 'expenses',
       expanded: true,
       items: [
-        { path: '/finance', label: 'Overview', icon: 'ceo' },
-        { path: '/expenses', label: 'Expenses', icon: 'expenses' },
-        { path: '/invoices', label: 'Invoices & Payables', icon: 'invoices' },
-        { path: '/payments', label: 'Payments', icon: 'invoices' },
-        { path: '/finance/reports', label: 'Reports', icon: 'ceo' }
+        { path: '/finance', label: 'Overview', icon: 'ceo', permission: 'finance.view' },
+        { path: '/expenses', label: 'Expenses', icon: 'expenses', permission: 'expenses.view' },
+        { path: '/invoices', label: 'Invoices & Payables', icon: 'invoices', permission: 'invoices.view' },
+        { path: '/payments', label: 'Payments', icon: 'invoices', permission: 'payments.view' },
+        { path: '/finance/reports', label: 'Reports', icon: 'ceo', permission: 'finance.view' }
       ]
     },
     {
@@ -106,13 +106,13 @@ export class ShellComponent implements OnInit, OnDestroy {
       icon: 'crm',
       expanded: false,
       items: [
-        { path: '/crm', label: 'CRM · Companies', icon: 'crm' },
-        { path: '/contacts', label: 'Contacts', icon: 'crm' },
-        { path: '/deals', label: 'Deals & Pipeline', icon: 'deals' },
-        { path: '/sales', label: 'Sales & Culls', icon: 'deals' },
-        { path: '/campaigns', label: 'Campaigns', icon: 'marketing' },
-        { path: '/marketing', label: 'Content Calendar', icon: 'marketing' },
-        { path: '/marketing/performance', label: 'Channel Performance', icon: 'marketing' }
+        { path: '/crm', label: 'CRM · Companies', icon: 'crm', permission: 'crm.view' },
+        { path: '/contacts', label: 'Contacts', icon: 'crm', permission: 'contacts.view' },
+        { path: '/deals', label: 'Deals & Pipeline', icon: 'deals', permission: 'deals.view' },
+        { path: '/sales', label: 'Sales & Culls', icon: 'deals', permission: 'sales.view' },
+        { path: '/campaigns', label: 'Campaigns', icon: 'marketing', permission: 'campaigns.view' },
+        { path: '/marketing', label: 'Content Calendar', icon: 'marketing', permission: 'marketing.view' },
+        { path: '/marketing/performance', label: 'Channel Performance', icon: 'marketing', permission: 'marketing.view' }
       ]
     },
     {
@@ -120,14 +120,27 @@ export class ShellComponent implements OnInit, OnDestroy {
       icon: 'risks',
       expanded: false,
       items: [
-        { path: '/risks', label: 'Risks', icon: 'risks' },
-        { path: '/decisions', label: 'Decisions', icon: 'decisions' },
-        { path: '/sops', label: 'SOPs', icon: 'sops' },
-        { path: '/roles', label: 'Roles & Permissions', icon: 'settings' },
-        { path: '/settings', label: 'System Settings', icon: 'settings' }
+        { path: '/risks', label: 'Risks', icon: 'risks', permission: 'governance.view' },
+        { path: '/decisions', label: 'Decisions', icon: 'decisions', permission: 'governance.view' },
+        { path: '/sops', label: 'SOPs', icon: 'sops', permission: 'governance.view' },
+        { path: '/roles', label: 'Roles & Permissions', icon: 'settings', permission: 'settings.manage_roles' },
+        { path: '/settings', label: 'System Settings', icon: 'settings', permission: 'settings.view' }
       ]
     }
   ];
+
+  isItemPermitted(item: { path: string; label: string; icon: string; permission?: string }): boolean {
+    if (!item.permission) return true;
+    return this.auth.hasPermission(item.permission);
+  }
+
+  isGroupVisible(group: { label: string; icon: string; expanded: boolean; items: any[] }): boolean {
+    return group.items.some(item => this.isItemPermitted(item));
+  }
+
+  getPermittedItems(group: { items: any[] }): any[] {
+    return group.items.filter(item => this.isItemPermitted(item));
+  }
 
   constructor(
     public auth: AuthService,

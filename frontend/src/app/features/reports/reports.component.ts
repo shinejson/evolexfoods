@@ -2,11 +2,13 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../core/services/api.service';
+import { AuthService } from '../../core/services/auth.service';
 import {
   REPORT_GROUPS,
   REPORT_GROUP_RESOLVERS,
   REPORT_ROW_FIELD,
   REPORT_TEMPLATES,
+  ReportColumnDef,
   ReportFilterDef,
   ReportTemplateDef,
   labelize
@@ -36,7 +38,6 @@ interface SidebarSection {
 }
 
 const TERMINAL_STATUSES = ['culled', 'sold', 'archived', 'inactive', 'cancelled'];
-
 const TEMPLATE_PRESETS = ['New Report', 'Weekly Summary', 'Monthly Summary', 'Board Pack', 'Field Handover'];
 
 @Component({
@@ -54,7 +55,7 @@ export class ReportsComponent implements OnInit {
   selectedId = 'livestock_summary';
   templateName = 'New Report';
   sidebarQuery = '';
-  expanded: Record<string, boolean> = { 'Recommended Reports': true };
+  expanded: Record<string, boolean> = { 'Recommended Reports': true, 'Livestock Reports': true };
 
   dateFrom = this.isoDate(new Date());
   dateTo = this.isoDate(new Date());
@@ -65,6 +66,26 @@ export class ReportsComponent implements OnInit {
   includeArchived = false;
   search = '';
   filterValues: Record<string, string> = {};
+
+  // Dynamic Column Selector (Any 5)
+  selectedColumnKeys: string[] = [];
+  columnWarning = '';
+
+  // Remarks / multi-select options
+  availableRemarks = [
+    'Check In',
+    'Check Out',
+    'Quarantine Review',
+    'Veterinary Note',
+    'Follow-up Needed',
+    'Urgent Attention',
+    'Internal Memo'
+  ];
+  selectedRemarks: string[] = ['Check In', 'Veterinary Note'];
+  taxInclusive = true;
+  showAmount = 'All';
+  rateFrom = '';
+  rateTo = '';
 
   favorites = new Set<string>();
   savedTemplates: Record<string, string[]> = {};
@@ -77,23 +98,122 @@ export class ReportsComponent implements OnInit {
   lastGenerated: Date | null = null;
   previewRows = 0;
   previewGroups = 0;
-  businessName = 'Evolex Farms';
+  businessName = 'Evolex Food Hub';
 
   private allLocations: { id: number; name: string; code?: string }[] = [];
 
-  constructor(private readonly api: ApiService) {}
+  constructor(
+    private readonly api: ApiService,
+    public readonly auth: AuthService
+  ) {}
 
   ngOnInit(): void {
     this.favorites = new Set<string>(this.readJson('reportFavorites', []));
     this.savedTemplates = this.readJson('reportTemplates', {});
     this.loadLookups();
+
+    // Select first report permitted for the user
+    const firstPermitted = this.allPermittedReportIds[0] || 'livestock_summary';
+    this.selectedId = this.isReportPermitted(this.selectedId) ? this.selectedId : firstPermitted;
     this.selectReport(this.selectedId);
+  }
+
+  /* ------------------------------------------------------------- permissions */
+
+  isReportPermitted(id: string): boolean {
+    if (this.auth.user?.role === 'owner') return true;
+    if (this.auth.hasPermission('*') || this.auth.hasPermission('all')) return true;
+    return this.auth.hasPermission('reports.' + id) || this.auth.hasPermission('reports.view');
+  }
+
+  get canExport(): boolean {
+    if (this.auth.user?.role === 'owner') return true;
+    if (this.auth.hasPermission('*') || this.auth.hasPermission('all')) return true;
+    return this.auth.hasPermission('reports.export');
+  }
+
+  get allPermittedReportIds(): string[] {
+    const ids: string[] = [];
+    Object.keys(REPORT_TEMPLATES).forEach((id) => {
+      if (this.isReportPermitted(id)) {
+        ids.push(id);
+      }
+    });
+    return ids;
+  }
+
+  /* ------------------------------------------------------------------ columns */
+
+  get availableColumns(): ReportColumnDef[] {
+    return this.template.columns.filter((col) => {
+      if (!col.permission) return true;
+      if (this.auth.user?.role === 'owner') return true;
+      if (this.auth.hasPermission('*') || this.auth.hasPermission('all')) return true;
+      return this.auth.hasPermission(col.permission);
+    });
+  }
+
+  get activeColumns(): ReportColumnDef[] {
+    const available = this.availableColumns;
+    return available.filter((c) => this.selectedColumnKeys.includes(c.key));
+  }
+
+  isColumnSelected(key: string): boolean {
+    return this.selectedColumnKeys.includes(key);
+  }
+
+  toggleColumn(key: string): void {
+    this.columnWarning = '';
+    if (this.selectedColumnKeys.includes(key)) {
+      if (this.selectedColumnKeys.length > 1) {
+        this.selectedColumnKeys = this.selectedColumnKeys.filter((k) => k !== key);
+      } else {
+        this.columnWarning = 'At least 1 column must remain selected.';
+        setTimeout(() => (this.columnWarning = ''), 3000);
+      }
+    } else {
+      if (this.selectedColumnKeys.length < 5) {
+        this.selectedColumnKeys = [...this.selectedColumnKeys, key];
+      } else {
+        this.columnWarning = 'You can select up to 5 columns.';
+        setTimeout(() => (this.columnWarning = ''), 3000);
+      }
+    }
+    this.refreshPreview();
+  }
+
+  /* ------------------------------------------------------------------ remarks */
+
+  isRemarkSelected(rem: string): boolean {
+    return this.selectedRemarks.includes(rem);
+  }
+
+  toggleRemark(rem: string): void {
+    if (this.selectedRemarks.includes(rem)) {
+      this.selectedRemarks = this.selectedRemarks.filter((r) => r !== rem);
+    } else {
+      this.selectedRemarks = [...this.selectedRemarks, rem];
+    }
+    this.refreshPreview();
+  }
+
+  get areAllRemarksSelected(): boolean {
+    return this.availableRemarks.every((r) => this.selectedRemarks.includes(r));
+  }
+
+  toggleAllRemarks(): void {
+    if (this.areAllRemarksSelected) {
+      this.selectedRemarks = [];
+    } else {
+      this.selectedRemarks = [...this.availableRemarks];
+    }
+    this.refreshPreview();
   }
 
   /* ------------------------------------------------------------------ data */
 
   get template(): ReportTemplateDef {
-    return REPORT_TEMPLATES[this.selectedId];
+    return REPORT_TEMPLATES[this.selectedId] || REPORT_TEMPLATES['livestock_summary'];
   }
 
   private loadLookups(): void {
@@ -116,10 +236,20 @@ export class ReportsComponent implements OnInit {
     if (!REPORT_TEMPLATES[id]) {
       return;
     }
+    if (!this.isReportPermitted(id)) {
+      this.error = 'You do not have permission to view this report.';
+      return;
+    }
     this.selectedId = id;
     this.filterValues = {};
     this.search = '';
     this.locationPickerOpen = false;
+    this.columnWarning = '';
+
+    // Initialize default columns (up to 5)
+    const avail = this.availableColumns;
+    this.selectedColumnKeys = avail.slice(0, 5).map((c) => c.key);
+
     this.restoreState(id);
     this.loadRows();
   }
@@ -136,7 +266,7 @@ export class ReportsComponent implements OnInit {
       error: () => {
         this.rows = [];
         this.loading = false;
-        this.error = 'Could not load the data for this report. Check your connection and try again.';
+        this.error = 'Could not load data for this report. Please check your network and try again.';
       }
     });
   }
@@ -284,7 +414,6 @@ export class ReportsComponent implements OnInit {
     return parts.join(' · ');
   }
 
-
   /* ----------------------------------------------------------- aggregation */
 
   private refreshPreview(): void {
@@ -378,6 +507,8 @@ export class ReportsComponent implements OnInit {
       buckets.get(label)!.push(row);
     });
 
+    const activeCols = this.activeColumns;
+
     const groups = [...buckets.entries()]
       .sort((a, b) => a[0].localeCompare(b[0]))
       .map(([label, rows]) => ({
@@ -385,10 +516,10 @@ export class ReportsComponent implements OnInit {
         rows: rows.map((row) => ({
           cells: [
             row.animal_id ?? row.employee_code ?? row.item_id ?? row.ticket_number ?? label,
-            ...template.columns.map((col) => this.cellText(col as any, row))
+            ...activeCols.map((col) => this.cellText(col as any, row))
           ]
         })),
-        subtotal: template.columns.map((col) => this.aggregate(col as any, rows))
+        subtotal: activeCols.map((col) => this.aggregate(col as any, rows))
       }));
 
     return {
@@ -402,15 +533,14 @@ export class ReportsComponent implements OnInit {
       generatedAt: new Date().toLocaleString(),
       columns: [
         { label: this.firstColumnLabel(), align: 'left' },
-        ...template.columns.map((col) => ({ label: col.label, align: col.align ?? 'right' }))
+        ...activeCols.map((col) => ({ label: col.label, align: col.align ?? 'right' }))
       ],
       groups,
-      grandTotal: template.columns.map((col) => this.aggregate(col as any, filtered)),
+      grandTotal: activeCols.map((col) => this.aggregate(col as any, filtered)),
       emptyHint: template.emptyHint,
       hasData: filtered.length > 0
     };
   }
-
 
   /* -------------------------------------------------------------- actions */
 
@@ -431,15 +561,64 @@ export class ReportsComponent implements OnInit {
     this.lastGenerated = new Date();
   }
 
+  exportCsv(): void {
+    if (!this.canExport) {
+      this.error = 'Permission denied: reports.export permission is required to export data.';
+      return;
+    }
+
+    const filtered = this.rows.filter((row) => this.matchesFilters(row));
+    if (!filtered.length) {
+      this.error = 'No data available to export for the selected filters.';
+      return;
+    }
+
+    const activeCols = this.activeColumns;
+    const headers = [this.firstColumnLabel(), ...activeCols.map((c) => c.label)];
+
+    const csvRows: string[] = [headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(',')];
+
+    filtered.forEach((row) => {
+      const firstVal = row.animal_id ?? row.employee_code ?? row.item_id ?? row.ticket_number ?? REPORT_GROUP_RESOLVERS[this.template.groupBy](row);
+      const cells = [
+        firstVal,
+        ...activeCols.map((col) => {
+          if (!col.value) return '';
+          const val = col.value(row);
+          return val !== null && val !== undefined ? String(val) : '';
+        })
+      ];
+      csvRows.push(cells.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(','));
+    });
+
+    const blob = new Blob([csvRows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${this.template.id}_${this.isoDate(new Date())}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
   reset(): void {
     this.filterValues = {};
     this.search = '';
     this.locationChips = [];
     this.includeArchived = false;
     this.copies = 1;
+    this.rateFrom = '';
+    this.rateTo = '';
+    this.showAmount = 'All';
+    this.selectedRemarks = ['Check In', 'Veterinary Note'];
     const today = this.isoDate(new Date());
     this.dateFrom = today;
     this.dateTo = today;
+
+    // Reset columns to defaults
+    const avail = this.availableColumns;
+    this.selectedColumnKeys = avail.slice(0, 5).map((c) => c.key);
+
     this.refreshPreview();
   }
 
@@ -497,18 +676,18 @@ export class ReportsComponent implements OnInit {
   get sidebarSections(): SidebarSection[] {
     const query = this.sidebarQuery.trim().toLowerCase();
     const matchesQuery = (value: string) => !query || value.toLowerCase().includes(query);
+
     return this.groups
       .map((group) => ({
         label: group.label,
-        expanded: this.expanded[group.label] ?? group.label === 'Recommended Reports',
+        expanded: this.expanded[group.label] ?? (group.label === 'Recommended Reports' || group.label === 'Livestock Reports'),
         items: group.reports
-          .filter((id) => REPORT_TEMPLATES[id])
+          .filter((id) => REPORT_TEMPLATES[id] && this.isReportPermitted(id))
           .map((id) => ({ id, title: REPORT_TEMPLATES[id].title, favorite: this.favorites.has(id) }))
           .filter((item) => matchesQuery(item.title) || matchesQuery(group.label))
       }))
-      .filter((section) => matchesQuery(section.label) || section.items.length > 0);
+      .filter((section) => section.items.length > 0);
   }
-
 
   /* ------------------------------------------------------------- helpers */
 
@@ -529,12 +708,13 @@ export class ReportsComponent implements OnInit {
       locationChips: this.locationChips,
       includeArchived: this.includeArchived,
       search: this.search,
-      filterValues: this.filterValues
+      filterValues: this.filterValues,
+      selectedColumnKeys: this.selectedColumnKeys
     };
     try {
       localStorage.setItem('reportStates', JSON.stringify(all));
     } catch {
-      /* storage unavailable — state simply will not persist */
+      /* storage unavailable */
     }
   }
 
@@ -556,6 +736,14 @@ export class ReportsComponent implements OnInit {
     this.includeArchived = !!state.includeArchived;
     this.search = state.search ?? '';
     this.filterValues = state.filterValues ?? {};
+    if (state.selectedColumnKeys && Array.isArray(state.selectedColumnKeys) && state.selectedColumnKeys.length) {
+      // Validate with current available columns
+      const availKeys = this.availableColumns.map((c) => c.key);
+      const valid = state.selectedColumnKeys.filter((k: string) => availKeys.includes(k));
+      if (valid.length) {
+        this.selectedColumnKeys = valid.slice(0, 5);
+      }
+    }
   }
 
   private isoDate(date: Date): string {
@@ -575,4 +763,3 @@ function formatNumber(value: number, kind: string, unit?: string): string {
   const formatted = safe.toLocaleString('en-GH', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
   return unit ? `${formatted} ${unit}` : formatted;
 }
-

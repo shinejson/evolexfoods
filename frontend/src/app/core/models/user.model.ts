@@ -10,4 +10,6 @@ export interface User {
   two_factor_type?: string;
   two_factor_confirmed_at?: string;
   two_factor_required?: boolean;
+  role_id?: number;
+  permissions?: string[];
 }

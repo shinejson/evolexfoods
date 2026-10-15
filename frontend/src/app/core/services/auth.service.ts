@@ -149,6 +149,30 @@ export class AuthService {
     return !!this.token;
   }
 
+  hasPermission(permission: string): boolean {
+    const user = this.user;
+    if (!user) return false;
+    if (user.role?.toLowerCase() === 'owner') return true;
+    if (user.permissions?.includes('*')) return true;
+    return !!user.permissions?.includes(permission);
+  }
+
+  hasAnyPermission(permissions: string[]): boolean {
+    const user = this.user;
+    if (!user) return false;
+    if (user.role?.toLowerCase() === 'owner') return true;
+    if (user.permissions?.includes('*')) return true;
+    return permissions.some(p => user.permissions?.includes(p));
+  }
+
+  hasAllPermissions(permissions: string[]): boolean {
+    const user = this.user;
+    if (!user) return false;
+    if (user.role?.toLowerCase() === 'owner') return true;
+    if (user.permissions?.includes('*')) return true;
+    return permissions.every(p => user.permissions?.includes(p));
+  }
+
   private readUser(): User | null {
     const raw = localStorage.getItem('evolex_user');
     return raw ? JSON.parse(raw) : null;
