@@ -1232,6 +1232,15 @@ h2 {
   color: var(--ink-soft);
 }
 
+.search .icon {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+}
+
 .search input {
   border: 0;
   background: none;
@@ -1239,6 +1248,7 @@ h2 {
   min-width: 200px;
   font-size: 12.5px;
   outline: none;
+  color: var(--ink);
 }
 
 .filter-select {
