@@ -70,7 +70,7 @@ export class RoleManagementComponent implements OnInit {
   
   // Pagination
   currentPage = 1;
-  perPage = 15;
+  perPage = 5;
   totalItems = 0;
   totalPages = 0;
   
@@ -184,8 +184,8 @@ export class RoleManagementComponent implements OnInit {
     }
   }
 
-  changePerPage(perPage: number): void {
-    this.perPage = perPage;
+  changePerPage(perPage: number | string): void {
+    this.perPage = Number(perPage) || 5;
     this.currentPage = 1;
     this.loadRoles();
   }
@@ -203,8 +203,9 @@ export class RoleManagementComponent implements OnInit {
   get pageNumbers(): number[] {
     const pages: number[] = [];
     const maxVisible = 5;
+    const total = Math.max(1, this.totalPages);
     let start = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
-    let end = Math.min(this.totalPages, start + maxVisible - 1);
+    let end = Math.min(total, start + maxVisible - 1);
 
     if (end - start < maxVisible - 1) {
       start = Math.max(1, end - maxVisible + 1);

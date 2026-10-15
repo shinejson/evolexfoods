@@ -195,8 +195,8 @@ export class SettingsComponent implements OnInit {
   clearingLogs = false;
 
   // ─── Branding / Logo & Favicon Upload ────────────────────────────────────
-  logoPreview: string | null = null;
-  faviconPreview: string | null = null;
+  logoPreview: string | null = 'assets/logo-full.svg';
+  faviconPreview: string | null = 'assets/favicon.svg';
   logoFile: File | null = null;
   faviconFile: File | null = null;
   logoUploading = false;

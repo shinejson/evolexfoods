@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 150" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient for Icon -->
+    <linearGradient id="lfd_bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2F4A32"/>
+      <stop offset="60%" stop-color="#223925"/>
+      <stop offset="100%" stop-color="#142316"/>
+    </linearGradient>
+
+    <!-- Gold Accent Gradient -->
+    <linearGradient id="lfd_goldGrad" x1="0%" y1="0%" x2="100%" y2="80%">
+      <stop offset="0%" stop-color="#F5E8B7"/>
+      <stop offset="40%" stop-color="#E5C158"/>
+      <stop offset="80%" stop-color="#C59B27"/>
+      <stop offset="100%" stop-color="#9A7210"/>
+    </linearGradient>
+
+    <!-- Fresh Sprout Green Gradient -->
+    <linearGradient id="lfd_sproutGrad" x1="0%" y1="100%" x2="50%" y2="0%">
+      <stop offset="0%" stop-color="#5D7A4D"/>
+      <stop offset="50%" stop-color="#86EFAC"/>
+      <stop offset="100%" stop-color="#BBF7D0"/>
+    </linearGradient>
+
+    <!-- Emerald Leaf Accent -->
+    <linearGradient id="lfd_emeraldGrad" x1="100%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#2E693E"/>
+      <stop offset="100%" stop-color="#6EE7B7"/>
+    </linearGradient>
+
+    <filter id="lfd_shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <!-- ─── ICON MARK (Left: 130x130 centered in 150 height) ─── -->
+  <g transform="translate(10, 10)">
+    <rect x="0" y="0" width="130" height="130" rx="32" fill="url(#lfd_bgGrad)" filter="url(#lfd_shadow)"/>
+    <rect x="0" y="0" width="130" height="130" rx="32" fill="none" stroke="url(#lfd_goldGrad)" stroke-width="2.5"/>
+    <rect x="4" y="4" width="122" height="122" rx="28" fill="none" stroke="rgba(245, 232, 183, 0.25)" stroke-width="1"/>
+
+    <circle cx="65" cy="65" r="46" fill="none" stroke="url(#lfd_goldGrad)" stroke-width="1" stroke-dasharray="3 4" opacity="0.4"/>
+
+    <!-- Mini Livestock & Sprout Emblem Group -->
+    <g transform="translate(65, 63) scale(0.28) translate(-256, -250)">
+      <path d="M 148 240 C 138 190, 154 134, 202 110 C 218 102, 232 108, 226 126 C 218 152, 204 186, 218 226 C 224 244, 212 254, 198 252 C 176 250, 158 248, 148 240 Z" fill="url(#lfd_goldGrad)"/>
+      <path d="M 364 240 C 374 190, 358 134, 310 110 C 294 102, 280 108, 286 126 C 294 152, 308 186, 294 226 C 288 244, 300 254, 314 252 C 336 250, 354 248, 364 240 Z" fill="url(#lfd_goldGrad)"/>
+
+      <path d="M 256 160 C 220 185, 206 220, 208 266 C 210 316, 240 354, 256 376 C 272 354, 302 316, 304 266 C 306 220, 292 185, 256 160 Z" fill="#182A1B" stroke="url(#lfd_goldGrad)" stroke-width="6"/>
+
+      <path d="M 256 295 C 236 270, 215 240, 225 198 C 248 214, 255 245, 256 295 Z" fill="url(#lfd_sproutGrad)"/>
+      <path d="M 256 295 C 276 270, 297 240, 287 198 C 264 214, 257 245, 256 295 Z" fill="url(#lfd_emeraldGrad)"/>
+
+      <path d="M 256 145 L 256 345" stroke="url(#lfd_goldGrad)" stroke-width="5" stroke-linecap="round"/>
+      <ellipse cx="256" cy="140" rx="9" ry="16" fill="url(#lfd_goldGrad)"/>
+      <ellipse cx="238" cy="168" rx="8" ry="14" transform="rotate(-30 238 168)" fill="url(#lfd_goldGrad)"/>
+      <ellipse cx="274" cy="168" rx="8" ry="14" transform="rotate(30 274 168)" fill="url(#lfd_goldGrad)"/>
+    </g>
+  </g>
+
+  <!-- ─── TYPOGRAPHY (Right) ─── -->
+  <g transform="translate(165, 0)">
+    <!-- Primary Brand Wordmark: EVOLEX (Crisp Off-white with gold tint) -->
+    <text x="0" y="72" 
+          font-family="'Fraunces', 'Cinzel', 'Playfair Display', 'Georgia', serif" 
+          font-size="54" 
+          font-weight="800" 
+          letter-spacing="5" 
+          fill="#F4EFE4">EVOLEX</text>
+
+    <!-- Secondary Wordmark: FOOD HUB (Vibrant Mint) -->
+    <text x="245" y="72" 
+          font-family="'Manrope', 'Plus Jakarta Sans', 'Inter', sans-serif" 
+          font-size="28" 
+          font-weight="700" 
+          letter-spacing="6" 
+          fill="#86EFAC">FOOD HUB</text>
+
+    <!-- Golden Divider Line -->
+    <line x1="2" y1="92" x2="480" y2="92" stroke="url(#lfd_goldGrad)" stroke-width="2.5" stroke-linecap="round"/>
+    
+    <!-- Accent Diamond on Divider -->
+    <polygon points="170,92 175,88 180,92 175,96" fill="#E5C158"/>
+
+    <!-- Tagline: PRECISION LIVESTOCK & AGRI OPERATIONS -->
+    <text x="2" y="118" 
+          font-family="'Manrope', 'Inter', sans-serif" 
+          font-size="12" 
+          font-weight="600" 
+          letter-spacing="3.5" 
+          fill="#94A3B8">PRECISION LIVESTOCK &amp; AGRI OPERATIONS</text>
+  </g>
+</svg>

@@ -18,8 +18,8 @@
 }
 
 .mark {
-  width: 48px;
-  height: 48px;
+  width: 52px;
+  height: 52px;
   border-radius: 14px;
   background: var(--gold);
   display: grid;
@@ -27,6 +27,20 @@
   font-weight: 800;
   color: #1c2e1f;
   font-size: 18px;
+  overflow: hidden;
+
+  &--logo {
+    background: transparent;
+    padding: 0;
+
+    .brand-logo-img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      border-radius: 14px;
+      display: block;
+    }
+  }
 }
 
 h1 {

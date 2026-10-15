@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="favBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2F4A32"/>
+      <stop offset="100%" stop-color="#142416"/>
+    </linearGradient>
+    <linearGradient id="favGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F5E8B7"/>
+      <stop offset="50%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#9A7210"/>
+    </linearGradient>
+    <linearGradient id="favSprout" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#5D7A4D"/>
+      <stop offset="100%" stop-color="#86EFAC"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Container -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#favBg)" stroke="url(#favGold)" stroke-width="2"/>
+  
+  <!-- Mini Stylized Horns & Sprout for Favicon scale -->
+  <!-- Left Horn -->
+  <path d="M 18 32 C 16 24, 20 16, 26 13 C 28 12, 30 13, 29 16 C 28 20, 26 24, 28 30 Z" fill="url(#favGold)"/>
+  <!-- Right Horn -->
+  <path d="M 46 32 C 48 24, 44 16, 38 13 C 36 12, 34 13, 35 16 C 36 20, 38 24, 36 30 Z" fill="url(#favGold)"/>
+
+  <!-- Center Shield -->
+  <path d="M 32 20 C 27 24, 25 29, 25 35 C 25 42, 30 47, 32 50 C 34 47, 39 42, 39 35 C 39 29, 37 24, 32 20 Z" fill="#1C2E1F" stroke="url(#favGold)" stroke-width="1.5"/>
+
+  <!-- Sprout leaves -->
+  <path d="M 32 38 C 29 34, 27 30, 28 25 C 31 27, 32 31, 32 38 Z" fill="url(#favSprout)"/>
+  <path d="M 32 38 C 35 34, 37 30, 36 25 C 33 27, 32 31, 32 38 Z" fill="#529960"/>
+  
+  <!-- Wheat kernel top -->
+  <ellipse cx="32" cy="18" rx="2" ry="3.5" fill="url(#favGold)"/>
+</svg>

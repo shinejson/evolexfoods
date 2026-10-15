@@ -497,3 +497,69 @@ html:has(.shell.dark-mode) body {
 .shell.dark-mode .muted {
   color: var(--ink-soft);
 }
+
+/* Hub page dark-mode safety net */
+.shell.dark-mode app-hub {
+  .action-card {
+    background: #1f1f1f !important;
+    border-color: #2e2e2e !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3) !important;
+
+    &:hover:not(:disabled) {
+      background: #272727 !important;
+      border-color: #5d7a4d !important;
+    }
+
+    &:disabled {
+      background: #171717 !important;
+      border-color: #242424 !important;
+    }
+  }
+
+  .action-copy strong {
+    color: #f1f5f9 !important;
+  }
+
+  .action-copy > span {
+    color: #94a3b8 !important;
+  }
+
+  .workflow-card {
+    background: radial-gradient(circle at 106% 4%, rgba(93, 122, 77, 0.2) 0 86px, transparent 87px),
+      linear-gradient(155deg, #1c271f 0%, #152018 100%) !important;
+    border-color: rgba(93, 122, 77, 0.3) !important;
+
+    h2 {
+      color: #f4efe4 !important;
+    }
+
+    > p {
+      color: #94a3b8 !important;
+    }
+  }
+
+  .workspace-card {
+    background: #1f1f1f !important;
+    border-color: #2e2e2e !important;
+
+    &:hover {
+      background: #262626 !important;
+      border-color: #5d7a4d !important;
+    }
+  }
+
+  .workspace-card-title h3 {
+    color: #f1f5f9 !important;
+  }
+}
+
+/* Search bar icon spacing & placeholder protection */
+.search-wrapper input.search-input,
+.search-wrapper .search-input {
+  padding-left: 44px !important;
+}
+
+.search-permissions input,
+.search-permissions .form-control {
+  padding-left: 44px !important;
+}

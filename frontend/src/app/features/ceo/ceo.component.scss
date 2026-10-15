@@ -32,6 +32,10 @@
     box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.04);
   }
 
+  .ceo-page {
+    color: var(--text-strong);
+  }
+
   .range-switch,
   .custom-range,
   .btn--quiet,
@@ -57,6 +61,289 @@
 
   .eyebrow {
     color: var(--moss-text);
+  }
+
+  // Cards and panels
+  .panel,
+  .vital,
+  .metric,
+  .kpi-group {
+    background: var(--surface);
+    border-color: var(--hairline);
+    color: var(--text-strong);
+  }
+
+  .panel-kicker,
+  .vital-label,
+  .metric-label,
+  .group-copy p {
+    color: var(--text-muted);
+  }
+
+  .panel-sub,
+  .vital-caption,
+  .metric-note,
+  .attention-body p,
+  .bar-meta,
+  .stat-label,
+  .empty-line,
+  .ledger-note,
+  .panel-foot {
+    color: var(--text-muted);
+  }
+
+  .panel-head h2,
+  .group-copy h2,
+  .vital-value,
+  .metric-value,
+  .bar-meta strong,
+  .stat strong,
+  .donut-hole strong {
+    color: var(--text-strong);
+  }
+
+  // Status banner dark mode
+  .status-banner {
+    background: linear-gradient(120deg, #1a2820 0%, #243830 58%, #2d4838 100%);
+    border-color: rgba(147, 194, 155, 0.2);
+    color: #e9f0eb;
+  }
+
+  .status-banner.is-watch {
+    background: linear-gradient(120deg, #2d2418 0%, #3d3120 58%, #4d4028 100%);
+  }
+
+  .status-banner.is-action {
+    background: linear-gradient(120deg, #2d1a18 0%, #3d2420 58%, #4d2e28 100%);
+  }
+
+  .status-copy p {
+    color: rgba(233, 240, 235, 0.76);
+  }
+
+  // Attention items
+  .attention-item {
+    background: var(--surface);
+    border-color: var(--hairline);
+  }
+
+  .attention-item.is-critical {
+    background: var(--surface-soft);
+    border-color: rgba(240, 145, 138, 0.3);
+  }
+
+  .attention-item.is-warning .severity-pill {
+    background: rgba(240, 205, 127, 0.2);
+    color: var(--warn-text);
+  }
+
+  .attention-top strong {
+    color: var(--text-strong);
+  }
+
+  // Table
+  .table-wrap {
+    background: var(--surface);
+    border-color: var(--hairline);
+  }
+
+  thead th {
+    background: var(--surface-soft);
+    border-color: var(--hairline);
+    color: var(--text-muted);
+  }
+
+  tbody td {
+    border-color: var(--hairline);
+    color: var(--text-strong);
+  }
+
+  tbody tr:hover td {
+    background: var(--surface-soft);
+  }
+
+  tbody tr.is-gap td {
+    background: var(--surface-soft);
+  }
+
+  td.strong {
+    color: var(--ok-text);
+  }
+
+  // Insights
+  .group-icon,
+  .donut-hole {
+    background: var(--surface-soft);
+    border-color: var(--hairline);
+  }
+
+  .stat {
+    background: var(--surface-soft);
+    border-color: var(--hairline);
+  }
+
+  .donut-hole small {
+    color: var(--text-muted);
+  }
+
+  // Search and filters
+  .search,
+  .filter-select {
+    background: var(--surface);
+    border-color: var(--hairline);
+    color: var(--text-strong);
+  }
+
+  .search input,
+  .filter-select select {
+    color: var(--text-strong);
+  }
+
+  .search input::placeholder {
+    color: var(--text-muted);
+  }
+
+  // Badges and chips
+  .panel-count,
+  .source-chip,
+  .module-pill,
+  .value-chip {
+    background: var(--surface-soft);
+    border-color: var(--hairline);
+    color: var(--text-strong);
+  }
+
+  .source-chip.is-static {
+    color: var(--text-muted);
+  }
+
+  // Custom range inputs
+  .custom-range input {
+    background: var(--surface-soft);
+    border-color: var(--hairline);
+    color: var(--text-strong);
+  }
+
+  // Notices
+  .notice {
+    background: var(--tint-warn-bg);
+    border-color: var(--tint-warn-border);
+    color: var(--warn-text);
+  }
+
+  .notice .text-button {
+    color: var(--warn-text);
+  }
+
+  // State panels
+  .state-panel {
+    background: var(--surface);
+    border-color: var(--hairline);
+  }
+
+  .state-panel h2 {
+    color: var(--text-strong);
+  }
+
+  .state-panel p {
+    color: var(--text-muted);
+  }
+
+  // Empty states
+  .empty-state {
+    background: var(--surface-soft);
+    border-color: var(--hairline);
+    color: var(--text-muted);
+  }
+
+  .empty-state strong {
+    color: var(--text-strong);
+  }
+
+  // Bar fills remain colorful in dark mode
+  .bar-track,
+  .completeness-track,
+  .metric-meter {
+    background: var(--hairline);
+  }
+
+  // Skeleton in dark mode
+  .skeleton-hero,
+  .skeleton-tile {
+    background: linear-gradient(100deg, #2a2a2a 30%, #343434 50%, #2a2a2a 70%);
+  }
+
+  // Legend
+  .legend {
+    color: var(--text-muted);
+  }
+
+  .legend strong {
+    color: var(--text-strong);
+  }
+
+  // Page footer
+  .page-foot {
+    color: var(--text-muted);
+    border-color: var(--hairline);
+  }
+
+  // Metric specific dark mode fixes
+  .metric.is-watch,
+  .metric.is-action {
+    background: var(--surface);
+  }
+
+  .metric.is-unknown {
+    background: var(--surface-soft);
+  }
+
+  // Vital specific dark mode fixes
+  .vital.is-action {
+    background: var(--surface);
+  }
+
+  // Attention meta
+  .attention-meta {
+    color: var(--text-muted);
+  }
+
+  // Section nav
+  .section-nav a {
+    background: var(--surface);
+    border-color: var(--hairline);
+    color: var(--text-muted);
+  }
+
+  .section-nav a:hover {
+    background: var(--surface-soft);
+    color: var(--text-strong);
+  }
+
+  // Completeness label
+  .completeness-label {
+    color: var(--ok-text);
+  }
+
+  // Gap flag
+  .gap-flag {
+    color: var(--danger-text);
+  }
+
+  // Table pagination
+  .table-pagination__meta {
+    color: var(--text-muted);
+  }
+
+  // Status pills in table
+  .status-pill.is-ok {
+    background: var(--tint-ok-bg);
+    color: var(--ok-text);
+  }
+
+  .status-pill.is-action {
+    background: var(--tint-danger-bg);
+    color: var(--danger-text);
   }
 }
 
