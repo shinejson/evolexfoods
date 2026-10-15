@@ -116,7 +116,7 @@ export const REPORT_TEMPLATES: Record<string, ReportTemplateDef> = {
       'Valuation metrics should be cross-verified with Asset Register and Balance Sheet totals for accurate biological asset accounting.'
     ],
     filters: [
-      { key: 'location', label: 'Location', source: 'location' },
+      { key: 'species', label: 'Species', source: 'species' },
       { key: 'breed', label: 'Breed', source: 'breed' },
       { key: 'sex', label: 'Sex', source: 'sex' },
       { key: 'status', label: 'Status', source: 'status' }
@@ -206,7 +206,7 @@ export const REPORT_TEMPLATES: Record<string, ReportTemplateDef> = {
       { key: 'treatments', label: 'Treatments', align: 'right', kind: 'count', value: () => 1, aggregate: 'count' },
       { key: 'animals', label: 'Animals Treated', align: 'right', kind: 'count', value: (r) => r.animal_id, aggregate: 'count-distinct' },
       { key: 'completed', label: 'Completed', align: 'right', kind: 'count', value: (r) => (r.status === 'completed' ? 1 : 0), aggregate: 'sum' },
-      { key: 'ongoing', label: 'Ongoing', align: 'right', kind: 'count', value: (r) => (r.status === 'ongoing' ? 1 : 0), aggregate: 'sum' },
+      { key: 'ongoing', label: 'Ongoing', align: 'right', kind: 'count', value: (r) => (r.status === 'ongoing' || r.status === 'active' ? 1 : 0), aggregate: 'sum' },
       { key: 'med_cost', label: 'Medicine Cost', align: 'right', kind: 'money', permission: 'columns.cost_price', value: (r) => num(r.cost), aggregate: 'sum' }
     ]
   },
@@ -285,7 +285,7 @@ export const REPORT_TEMPLATES: Record<string, ReportTemplateDef> = {
     id: 'procurement_summary',
     title: 'Procurement Spend Summary',
     endpoint: '/records/procurement',
-    dateField: 'request_date',
+    dateField: 'requested_at',
     groupBy: 'supplier',
     emptyHint: 'No purchase requests match the selected filters.',
     helpDescription: 'Captures purchase requests, requisition approvals, vendor commitments, and delivery status across all supplier channels.',
@@ -385,7 +385,7 @@ export const REPORT_GROUP_RESOLVERS: Record<ReportGroupBy, (row: any) => string>
   medicine: (r) => r.medicine || 'Unspecified',
   type: (r) => labelize(r.type) || 'Uncategorised',
   category: (r) => labelize(r.category) || 'Uncategorised',
-  supplier: (r) => r.supplier?.name || r.supplier_name || 'Unassigned supplier',
+  supplier: (r) => r.supplier?.name || r.supplier_name || labelize(r.category) || 'Unassigned supplier',
   status: (r) => labelize(r.status) || 'Unknown status',
   department: (r) => r.department || 'Unassigned department',
   module: (r) => labelize(r.module) || 'General',

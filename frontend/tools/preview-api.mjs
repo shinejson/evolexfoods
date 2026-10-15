@@ -266,17 +266,28 @@ const PADDOCKS = [
 ];
 
 const SPECIES = ['goat', 'sheep', 'cattle'];
-const ANIMALS = Array.from({ length: 24 }, (_, index) => {
+const BREEDS = { goat: 'West African Dwarf', sheep: 'Djallonke', cattle: 'Sanga' };
+const ANIMALS = Array.from({ length: 48 }, (_, index) => {
   const id = index + 1;
   const species = SPECIES[index % 3];
   const prefix = species === 'goat' ? 'EV-GT' : species === 'sheep' ? 'EV-SH' : 'EV-CT';
+  const loc = PADDOCKS[index % PADDOCKS.length];
+  const status = id <= 45 ? 'alive' : 'dead';
   return {
     id,
     animal_id: `${prefix}-${String(id).padStart(6, '0')}`,
+    tag_id: `TAG-${String(id).padStart(4, '0')}`,
     species,
+    breed: BREEDS[species],
     sex: index % 3 === 0 ? 'male' : 'female',
-    status: index === 22 ? 'dead' : 'alive',
-    location_id: PADDOCKS[index % PADDOCKS.length].id
+    status,
+    current_status: status === 'alive' ? 'active' : 'inactive',
+    health_status: [7, 19, 31].includes(id) ? 'sick' : 'healthy',
+    weight: species === 'cattle' ? 180 + (index * 7) % 140 : 22 + (index * 5) % 45,
+    cost: species === 'cattle' ? 1450 + (index % 5) * 120 : 480 + (index % 5) * 65,
+    source: id % 5 === 0 ? 'purchased' : 'born_on_farm',
+    location_id: loc.id,
+    location: loc
   };
 });
 
@@ -1223,6 +1234,74 @@ const server = createServer((req, res) => {
 
       json(res, 405, { message: `Method ${req.method} not allowed` });
     });
+    return;
+  }
+
+  /* ---------------------------------------------------------------- */
+  /* Additional CRUD record routes for Report Workspace & Operations   */
+  /* ---------------------------------------------------------------- */
+  if (req.method === 'GET' && path === '/api/v1/records/livestock') {
+    json(res, 200, { data: ANIMALS });
+    return;
+  }
+  if (req.method === 'GET' && path === '/api/v1/records/inventory') {
+    const items = [
+      { id: 1, item_id: 'INV-FEED-001', name: 'Dairy Mash', category: 'Feed', unit: 'kg', quantity_on_hand: 420, reorder_level: 250, average_cost: 4.2, supplier_id: 1, supplier: financeSuppliers[0], status: 'active' },
+      { id: 2, item_id: 'INV-FEED-002', name: 'Hay Bales', category: 'Feed', unit: 'bale', quantity_on_hand: 90, reorder_level: 40, average_cost: 18, supplier_id: 1, supplier: financeSuppliers[0], status: 'active' },
+      { id: 3, item_id: 'INV-FEED-003', name: 'Mineral Mix', category: 'Feed', unit: 'kg', quantity_on_hand: 55, reorder_level: 40, average_cost: 12, supplier_id: 1, supplier: financeSuppliers[0], status: 'active' },
+      { id: 4, item_id: 'INV-MED-001', name: 'Oxytetracycline', category: 'Medicine', unit: 'vial', quantity_on_hand: 24, reorder_level: 10, average_cost: 15, supplier_id: 2, supplier: financeSuppliers[1], status: 'active' },
+      { id: 5, item_id: 'INV-MED-002', name: 'Ivermectin', category: 'Medicine', unit: 'bottle', quantity_on_hand: 8, reorder_level: 12, average_cost: 22, supplier_id: 2, supplier: financeSuppliers[1], status: 'active' },
+      { id: 6, item_id: 'INV-MED-003', name: 'Multivitamin', category: 'Medicine', unit: 'bottle', quantity_on_hand: 18, reorder_level: 8, average_cost: 9, supplier_id: 2, supplier: financeSuppliers[1], status: 'active' },
+      { id: 7, item_id: 'INV-PPE-001', name: 'Nitrile Gloves', category: 'PPE', unit: 'box', quantity_on_hand: 4, reorder_level: 6, average_cost: 18, supplier_id: 4, supplier: financeSuppliers[3], status: 'active' },
+      { id: 8, item_id: 'INV-FUL-001', name: 'Diesel', category: 'Fuel', unit: 'L', quantity_on_hand: 210, reorder_level: 150, average_cost: 1.4, supplier_id: 3, supplier: financeSuppliers[2], status: 'active' },
+      { id: 9, item_id: 'INV-TOL-001', name: 'Fence Staples', category: 'Tools', unit: 'box', quantity_on_hand: 3, reorder_level: 5, average_cost: 11, supplier_id: 4, supplier: financeSuppliers[3], status: 'active' }
+    ];
+    json(res, 200, { data: items });
+    return;
+  }
+  if (req.method === 'GET' && path === '/api/v1/records/procurement') {
+    const requests = [
+      { id: 1, request_number: 'PR-2026-001', item_name: 'Dairy Mash', category: 'Feed', quantity: 500, unit: 'kg', estimated_cost: 2100, priority: 'high', status: 'approved', requested_at: dayOffset(6), request_date: dayOffset(6), supplier: financeSuppliers[0] },
+      { id: 2, request_number: 'PR-2026-002', item_name: 'Ivermectin', category: 'Medicine', quantity: 20, unit: 'bottle', estimated_cost: 440, priority: 'high', status: 'pending', requested_at: dayOffset(1), request_date: dayOffset(1), supplier: financeSuppliers[1] },
+      { id: 3, request_number: 'PR-2026-003', item_name: 'Fence Staples', category: 'Tools', quantity: 10, unit: 'box', estimated_cost: 110, priority: 'normal', status: 'approved', requested_at: dayOffset(3), request_date: dayOffset(3), supplier: financeSuppliers[3] }
+    ];
+    json(res, 200, { data: requests });
+    return;
+  }
+  if (req.method === 'GET' && path === '/api/v1/records/maintenance') {
+    const tickets = [
+      { id: 1, ticket_number: 'MT-2026-001', title: 'Water pump losing pressure', type: 'corrective', priority: 'high', status: 'open', cost: 420, reported_at: dayOffset(0) },
+      { id: 2, ticket_number: 'MT-2026-002', title: 'Generator monthly test', type: 'preventive', priority: 'normal', status: 'in_progress', cost: 180, reported_at: dayOffset(1) },
+      { id: 3, ticket_number: 'MT-2026-003', title: 'Tractor oil and filter', type: 'preventive', priority: 'normal', status: 'closed', cost: 650, reported_at: dayOffset(5) }
+    ];
+    json(res, 200, { data: tickets });
+    return;
+  }
+  if (req.method === 'GET' && path === '/api/v1/records/employees') {
+    const employees = [
+      { id: 1, employee_code: 'EV-EMP-0001', name: 'Amara Okoye', role: 'owner', department: 'Ownership', type: 'full_time', status: 'active' },
+      { id: 2, employee_code: 'EV-EMP-0002', name: 'Daniel Mensah', role: 'executive', department: 'Executive', type: 'full_time', status: 'active' },
+      { id: 3, employee_code: 'EV-EMP-0003', name: 'Nia Boateng', role: 'operations_manager', department: 'Business Operations', type: 'full_time', status: 'active' },
+      { id: 4, employee_code: 'EV-EMP-0004', name: 'Kwame Asante', role: 'farm_manager', department: 'Farm', type: 'full_time', status: 'active' },
+      { id: 5, employee_code: 'EV-EMP-0005', name: 'Amina Diallo', role: 'finance', department: 'Finance', type: 'full_time', status: 'on_leave' },
+      { id: 6, employee_code: 'EV-EMP-0006', name: 'Sofia Ribeiro', role: 'marketing', department: 'Marketing', type: 'full_time', status: 'active' },
+      { id: 7, employee_code: 'EV-EMP-0007', name: 'James Carter', role: 'sales', department: 'Sales', type: 'full_time', status: 'active' },
+      { id: 8, employee_code: 'EV-EMP-0008', name: 'Ibrahim Touré', role: 'storekeeper', department: 'Stores', type: 'full_time', status: 'active' },
+      { id: 9, employee_code: 'EV-EMP-0009', name: 'Dr. Helen Nkrumah', role: 'vet', department: 'Animal Health', type: 'full_time', status: 'active' },
+      { id: 10, employee_code: 'EV-EMP-0010', name: 'Kojo Ampofo', role: 'procurement', department: 'Procurement', type: 'full_time', status: 'active' },
+      { id: 11, employee_code: 'EV-EMP-0011', name: 'Yaw Mensah', role: 'farm_employee', department: 'Farm', type: 'full_time', status: 'active' }
+    ];
+    json(res, 200, { data: employees });
+    return;
+  }
+  if (req.method === 'GET' && path === '/api/v1/records/tasks') {
+    const tasks = [
+      { id: 1, title: 'Complete weekly herd count', module: 'livestock', priority: 'high', status: 'open', due_date: dayOffset(0) },
+      { id: 2, title: 'Follow up Ivermectin purchase', module: 'procurement', priority: 'high', status: 'open', due_date: daysFromNow(1) },
+      { id: 3, title: 'Publish goat birth content pack', module: 'marketing', priority: 'normal', status: 'in_progress', due_date: dayOffset(1) },
+      { id: 4, title: 'Archive September invoices', module: 'finance', priority: 'normal', status: 'completed', due_date: dayOffset(3) }
+    ];
+    json(res, 200, { data: tasks });
     return;
   }
 

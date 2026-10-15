@@ -40,6 +40,15 @@ interface SidebarSection {
 const TERMINAL_STATUSES = ['culled', 'sold', 'archived', 'inactive', 'cancelled'];
 const TEMPLATE_PRESETS = ['New Report', 'Weekly Summary', 'Monthly Summary', 'Board Pack', 'Field Handover'];
 
+const FALLBACK_FILTER_VALUES: Partial<Record<string, string[]>> = {
+  species: ['cattle', 'goat', 'sheep'],
+  breed: ['Djallonke', 'Sanga', 'West African Dwarf'],
+  sex: ['female', 'male'],
+  status: ['active', 'alive', 'open', 'completed', 'pending'],
+  severity: ['low', 'moderate', 'high', 'critical'],
+  priority: ['normal', 'high', 'urgent']
+};
+
 @Component({
   selector: 'app-reports',
   standalone: true,
@@ -57,7 +66,7 @@ export class ReportsComponent implements OnInit {
   sidebarQuery = '';
   expanded: Record<string, boolean> = { 'Recommended Reports': true, 'Livestock Reports': true };
 
-  dateFrom = this.isoDate(new Date());
+  dateFrom = this.isoDate(this.daysAgo(30));
   dateTo = this.isoDate(new Date());
   locationChips: LocationChip[] = [];
   locationQuery = '';
@@ -84,8 +93,8 @@ export class ReportsComponent implements OnInit {
   selectedRemarks: string[] = ['Check In', 'Veterinary Note'];
   taxInclusive = true;
   showAmount = 'All';
-  rateFrom = '';
-  rateTo = '';
+  rateFrom: number | string | null = '';
+  rateTo: number | string | null = '';
 
   favorites = new Set<string>();
   savedTemplates: Record<string, string[]> = {};
@@ -98,6 +107,8 @@ export class ReportsComponent implements OnInit {
   lastGenerated: Date | null = null;
   previewRows = 0;
   previewGroups = 0;
+  previewModel: ReportDocumentModel | null = null;
+  showDetailRows = true;
   businessName = 'Evolex Food Hub';
 
   private allLocations: { id: number; name: string; code?: string }[] = [];
@@ -216,6 +227,15 @@ export class ReportsComponent implements OnInit {
     return REPORT_TEMPLATES[this.selectedId] || REPORT_TEMPLATES['livestock_summary'];
   }
 
+  private ensureFilterDefaults(saved: Record<string, string> = {}): void {
+    const next: Record<string, string> = {};
+    for (const def of this.template.filters) {
+      const val = saved[def.key];
+      next[def.key] = val !== undefined && val !== null ? String(val) : '';
+    }
+    this.filterValues = next;
+  }
+
   private loadLookups(): void {
     this.api.get<any>('/lookups').subscribe({
       next: (data) => {
@@ -241,7 +261,6 @@ export class ReportsComponent implements OnInit {
       return;
     }
     this.selectedId = id;
-    this.filterValues = {};
     this.search = '';
     this.locationPickerOpen = false;
     this.columnWarning = '';
@@ -251,6 +270,7 @@ export class ReportsComponent implements OnInit {
     this.selectedColumnKeys = avail.slice(0, 5).map((c) => c.key);
 
     this.restoreState(id);
+    this.ensureFilterDefaults(this.filterValues);
     this.loadRows();
   }
 
@@ -261,12 +281,20 @@ export class ReportsComponent implements OnInit {
       next: (response) => {
         this.rows = response?.data ?? [];
         this.loading = false;
+        // If a dated report has 0 matches because dateFrom === dateTo (single day), widen to 30 days so records are visible
+        if (this.template.dateField && this.rows.length > 0 && this.dateFrom === this.dateTo) {
+          const matchesToday = this.rows.some((r) => this.matchesFilters(r));
+          if (!matchesToday) {
+            this.dateFrom = this.isoDate(this.daysAgo(30));
+          }
+        }
         this.refreshPreview();
       },
       error: () => {
         this.rows = [];
         this.loading = false;
         this.error = 'Could not load data for this report. Please check your network and try again.';
+        this.refreshPreview();
       }
     });
   }
@@ -275,14 +303,35 @@ export class ReportsComponent implements OnInit {
 
   optionsFor(def: ReportFilterDef): FilterOption[] {
     const source = def.source;
-    if (source === 'location' && this.allLocations.length) {
-      return this.allLocations.map((loc) => ({
-        value: String(loc.id),
-        label: `${loc.code ? loc.code + ' — ' : ''}${loc.name}`
-      }));
+    if (source === 'location') {
+      if (this.allLocations.length) {
+        return this.allLocations.map((loc) => ({
+          value: String(loc.id),
+          label: `${loc.code ? loc.code + ' — ' : ''}${loc.name}`
+        }));
+      }
+      const locMap = new Map<string, string>();
+      this.rows.forEach((row) => {
+        const loc = row.location;
+        if (loc?.id && loc?.name) {
+          locMap.set(String(loc.id), `${loc.code ? loc.code + ' — ' : ''}${loc.name}`);
+        }
+      });
+      return [...locMap.entries()].map(([value, label]) => ({ value, label }));
     }
-    if (source === 'supplier' && this.lookups?.suppliers?.length) {
-      return this.lookups.suppliers.map((s: any) => ({ value: String(s.id), label: s.name }));
+    if (source === 'supplier') {
+      if (this.lookups?.suppliers?.length) {
+        return this.lookups.suppliers.map((s: any) => ({ value: String(s.id), label: s.name }));
+      }
+      const supMap = new Map<string, string>();
+      this.rows.forEach((row) => {
+        const id = row.supplier_id ?? row.supplier?.id;
+        const name = row.supplier?.name ?? row.supplier_name;
+        if (name) {
+          supMap.set(String(id ?? name), String(name));
+        }
+      });
+      return [...supMap.entries()].map(([value, label]) => ({ value, label }));
     }
     if (source === 'user' && this.lookups?.users?.length) {
       return this.lookups.users.map((u: any) => ({ value: String(u.id), label: u.name }));
@@ -296,11 +345,14 @@ export class ReportsComponent implements OnInit {
     }
     const values = new Set<string>();
     this.rows.forEach((row) => {
-      const raw = row[field];
+      const raw = row[field] ?? (field === 'type' ? row.treatment_type : undefined);
       if (raw !== null && raw !== undefined && raw !== '') {
         values.add(String(raw));
       }
     });
+    if (values.size === 0 && FALLBACK_FILTER_VALUES[source]) {
+      FALLBACK_FILTER_VALUES[source]!.forEach((v) => values.add(v));
+    }
     return [...values].sort().map((value) => ({ value, label: labelize(value) }));
   }
 
@@ -346,7 +398,9 @@ export class ReportsComponent implements OnInit {
     const template = this.template;
 
     if (template.dateField) {
-      const value = row[template.dateField];
+      const value =
+        row[template.dateField] ??
+        (template.dateField === 'requested_at' ? row.request_date : undefined);
       if (value) {
         const day = String(value).slice(0, 10);
         if (this.dateFrom && day < this.dateFrom) {
@@ -370,15 +424,38 @@ export class ReportsComponent implements OnInit {
       if (!selected) {
         continue;
       }
+      if (def.source === 'location') {
+        const locId = String(row.location_id ?? row.location?.id ?? '');
+        if (locId !== selected) {
+          return false;
+        }
+        continue;
+      }
       if (def.source === 'supplier') {
-        const supplierName = row.supplier?.name ?? row.supplier_name;
-        if (String(supplierName ?? '') !== selected) {
+        const supplierId = String(row.supplier_id ?? row.supplier?.id ?? '');
+        const supplierName = String(row.supplier?.name ?? row.supplier_name ?? '');
+        if (supplierId !== selected && supplierName !== selected) {
           return false;
         }
         continue;
       }
       const field = REPORT_ROW_FIELD[def.source] ?? def.key;
-      if (String(row[field] ?? '') !== selected) {
+      const rawVal = row[field] ?? (field === 'type' ? row.treatment_type : undefined);
+      if (String(rawVal ?? '') !== selected) {
+        return false;
+      }
+    }
+
+    const minRate = this.rateFrom !== '' && this.rateFrom !== null ? Number(this.rateFrom) : null;
+    const maxRate = this.rateTo !== '' && this.rateTo !== null ? Number(this.rateTo) : null;
+    if ((minRate !== null && Number.isFinite(minRate)) || (maxRate !== null && Number.isFinite(maxRate))) {
+      const rowAmount = Number(
+        row.cost ?? row.amount ?? row.estimated_cost ?? row.average_cost ?? row.purchase_price ?? 0
+      );
+      if (minRate !== null && Number.isFinite(minRate) && rowAmount < minRate) {
+        return false;
+      }
+      if (maxRate !== null && Number.isFinite(maxRate) && rowAmount > maxRate) {
         return false;
       }
     }
@@ -405,6 +482,12 @@ export class ReportsComponent implements OnInit {
         parts.push(`${def.label}: ${labelize(value)}`);
       }
     });
+    if (this.rateFrom !== '' && this.rateFrom !== null) {
+      parts.push(`Min Valuation: ₵${this.rateFrom}`);
+    }
+    if (this.rateTo !== '' && this.rateTo !== null) {
+      parts.push(`Max Valuation: ₵${this.rateTo}`);
+    }
     if (this.includeArchived) {
       parts.push('Including archived records');
     }
@@ -420,6 +503,7 @@ export class ReportsComponent implements OnInit {
     const filtered = this.rows.filter((row) => this.matchesFilters(row));
     this.previewRows = filtered.length;
     this.previewGroups = new Set(filtered.map((row) => REPORT_GROUP_RESOLVERS[this.template.groupBy](row))).size;
+    this.previewModel = this.buildModel(filtered);
     this.persistState();
   }
 
@@ -468,7 +552,7 @@ export class ReportsComponent implements OnInit {
     return String(value);
   }
 
-  private firstColumnLabel(): string {
+  firstColumnLabel(): string {
     switch (this.template.groupBy) {
       case 'location':
         return 'Location';
@@ -495,9 +579,9 @@ export class ReportsComponent implements OnInit {
     }
   }
 
-  private buildModel(): ReportDocumentModel {
+  private buildModel(preFiltered?: any[]): ReportDocumentModel {
     const template = this.template;
-    const filtered = this.rows.filter((row) => this.matchesFilters(row));
+    const filtered = preFiltered ?? this.rows.filter((row) => this.matchesFilters(row));
     const buckets = new Map<string, any[]>();
     filtered.forEach((row) => {
       const label = REPORT_GROUP_RESOLVERS[template.groupBy](row);
@@ -515,7 +599,7 @@ export class ReportsComponent implements OnInit {
         label,
         rows: rows.map((row) => ({
           cells: [
-            row.animal_id ?? row.employee_code ?? row.item_id ?? row.ticket_number ?? label,
+            row.animal_id ?? row.employee_code ?? row.item_id ?? row.ticket_number ?? row.request_number ?? row.title ?? row.description ?? label,
             ...activeCols.map((col) => this.cellText(col as any, row))
           ]
         })),
@@ -547,18 +631,24 @@ export class ReportsComponent implements OnInit {
   runReport(): void {
     this.generating = true;
     this.error = '';
-    const doc = buildReportDocument(this.buildModel());
+    const model = this.buildModel();
+    this.previewModel = model;
+    const doc = buildReportDocument(model);
     const tab = window.open('', '_blank');
-    if (!tab) {
-      this.generating = false;
-      this.error = 'The report tab was blocked by your browser. Allow pop-ups for this site and try again.';
-      return;
+    if (tab) {
+      tab.document.open();
+      tab.document.write(doc);
+      tab.document.close();
+    } else {
+      const previewEl = document.getElementById('report-live-preview');
+      previewEl?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
-    tab.document.open();
-    tab.document.write(doc);
-    tab.document.close();
     this.generating = false;
     this.lastGenerated = new Date();
+  }
+
+  printPreview(): void {
+    window.print();
   }
 
   exportCsv(): void {
@@ -579,7 +669,7 @@ export class ReportsComponent implements OnInit {
     const csvRows: string[] = [headers.map((h) => `"${h.replace(/"/g, '""')}"`).join(',')];
 
     filtered.forEach((row) => {
-      const firstVal = row.animal_id ?? row.employee_code ?? row.item_id ?? row.ticket_number ?? REPORT_GROUP_RESOLVERS[this.template.groupBy](row);
+      const firstVal = row.animal_id ?? row.employee_code ?? row.item_id ?? row.ticket_number ?? row.request_number ?? REPORT_GROUP_RESOLVERS[this.template.groupBy](row);
       const cells = [
         firstVal,
         ...activeCols.map((col) => {
@@ -602,7 +692,7 @@ export class ReportsComponent implements OnInit {
   }
 
   reset(): void {
-    this.filterValues = {};
+    this.ensureFilterDefaults({});
     this.search = '';
     this.locationChips = [];
     this.includeArchived = false;
@@ -611,9 +701,8 @@ export class ReportsComponent implements OnInit {
     this.rateTo = '';
     this.showAmount = 'All';
     this.selectedRemarks = ['Check In', 'Veterinary Note'];
-    const today = this.isoDate(new Date());
-    this.dateFrom = today;
-    this.dateTo = today;
+    this.dateFrom = this.isoDate(this.daysAgo(30));
+    this.dateTo = this.isoDate(new Date());
 
     // Reset columns to defaults
     const avail = this.availableColumns;
@@ -643,6 +732,7 @@ export class ReportsComponent implements OnInit {
     this.savedTemplates = { ...this.savedTemplates, [this.selectedId]: [...existing, name] };
     localStorage.setItem('reportTemplates', JSON.stringify(this.savedTemplates));
     this.templateName = name;
+    this.refreshPreview();
   }
 
   get templateOptions(): string[] {
@@ -721,29 +811,35 @@ export class ReportsComponent implements OnInit {
   private restoreState(id: string): void {
     const state = this.readJson<Record<string, any>>('reportStates', {})[id];
     const today = this.isoDate(new Date());
+    const defaultFrom = REPORT_TEMPLATES[id]?.dateField ? this.isoDate(this.daysAgo(30)) : today;
     if (!state) {
-      this.dateFrom = today;
+      this.dateFrom = defaultFrom;
       this.dateTo = today;
       this.locationChips = [];
       this.includeArchived = false;
       this.search = '';
-      this.filterValues = {};
+      this.ensureFilterDefaults({});
       return;
     }
-    this.dateFrom = state.dateFrom ?? today;
-    this.dateTo = state.dateTo ?? this.dateFrom;
+    this.dateFrom = state.dateFrom ?? defaultFrom;
+    this.dateTo = state.dateTo ?? today;
     this.locationChips = state.locationChips ?? [];
     this.includeArchived = !!state.includeArchived;
     this.search = state.search ?? '';
-    this.filterValues = state.filterValues ?? {};
+    this.ensureFilterDefaults(state.filterValues ?? {});
     if (state.selectedColumnKeys && Array.isArray(state.selectedColumnKeys) && state.selectedColumnKeys.length) {
-      // Validate with current available columns
       const availKeys = this.availableColumns.map((c) => c.key);
       const valid = state.selectedColumnKeys.filter((k: string) => availKeys.includes(k));
       if (valid.length) {
         this.selectedColumnKeys = valid.slice(0, 5);
       }
     }
+  }
+
+  private daysAgo(days: number): Date {
+    const d = new Date();
+    d.setDate(d.getDate() - days);
+    return d;
   }
 
   private isoDate(date: Date): string {
