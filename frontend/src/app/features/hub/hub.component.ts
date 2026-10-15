@@ -140,6 +140,7 @@ export class HubComponent implements OnInit {
         { label: 'Health', description: 'Health cases and monitoring', route: '/health' },
         { label: 'Treatments', description: 'Care plans and medication', route: '/treatments' },
         { label: 'Breeding', description: 'Cycles, pairings and outcomes', route: '/breeding' },
+        { label: 'Kidding Radar', description: 'Gestation & expected kidding horizon', route: '/kidding-radar' },
         { label: 'Feed', description: 'Feed stock and consumption', route: '/feed' }
       ]
     },

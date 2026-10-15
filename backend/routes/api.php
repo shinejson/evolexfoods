@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\LivestockController;
 use App\Http\Controllers\Api\V1\MarketingController;
 use App\Http\Controllers\Api\V1\NotificationController;
 use App\Http\Controllers\Api\V1\ProcurementController;
+use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\SettingsController;
 use Illuminate\Support\Facades\Route;
