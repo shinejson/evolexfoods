@@ -42,7 +42,7 @@ import {
 /** Average gestation length in days, by species. */
 export const GESTATION_DAYS: Record<string, number> = {
   goat: 150,
-  sheep: 147,
+  sheep: 150,
   cattle: 283,
   pig: 114,
   rabbit: 31,

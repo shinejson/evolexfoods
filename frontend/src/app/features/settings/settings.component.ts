@@ -279,7 +279,7 @@ export class SettingsComponent implements OnInit {
       mortality_alert_threshold: 3.0,
       feed_low_threshold_days: 14,
       gestation_days_goat: 150,
-      gestation_days_sheep: 147,
+      gestation_days_sheep: 150,
       gestation_days_cattle: 283,
       wean_age_days_goat: 90,
       wean_age_days_sheep: 90,

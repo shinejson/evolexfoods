@@ -190,13 +190,27 @@ class CrudController extends Controller
         }
 
         if ($resource === 'livestock' && empty($data['animal_id'])) {
-            $prefix = match ($data['species'] ?? 'goat') {
-                'sheep' => 'EV-SH',
-                'cattle' => 'EV-CT',
-                default => 'EV-GT',
-            };
-            $next = Animal::where('animal_id', 'like', $prefix.'-%')->count() + 1;
-            $data['animal_id'] = $prefix.'-'.str_pad((string) $next, 6, '0', STR_PAD_LEFT);
+            // Automated Animal ID sequencing (§10) — sequence-table backed,
+            // never reuses an ID (replaces the old count()+1 allocation).
+            $data['animal_id'] = app(\App\Services\AnimalIdGenerator::class)->next($data['species'] ?? 'goat');
+        }
+
+        if ($resource === 'procurement') {
+            // Two-tier approval routing (§44–47) on every creation path.
+            $routing = app(\App\Services\ProcurementApprovalService::class)
+                ->routingFor($data['estimated_cost'] ?? ($existing?->estimated_cost ?? null));
+            $data['approval_tier'] = $data['approval_tier'] ?? $routing['approval_tier'];
+            $data['approval_stage'] = $data['approval_stage'] ?? $routing['approval_stage'];
+            $data['required_approver_role'] = $data['required_approver_role'] ?? $routing['required_approver_role'];
+            if ($existing && ($data['status'] ?? $existing->status) !== 'pending') {
+                // A decided/converted request keeps its terminal stage.
+                $data['approval_stage'] = match ($data['status'] ?? $existing->status) {
+                    'approved' => 'approved',
+                    'rejected' => 'rejected',
+                    'ordered', 'converted' => 'ordered',
+                    default => $data['approval_stage'],
+                };
+            }
         }
 
         if ($resource === 'assets' && empty($data['asset_id'])) {

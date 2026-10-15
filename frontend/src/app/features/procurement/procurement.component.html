@@ -1,57 +1,192 @@
-<section class="page">
-  <div class="page-head">
+<main class="proc-page">
+  <header class="proc-head">
     <div>
+      <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span> Evolex Hub · Supply Chain · §44–47</p>
       <h1>Procurement</h1>
-      <p>Purchase requests, approval history, orders and goods received.</p>
+      <p class="subtitle">Purchase Request → Approval → Purchase Order. Nothing moves forward until the authorised tier has approved it.</p>
     </div>
-  </div>
-  <div class="kpis">
-    <div class="kpi"><div class="label">Requests</div><div class="value">{{ requests.count }}</div></div>
-    <div class="kpi alert"><div class="label">Pending</div><div class="value">{{ requests.pending }}</div></div>
-    <div class="kpi"><div class="label">Purchase orders</div><div class="value">{{ purchases.count }}</div></div>
-  </div>
-  <div class="grid-2">
-    <div class="panel">
-      <h2>Purchase requests</h2>
-      <table>
-        <thead><tr><th>Number</th><th>Item</th><th>Status</th><th></th></tr></thead>
-        <tbody>
-          <tr *ngFor="let row of requests.records">
-            <td>{{ row.request_number }}</td>
-            <td>{{ row.item_name }} <div class="muted">{{ row.quantity }} {{ row.unit }}</div></td>
-            <td><span class="badge" [class]="row.status">{{ row.status }}</span></td>
-            <td><button class="btn ghost" (click)="showApprovals(row.id)">Approvals</button></td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="head-actions">
+      <span class="role-chip">Signed in as {{ role() || '—' }}</span>
+      <button type="button" class="btn btn--solid" (click)="toggleForm()">{{ showForm() ? 'Close form' : 'New purchase request' }}</button>
     </div>
-    <div class="panel">
-      <h2>Approval history</h2>
-      <div *ngIf="!selected" class="empty">Select a request to view who approved it.</div>
-      <table *ngIf="selected">
-        <thead><tr><th>Approver</th><th>Decision</th><th>When</th></tr></thead>
-        <tbody>
-          <tr *ngFor="let row of selected.approvals">
-            <td>{{ row.approver?.name }}</td>
-            <td><span class="badge" [class]="row.decision">{{ row.decision }}</span></td>
-            <td>{{ row.decided_at }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+  </header>
+
+  <!-- Approval matrix -->
+  @if (matrix(); as matrix) {
+    <section class="matrix" aria-label="Approval matrix">
+      <article class="matrix-card matrix-card--workflow">
+        <h2>Workflow</h2>
+        <ol class="workflow">
+          @for (step of matrix.workflow; track step) {
+            <li>{{ step }}</li>
+          }
+        </ol>
+      </article>
+      @for (tier of matrix.tiers; track tier.tier) {
+        <article class="matrix-card" [class.matrix-card--exec]="tier.tier === 2">
+          <h2>{{ tier.label }}</h2>
+          <p class="matrix-rule">{{ tier.rule }}</p>
+          <p class="matrix-approver">Decided by <strong>{{ tier.approver_label }}</strong></p>
+          <p class="matrix-roles">{{ tier.roles.join(' · ') }}</p>
+        </article>
+      }
+    </section>
+  }
+
+  @if (notice()) {
+    <div class="notice" role="status">{{ notice() }}</div>
+  }
+
+  <!-- New request -->
+  @if (showForm()) {
+    <section class="panel form-panel">
+      <h2>Request a purchase</h2>
+      <div class="form-grid">
+        <label><span>Item / service *</span><input [ngModel]="form().item_name" (ngModelChange)="updateForm({ item_name: $event })" placeholder="e.g. Dairy Mash" /></label>
+        <label><span>Category</span><input [ngModel]="form().category" (ngModelChange)="updateForm({ category: $event })" placeholder="Feed, Medicine, Tools…" /></label>
+        <label><span>Quantity *</span><input type="number" min="0" step="any" [ngModel]="form().quantity" (ngModelChange)="updateForm({ quantity: $event })" /></label>
+        <label><span>Unit</span><input [ngModel]="form().unit" (ngModelChange)="updateForm({ unit: $event })" placeholder="kg, bottle, box…" /></label>
+        <label><span>Estimated cost (GH₵)</span><input type="number" min="0" step="any" [ngModel]="form().estimated_cost" (ngModelChange)="updateForm({ estimated_cost: $event })" /></label>
+        <label><span>Priority</span>
+          <select [ngModel]="form().priority" (ngModelChange)="updateForm({ priority: $event })">
+            <option value="low">Low</option><option value="normal">Normal</option><option value="high">High</option><option value="urgent">Urgent</option>
+          </select>
+        </label>
+        <label class="form-wide"><span>Justification</span><input [ngModel]="form().justification" (ngModelChange)="updateForm({ justification: $event })" placeholder="Why is this needed?" /></label>
+      </div>
+      <div class="routing-preview" [class.routing-preview--exec]="formTier() === 2">
+        <strong>{{ helpers.tierLabel(formTier()) }}</strong>
+        <span>{{ formRouting() }}</span>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn--solid" [disabled]="busy()" (click)="submitRequest()">Submit for approval</button>
+      </div>
+    </section>
+  }
+
+  @if (state() === 'loading' && records().length === 0) {
+    <div class="skeleton" aria-busy="true"><div></div><div></div><div></div></div>
+  }
+  @if (state() === 'error') {
+    <section class="state-panel" role="alert"><h2>Procurement unavailable</h2><p>{{ errorMessage() }}</p><button type="button" class="btn btn--solid" (click)="load()">Try again</button></section>
+  }
+
+  <!-- Queues -->
+  <nav class="queue-tabs" aria-label="Approval queues">
+    <button type="button" [class.is-active]="tab() === 'awaitingYou'" (click)="setTab('awaitingYou')">Awaiting you <span class="count-pill">{{ queues().awaitingYou.length }}</span></button>
+    <button type="button" [class.is-active]="tab() === 'awaitingOthers'" (click)="setTab('awaitingOthers')">Awaiting others <span class="count-pill">{{ queues().awaitingOthers.length }}</span></button>
+    <button type="button" [class.is-active]="tab() === 'readyForPo'" (click)="setTab('readyForPo')">Ready for PO <span class="count-pill">{{ queues().readyForPo.length }}</span></button>
+    <button type="button" [class.is-active]="tab() === 'closed'" (click)="setTab('closed')">Closed <span class="count-pill">{{ queues().closed.length }}</span></button>
+    <button type="button" [class.is-active]="tab() === 'all'" (click)="setTab('all')">All requests <span class="count-pill">{{ records().length }}</span></button>
+  </nav>
+
+  <div class="proc-grid">
+    <section class="panel list-panel">
+      @if (visibleRecords().length === 0) {
+        <p class="empty">Nothing in this queue. New requests appear here as soon as they are submitted.</p>
+      }
+      @for (request of visibleRecords(); track request.id) {
+        <button type="button" class="request-row" [class.is-selected]="selected()?.id === request.id" (click)="select(request)">
+          <span class="request-main">
+            <strong>{{ request.item_name }}</strong>
+            <span class="meta">{{ request.request_number }} · {{ request.quantity }} {{ request.unit || '' }} · {{ request.requester?.name || '—' }}</span>
+          </span>
+          <span class="request-side">
+            <strong>GH₵{{ helpers.formatMoney(request.estimated_cost) }}</strong>
+            <span class="tier-chip" [class.tier-chip--exec]="request.approval_tier === 2">{{ helpers.tierLabel(request.approval_tier) }}</span>
+          </span>
+        </button>
+      }
+    </section>
+
+    <!-- Detail / decision -->
+    <section class="panel detail-panel">
+      @if (selected(); as request) {
+        <div class="detail-head">
+          <div>
+            <h2>{{ request.item_name }}</h2>
+            <p class="meta">{{ request.request_number }} · requested {{ request.requested_at }} by {{ request.requester?.name || '—' }}</p>
+          </div>
+          <span class="stage-pill">{{ helpers.stageLabel(request.approval_stage) }}</span>
+        </div>
+
+        <dl class="detail-grid">
+          <div><dt>Estimated cost</dt><dd>GH₵{{ helpers.formatMoney(request.estimated_cost) }}</dd></div>
+          <div><dt>Quantity</dt><dd>{{ request.quantity }} {{ request.unit || '' }}</dd></div>
+          <div><dt>Approval tier</dt><dd>{{ helpers.tierLabel(request.approval_tier) }}</dd></div>
+          <div><dt>Decided by</dt><dd>{{ helpers.approverLabel(request.approval_tier) }}</dd></div>
+          <div><dt>Priority</dt><dd>{{ request.priority || 'normal' }}</dd></div>
+          <div><dt>Status</dt><dd>{{ helpers.waitingOn(request, role()) }}</dd></div>
+        </dl>
+        @if (request.justification) { <p class="justification">“{{ request.justification }}”</p> }
+
+        @if (helpers.isPending(request)) {
+          <div class="decision-box">
+            <label><span>Decision comment</span>
+              <input [ngModel]="decisionComment()" (ngModelChange)="decisionComment.set($event)" placeholder="Optional — recorded with the decision" />
+            </label>
+            @if (canDecideSelected()) {
+              <div class="form-actions">
+                <button type="button" class="btn btn--solid" [disabled]="busy()" (click)="decide('approve')">Approve</button>
+                <button type="button" class="btn btn--danger" [disabled]="busy()" (click)="decide('reject')">Reject</button>
+              </div>
+            } @else {
+              <p class="waiting-note">This request is waiting on <strong>{{ helpers.approverLabel(request.approval_tier) }}</strong> approval — your role ({{ role() || 'unknown' }}) cannot decide a {{ helpers.tierLabel(request.approval_tier) }} purchase.</p>
+            }
+          </div>
+        }
+
+        @if (request.approval_stage === 'approved') {
+          <div class="decision-box">
+            <h3>Raise purchase order</h3>
+            <label><span>Supplier</span>
+              <select [ngModel]="poSupplierId()" (ngModelChange)="poSupplierId.set($event)">
+                <option [ngValue]="null">Select supplier (optional)</option>
+                @for (supplier of suppliers(); track supplier.id) { <option [ngValue]="supplier.id">{{ supplier.name }}</option> }
+              </select>
+            </label>
+            <div class="form-actions">
+              <button type="button" class="btn btn--solid" [disabled]="busy()" (click)="createPurchaseOrder()">Create purchase order</button>
+            </div>
+          </div>
+        }
+
+        <h3>Approval history</h3>
+        @if (!request.approvals?.length) {
+          <p class="empty">No decisions recorded yet.</p>
+        } @else {
+          <ol class="timeline">
+            @for (approval of request.approvals; track approval.id) {
+              <li>
+                <strong>{{ approval.approver?.name || 'Approver' }}</strong>
+                <span class="meta"> · {{ approval.decision }} · Tier {{ approval.tier || request.approval_tier }} ({{ approval.approver_role || '—' }}) · {{ approval.decided_at }}</span>
+                @if (approval.comments) { <span class="meta"> — “{{ approval.comments }}”</span> }
+              </li>
+            }
+          </ol>
+        }
+      } @else {
+        <p class="empty">Select a purchase request to see its routing, approval history and next step.</p>
+      }
+    </section>
   </div>
-  <div class="panel">
-    <h2>Purchases and receipts</h2>
-    <table>
-      <thead><tr><th>PO</th><th>Supplier</th><th>Amount</th><th>Status</th></tr></thead>
-      <tbody>
-        <tr *ngFor="let row of purchases.purchase_orders">
-          <td>{{ row.po_number }}</td>
-          <td>{{ row.supplier?.name }}</td>
-          <td>{{ row.total_amount }}</td>
-          <td><span class="badge" [class]="row.status">{{ row.status }}</span></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</section>
+
+  <!-- Orders -->
+  <section class="panel">
+    <div class="panel-head"><h2>Purchase orders</h2><span class="count-pill">{{ orders().length }}</span></div>
+    @if (orders().length === 0) {
+      <p class="empty">No purchase orders yet. Approve a request, then raise its PO here.</p>
+    } @else {
+      <div class="order-list">
+        @for (order of orders(); track order.id) {
+          <div class="order-row">
+            <strong>{{ order.po_number }}</strong>
+            <span class="meta">{{ order.supplier?.name || 'Supplier to confirm' }} · {{ order.ordered_at }}</span>
+            <span class="order-amount">GH₵{{ helpers.formatMoney(order.total_amount) }}</span>
+            <span class="stage-pill">{{ order.status }}</span>
+          </div>
+        }
+      </div>
+    }
+  </section>
+</main>

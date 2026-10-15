@@ -7,11 +7,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class PurchaseRequestApproval extends Model
 {
-    protected $fillable = ['purchase_request_id', 'approver_id', 'decision', 'decided_at', 'comments'];
+    protected $fillable = ['purchase_request_id', 'approver_id', 'tier', 'approver_role', 'decision', 'decided_at', 'comments'];
 
     protected function casts(): array
     {
-        return ['decided_at' => 'datetime'];
+        return ['decided_at' => 'datetime', 'tier' => 'integer'];
     }
 
     public function request(): BelongsTo

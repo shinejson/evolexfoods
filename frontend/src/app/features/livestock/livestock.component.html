@@ -12,6 +12,12 @@
         </svg>
         Add Animal
       </button>
+      <button class="btn btn-primary" (click)="openBirth()" title="Register a birth — IDs are auto-generated">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 21s-7-4.5-9.3-9A5.4 5.4 0 0 1 12 6.5 5.4 5.4 0 0 1 21.3 12C19 16.5 12 21 12 21z" />
+        </svg>
+        Record Birth
+      </button>
       <button class="btn btn-secondary" (click)="exportData()" title="Export Data">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-5 5 5 5-5m-5 5V3" />
@@ -386,12 +392,10 @@
           </div>
           <div class="form-group">
             <label>Species *</label>
-            <select [(ngModel)]="modalAnimal.species" name="species" required>
-              <option value="goat">Goat</option>
-              <option value="sheep">Sheep</option>
-              <option value="cattle">Cattle</option>
-              <option value="chicken">Chicken</option>
-              <option value="pig">Pig</option>
+            <select [(ngModel)]="modalAnimal.species" (ngModelChange)="onSpeciesChange()" name="species" required>
+              <option value="goat">Goat · EV-GT</option>
+              <option value="sheep">Sheep · EV-SH</option>
+              <option value="cattle">Cattle · EV-CT</option>
             </select>
           </div>
           <div class="form-group">
@@ -448,6 +452,92 @@
           <button type="submit" class="btn btn-primary">{{ isEditing ? 'Save Changes' : 'Create Animal' }}</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Birth Lifecycle Modal (§96) -->
+  <div class="modal-backdrop" *ngIf="showBirthModal" (click)="closeBirth()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div>
+          <h3 style="margin: 0;">Record Birth</h3>
+          <p class="muted" style="margin: 4px 0 0; font-size: 13px;">Each kid gets the next sequential Evolex ID automatically; the dam's pregnancy closes and she returns to open breeding status.</p>
+        </div>
+        <button class="btn-close" (click)="closeBirth()">&times;</button>
+      </div>
+
+      <div class="modal-body" *ngIf="birthResult">
+        <div class="birth-success">
+          <strong>{{ birthResult.litter_size === 1 ? 'Kid registered' : birthResult.litter_size + ' kids registered' }}</strong>
+          <ul>
+            <li *ngFor="let kid of birthResult.animals">{{ kid.animal_id }} · {{ kid.sex }} · born {{ kid.dob }}</li>
+          </ul>
+          <p class="muted">{{ birthResult.pregnancy_closed ? 'The dam\'s active pregnancy was closed.' : 'No active pregnancy was open for the dam.' }} Herd count and dashboards now include the new arrival{{ birthResult.litter_size === 1 ? '' : 's' }}, and the supervisor has been notified.</p>
+        </div>
+      </div>
+
+      <form (ngSubmit)="submitBirth()" *ngIf="!birthResult">
+        <div class="modal-body form-grid">
+          <div class="form-group">
+            <label>Dam (Mother ID) *</label>
+            <select [(ngModel)]="birthForm.mother_animal_id" (ngModelChange)="onDamChange()" name="birth_mother" required>
+              <option value="">Select dam…</option>
+              <option *ngFor="let dam of dams" [ngValue]="dam.animal_id">{{ dam.animal_id }} · {{ dam.species }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Sire (Father ID)</label>
+            <select [(ngModel)]="birthForm.father_animal_id" name="birth_father">
+              <option value="">Not recorded</option>
+              <option *ngFor="let sire of sires" [ngValue]="sire.animal_id">{{ sire.animal_id }} · {{ sire.species }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Birth date</label>
+            <input type="date" [(ngModel)]="birthForm.birth_date" name="birth_date" />
+          </div>
+          <div class="form-group">
+            <label>Location</label>
+            <select [(ngModel)]="birthForm.location_id" name="birth_location">
+              <option [ngValue]="null">Dam's location</option>
+              <option *ngFor="let loc of locationsList" [ngValue]="loc.id">{{ loc.name }}</option>
+            </select>
+          </div>
+          <div class="form-group full-width" *ngIf="nextIdPreview">
+            <label>Auto-generated ID{{ birthKids.length > 1 ? 's' : '' }}</label>
+            <p class="muted" style="margin: 0;">First kid: <strong>{{ nextIdPreview }}</strong>{{ birthKids.length > 1 ? ' — twins and triplets take the following numbers in sequence.' : '' }} IDs are never reused (§10).</p>
+          </div>
+
+          <div class="form-group full-width">
+            <label>Kids in this litter</label>
+            <div class="kid-row" *ngFor="let kid of birthKids; let i = index">
+              <span class="kid-label">Kid {{ i + 1 }}</span>
+              <select [(ngModel)]="kid.sex" [name]="'kid_sex_' + i">
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+              </select>
+              <input type="number" min="0" step="0.1" [(ngModel)]="kid.birth_weight" [name]="'kid_weight_' + i" placeholder="Birth weight (kg)" />
+              <button type="button" class="btn btn-secondary" *ngIf="birthKids.length > 1" (click)="removeKid(i)">Remove</button>
+            </div>
+            <button type="button" class="btn btn-secondary" (click)="addKid()">+ Add another kid (twins / triplets)</button>
+          </div>
+
+          <div class="form-group full-width">
+            <label>Notes</label>
+            <textarea [(ngModel)]="birthForm.notes" name="birth_notes" rows="2" placeholder="Delivery notes, assistance needed, condition…"></textarea>
+          </div>
+          <p class="form-error full-width" *ngIf="birthError">{{ birthError }}</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeBirth()">Cancel</button>
+          <button type="submit" class="btn btn-primary" [disabled]="birthSaving">{{ birthSaving ? 'Registering…' : 'Register birth' }}</button>
+        </div>
+      </form>
+
+      <div class="modal-footer" *ngIf="birthResult">
+        <button type="button" class="btn btn-secondary" (click)="openBirth()">Register another birth</button>
+        <button type="button" class="btn btn-primary" (click)="closeBirth()">Done</button>
+      </div>
     </div>
   </div>
 

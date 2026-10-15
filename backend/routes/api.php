@@ -33,6 +33,8 @@ Route::prefix('v1')->group(function () {
         Route::get('/dashboard/ceo', [DashboardController::class, 'ceo']);
 
         Route::get('/livestock/summary', [LivestockController::class, 'summary']);
+        Route::get('/livestock/next-id', [LivestockController::class, 'nextId']);
+        Route::get('/livestock/gestation-radar', [LivestockController::class, 'gestationRadar']);
         Route::get('/livestock/pregnancies', [LivestockController::class, 'pregnancies']);
         Route::get('/livestock/births', [LivestockController::class, 'births']);
         Route::get('/livestock/deaths', [LivestockController::class, 'deaths']);
@@ -67,7 +69,14 @@ Route::prefix('v1')->group(function () {
         Route::get('/inventory/medicines', [FeedInventoryController::class, 'medicines']);
         Route::get('/inventory/low-stock', [FeedInventoryController::class, 'lowStock']);
 
+        // 1-Click Weekly Owner Report (§113)
+        Route::get('/reports/weekly-owner', [ReportController::class, 'weeklyOwner']);
+
         Route::get('/procurement/requests', [ProcurementController::class, 'requests']);
+        Route::get('/procurement/approval-matrix', [ProcurementController::class, 'approvalMatrix']);
+        Route::post('/procurement/requests/{id}/approve', [ProcurementController::class, 'approve'])->whereNumber('id');
+        Route::post('/procurement/requests/{id}/reject', [ProcurementController::class, 'reject'])->whereNumber('id');
+        Route::post('/procurement/requests/{id}/purchase-order', [ProcurementController::class, 'createPurchaseOrder'])->whereNumber('id');
         Route::get('/procurement/requests/{id}/approvals', [ProcurementController::class, 'approvals']);
         Route::get('/procurement/purchases', [ProcurementController::class, 'purchases']);
         Route::get('/suppliers', [ProcurementController::class, 'suppliers']);

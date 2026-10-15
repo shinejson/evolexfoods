@@ -218,7 +218,7 @@ describe('breeding insights', () => {
   describe('gestation maths', () => {
     it('uses the species gestation length', () => {
       expect(gestationLength('goat')).toBe(150);
-      expect(gestationLength('sheep')).toBe(147);
+      expect(gestationLength('sheep')).toBe(150);
       expect(gestationLength('cattle')).toBe(283);
       expect(gestationLength('unknown breed')).toBe(150);
     });
